@@ -34,5 +34,6 @@ export function createInitialGameState(seed: number = 20241208): GameState {
     },
     activeEvents: [],
     lastTurnAudit: null,
+    enactedDecrees: [],
   };
 }

@@ -10,6 +10,8 @@
     getOligarchNationalizePCEarned,
   } from '../engine/oligarch-helpers';
 
+  type DecreeBehaviorType = 'ONE_TIME' | 'CONTINUOUS_TOGGLE' | 'PERIODIC';
+
   interface PoliticalDecreeItem {
     id: string;
     titleAr: string;
@@ -17,6 +19,7 @@
     costAr: string;
     gainAr: string;
     category: 'DECREE' | 'POLITICAL';
+    behavior: DecreeBehaviorType;
   }
 
   const DECREE_PC_COSTS: Record<string, number> = {
@@ -38,6 +41,7 @@
       costAr: 'يستهلك 15 رصيد سياسي',
       gainAr: 'يقلص الفساد الوطني (-8) ويحد من هدر الموازنة ويرفع الثقة (+5)',
       category: 'DECREE',
+      behavior: 'ONE_TIME',
     },
     {
       id: 'PROPERTY_RESTITUTION_PORTAL',
@@ -46,6 +50,7 @@
       costAr: 'يستهلك 10 رصيد سياسي',
       gainAr: 'يشجع عودة اللاجئين ويخفض مؤشر الاحتقان في حمص وريف دمشق ويرفع الثقة (+4)',
       category: 'DECREE',
+      behavior: 'ONE_TIME',
     },
     {
       id: 'SMUGGLING_BORDER_SWEEP',
@@ -54,6 +59,7 @@
       costAr: 'يستهلك 12 رصيد سياسي',
       gainAr: 'يحد من نزيف العملة الأجنبية ويجلب سيولة جمركية (+15M$) ويقلص الفساد (-4)',
       category: 'DECREE',
+      behavior: 'PERIODIC',
     },
     {
       id: 'TRIBAL_CUSTOMS_COUNCIL',
@@ -62,6 +68,7 @@
       costAr: 'يستهلك 8 رصيد سياسي',
       gainAr: 'يؤمن حركة الترانزيت ويخفض اضطرابات دير الزور والرقة (-10 بمؤشر الاحتقان)',
       category: 'DECREE',
+      behavior: 'ONE_TIME',
     },
     {
       id: 'CABINET_HEARING',
@@ -70,6 +77,7 @@
       costAr: 'صفر رصيد سياسي (مجاني)',
       gainAr: 'يرفع الرصيد السياسي (+8) والثقة المجتمعية (+3) وكفاءة الوزارات (+2)',
       category: 'POLITICAL',
+      behavior: 'PERIODIC',
     },
     {
       id: 'UNITY_SPEECH',
@@ -78,6 +86,7 @@
       costAr: 'صفر رصيد سياسي (مجاني)',
       gainAr: 'يرفع الرصيد السياسي (+4) والثقة (+2) ويخفض مؤشر الاحتقان (-3)',
       category: 'POLITICAL',
+      behavior: 'ONE_TIME',
     },
     {
       id: 'OPPOSITION_SEATS',
@@ -86,14 +95,16 @@
       costAr: 'يستهلك تفاهمات سياسية محدودة',
       gainAr: 'يمنح +18 رصيد سياسي و +4 ثقة شعبية بإشراك الكفاءات الوطنية',
       category: 'POLITICAL',
+      behavior: 'ONE_TIME',
     },
     {
       id: 'MARTIAL_LAW',
       titleAr: 'إعلان حالة الطوارئ والأحكام العرفية',
       descAr: 'تجميد فوري لمؤشر الشغب والاحتجاجات وفرض منع التجوال في المناطق المشتعلة.',
-      costAr: 'هبوط الثقة المدنية (-12) وخطر توتر أمني محتمل',
-      gainAr: 'تخفيض فوري حاسم لمؤشر الاحتقان الوطني (-15 نقطة) والمحلي (-12)',
+      costAr: 'ديبَف مستمر (-4% ثقة شعبية لكل دور)',
+      gainAr: 'تجميد الاحتجاجات وتخفيض حاسم للاحتقان (-15 وطني / -12 محلي)',
       category: 'POLITICAL',
+      behavior: 'CONTINUOUS_TOGGLE',
     },
   ];
 
@@ -1029,44 +1040,93 @@
         <div class="space-y-2">
           <span class="text-xs text-wheat-mid font-semibold font-heading block">المراسيم الرئاسية والقرارات السيادية</span>
           {#each DECREES as dec}
+            {@const isEnacted = $gameStore.enactedDecrees?.includes(dec.id)}
             {@const isActive = $draftStore.activePoliticalActions.includes(dec.id)}
             {@const costPC = DECREE_PC_COSTS[dec.id] || 0}
             {@const canAfford = isActive || costPC <= $budgetStore.remainingPC}
             <div
-              class="p-3 border transition-all duration-300 rounded-none {isActive ? 'bg-forest-surface border-wheat-gold shadow-md' : 'bg-charcoal-surface border-charcoal-mid'} {selectedStat ? (isDecreeRelated(dec.id) ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}"
+              class="p-3 border transition-all duration-300 rounded-none {isEnacted ? 'bg-forest-surface/30 border-forest-accent/40 opacity-80' : isActive ? (dec.behavior === 'CONTINUOUS_TOGGLE' ? 'bg-umber-deep/40 border-umber-border shadow-md' : 'bg-forest-surface border-wheat-gold shadow-md') : 'bg-charcoal-surface border-charcoal-mid'} {selectedStat ? (isDecreeRelated(dec.id) ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}"
             >
               <div class="space-y-2">
                 <div class="flex items-start justify-between gap-2">
-                  <h3 class="text-xs font-bold text-wheat-light font-heading leading-tight">{dec.titleAr}</h3>
-                  <button
-                    disabled={!isActive && !canAfford}
-                    onclick={() => {
-                      if (isActive || canAfford) {
-                        draftStore.togglePoliticalAction(dec.id);
-                      }
-                    }}
-                    class="px-3 py-1 text-[11px] font-bold shrink-0 border transition-colors rounded-none {isActive ? 'bg-wheat-gold text-forest-deep border-wheat-gold cursor-pointer' : canAfford ? 'bg-forest-mid text-wheat-mid hover:text-wheat-light border-charcoal-mid hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
-                  >
-                    {#if isActive}
-                      [مُفعّل]
-                    {:else if !canAfford}
-                      رصيد سياسي غير كافٍ ({costPC})
-                    {:else}
-                      تفعيل
-                    {/if}
-                  </button>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <h3 class="text-xs font-bold text-wheat-light font-heading leading-tight">{dec.titleAr}</h3>
+                      {#if isEnacted}
+                        <span class="px-1.5 py-0.2 rounded-none bg-forest-mid border border-forest-accent text-forest-accent font-bold text-[9px]">
+                          ✓ صادر ونافذ رسمياً
+                        </span>
+                      {:else if dec.behavior === 'ONE_TIME'}
+                        <span class="px-1.5 py-0.2 rounded-none bg-charcoal-surface border border-charcoal-mid text-wheat-dark text-[8.5px]">
+                          مرسوم لمرة واحدة
+                        </span>
+                      {:else if dec.behavior === 'CONTINUOUS_TOGGLE'}
+                        <span class="px-1.5 py-0.2 rounded-none bg-umber-deep/50 border border-umber-border text-umber-crimson font-bold text-[8.5px]">
+                          {isActive ? '● طوارئ سارية' : 'أثر وديبَف مستمر'}
+                        </span>
+                      {:else}
+                        <span class="px-1.5 py-0.2 rounded-none bg-charcoal-surface border border-charcoal-mid text-wheat-mid text-[8.5px]">
+                          إجراء دوري
+                        </span>
+                      {/if}
+                    </div>
+                  </div>
+
+                  {#if isEnacted}
+                    <span class="px-2.5 py-1 text-[10.5px] font-bold shrink-0 border border-forest-accent/40 bg-forest-surface text-forest-accent select-none">
+                      نافذ بالقانون
+                    </span>
+                  {:else if dec.behavior === 'CONTINUOUS_TOGGLE'}
+                    <button
+                      onclick={() => draftStore.togglePoliticalAction(dec.id)}
+                      class="px-3 py-1 text-[11px] font-bold shrink-0 border transition-colors rounded-none cursor-pointer {isActive ? 'bg-umber-deep hover:bg-umber-crimson border-umber-border text-amber-200 hover:text-white' : 'bg-forest-mid text-wheat-mid hover:text-wheat-light border-charcoal-mid hover:border-charcoal-light'}"
+                    >
+                      {isActive ? 'إنهاء حالة الطوارئ' : 'إعلان الطوارئ'}
+                    </button>
+                  {:else}
+                    <button
+                      disabled={!isActive && !canAfford}
+                      onclick={() => {
+                        if (isActive || canAfford) {
+                          draftStore.togglePoliticalAction(dec.id);
+                        }
+                      }}
+                      class="px-3 py-1 text-[11px] font-bold shrink-0 border transition-colors rounded-none {isActive ? 'bg-wheat-gold text-forest-deep border-wheat-gold cursor-pointer' : canAfford ? 'bg-forest-mid text-wheat-mid hover:text-wheat-light border-charcoal-mid hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
+                    >
+                      {#if isActive}
+                        [مُفعّل]
+                      {:else if !canAfford}
+                        رصيد سياسي غير كافٍ ({costPC})
+                      {:else}
+                        تفعيل
+                      {/if}
+                    </button>
+                  {/if}
                 </div>
 
                 <p class="text-[11px] text-wheat-dark leading-relaxed">{dec.descAr}</p>
 
-                <div class="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-charcoal-mid/80 text-[10px]">
-                  <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
-                    {dec.gainAr}
-                  </span>
-                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
-                    {dec.costAr}
-                  </span>
-                </div>
+                {#if dec.behavior === 'CONTINUOUS_TOGGLE' && isActive}
+                  <div class="p-2 bg-umber-deep/60 border border-umber-border text-[10px] space-y-0.5 text-amber-200">
+                    <span class="font-bold text-amber-300 block">ديبَف مستمر سارٍ:</span>
+                    <span>تخفيض الاحتقان مستمر، مع هبوط متواصل في الثقة الشعبية (-4% كل دور) حتى تنهي حالة الطوارئ يدوياً.</span>
+                  </div>
+                {/if}
+
+                {#if isEnacted}
+                  <div class="pt-1 text-[10px] text-forest-accent/90 border-t border-forest-accent/20 flex items-center gap-1 font-mono">
+                    <span>تم إصدار وإنفاذ هذا المرسوم بشكل دائم في الدولة.</span>
+                  </div>
+                {:else}
+                  <div class="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-charcoal-mid/80 text-[10px]">
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
+                      {dec.gainAr}
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
+                      {dec.costAr}
+                    </span>
+                  </div>
+                {/if}
               </div>
             </div>
           {/each}
@@ -1075,7 +1135,10 @@
         <!-- Expatriate Brain-Gain Initiative -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated('brainGain') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="space-y-1">
-            <span class="text-xs font-bold text-wheat-light block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-xs font-bold text-wheat-light block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
+              <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">تفعيل مستمر دورياً</span>
+            </div>
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-[10px] text-wheat-dark">الكلفة:</span>
               <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-$20M</span>
@@ -1094,7 +1157,7 @@
             class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.expatriateBrainGainIncentive ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordBrainGain ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
           >
             {#if $draftStore.expatriateBrainGainIncentive}
-              مُفعّل
+              مُفعّل (مستمر)
             {:else if !canAffordBrainGain}
               ميزانية غير كافية
             {:else}
