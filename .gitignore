@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Design and planning documents
+plan/
+Syria Post-War Economic Simulation Design.md
