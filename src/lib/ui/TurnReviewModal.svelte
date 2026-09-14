@@ -144,6 +144,13 @@
             <span dir="ltr" class="font-bold font-mono {$budgetStore.remainingSYP < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">
               {formatTrillion($budgetStore.remainingSYP)}T ل.س
             </span>
+            {#if $budgetStore.remainingSYP < 0}
+              {#if $budgetStore.remainingUSD >= ((-$budgetStore.remainingSYP) / Math.max(1, $gameStore.macro.parallelRateSYP))}
+                <span class="text-[8.5px] text-forest-accent block font-heading mt-0.5">مغطى بالاحتياطي الأجنبي</span>
+              {:else}
+                <span class="text-[8.5px] text-umber-crimson block font-heading mt-0.5">عجز يتجاوز الاحتياطي الأجنبي</span>
+              {/if}
+            {/if}
           </div>
         </div>
 

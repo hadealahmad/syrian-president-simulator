@@ -50,6 +50,20 @@ export function getDefaultTurnDirectives(): TurnDirectives {
 }
 
 
+export function canAffordDirectiveCost(
+  reservesUSD: number,
+  treasurySYP: number,
+  costUSD: number,
+  costSYP: number,
+  parallelRate: number
+): boolean {
+  if (costUSD > reservesUSD) return false;
+  if (treasurySYP >= costSYP) return true;
+  const sypShortfall = costSYP - treasurySYP;
+  const usdNeededForSYP = sypShortfall / Math.max(1, parallelRate);
+  return reservesUSD >= costUSD + usdNeededForSYP;
+}
+
 export function hasDraftSelections(directives: TurnDirectives): boolean {
   if (!directives) return false;
   const def = getDefaultTurnDirectives();
@@ -321,7 +335,7 @@ export function simulateTurnTransitions(
 
   // Expatriate Brain-Gain Initiative
   if (directives.expatriateBrainGainIncentive) {
-    if (next.macro.reservesUSD >= 20_000_000 && next.macro.treasurySYP >= 350_000_000_000) {
+    if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 350_000_000_000, next.macro.parallelRateSYP)) {
       Object.values(next.ministries).forEach((m) => {
         m.competence = Math.min(100, m.competence + 8);
       });
@@ -368,8 +382,7 @@ export function simulateTurnTransitions(
       if (gov.strategicProject && gov.strategicProject.id === projId && !gov.strategicProject.isExecuted) {
         if (
           next.macro.politicalCapital >= gov.strategicProject.costPoliticalCapital &&
-          next.macro.reservesUSD >= gov.strategicProject.costUSD &&
-          next.macro.treasurySYP >= gov.strategicProject.costSYP
+          canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, gov.strategicProject.costUSD, gov.strategicProject.costSYP, next.macro.parallelRateSYP)
         ) {
           gov.strategicProject.isExecuted = true;
           next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - gov.strategicProject.costPoliticalCapital);
@@ -392,7 +405,7 @@ export function simulateTurnTransitions(
   // Demining priority (only deployable where mine contamination is > 8% and affordable)
   if (directives.deminingPriorityId && next.governorates[directives.deminingPriorityId]) {
     const dGov = next.governorates[directives.deminingPriorityId];
-    if (dGov.mineSaturationPct > 8 && next.macro.reservesUSD >= 20_000_000 && next.macro.treasurySYP >= 800_000_000_000) {
+    if (dGov.mineSaturationPct > 8 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 800_000_000_000, next.macro.parallelRateSYP)) {
       dGov.mineSaturationPct = Math.max(0, dGov.mineSaturationPct - 8);
       dGov.prri = Math.max(0, dGov.prri - 5);
       if (next.commissions && next.commissions['demining']) {
@@ -404,7 +417,7 @@ export function simulateTurnTransitions(
   // Power supply boost priority for a single governorate (only if blackout > 2 and affordable)
   if (directives.powerBoostGovId && next.governorates[directives.powerBoostGovId]) {
     const pGov = next.governorates[directives.powerBoostGovId];
-    if (pGov.dailyBlackoutHours > 2 && next.macro.reservesUSD >= 10_000_000 && next.macro.treasurySYP >= 300_000_000_000) {
+    if (pGov.dailyBlackoutHours > 2 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 10_000_000, 300_000_000_000, next.macro.parallelRateSYP)) {
       pGov.dailyBlackoutHours = Math.max(2, pGov.dailyBlackoutHours - 4);
       pGov.prri = Math.max(0, pGov.prri - 6);
       pGov.reconstructionScore = Math.min(1.0, Number((pGov.reconstructionScore + 0.03).toFixed(2)));

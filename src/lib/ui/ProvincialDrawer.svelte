@@ -32,13 +32,19 @@
   let isSelectedForDemining = $derived($draftStore.deminingPriorityId === selectedId);
   let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);
   let canAffordDemining = $derived(
-    $budgetStore.remainingUSD >= 20_000_000 && $budgetStore.remainingSYP >= 800_000_000_000
+    $budgetStore.canAffordWithFxCoverage(20_000_000, 800_000_000_000)
+  );
+  let isDeminingCoveredByFX = $derived(
+    $budgetStore.isCoveredByFX(20_000_000, 800_000_000_000)
   );
 
   let isSelectedForPowerBoost = $derived($draftStore.powerBoostGovId === selectedId);
   let canDeployPowerBoost = $derived(node ? node.dailyBlackoutHours > 2 : false);
   let canAffordPowerBoost = $derived(
-    $budgetStore.remainingUSD >= 10_000_000 && $budgetStore.remainingSYP >= 300_000_000_000
+    $budgetStore.canAffordWithFxCoverage(10_000_000, 300_000_000_000)
+  );
+  let isPowerBoostCoveredByFX = $derived(
+    $budgetStore.isCoveredByFX(10_000_000, 300_000_000_000)
   );
 
   let isProjectCommitted = $derived(
@@ -50,8 +56,11 @@
   let isProjectAffordableUSD = $derived(
     Boolean(node?.strategicProject && node.strategicProject.costUSD <= $budgetStore.remainingUSD)
   );
-  let isProjectAffordableSYP = $derived(
-    Boolean(node?.strategicProject && node.strategicProject.costSYP <= $budgetStore.remainingSYP)
+  let isProjectAffordable = $derived(
+    Boolean(node?.strategicProject && $budgetStore.canAffordWithFxCoverage(node.strategicProject.costUSD, node.strategicProject.costSYP))
+  );
+  let isProjectCoveredByFX = $derived(
+    Boolean(node?.strategicProject && $budgetStore.isCoveredByFX(node.strategicProject.costUSD, node.strategicProject.costSYP))
   );
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
@@ -71,7 +80,7 @@
   }
 
   let canAffordProject = $derived(
-    isProjectAffordablePC && isProjectAffordableUSD && isProjectAffordableSYP
+    isProjectAffordablePC && isProjectAffordable
   );
 
   $effect(() => {
@@ -166,6 +175,11 @@
                   <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
                     -{(node.strategicProject.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
                   </span>
+                  {#if isProjectCoveredByFX && !isProjectCommitted}
+                    <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+                      مغطى بالنقد الأجنبي
+                    </span>
+                  {/if}
                   {#if node.strategicProject.costPoliticalCapital > 0}
                     <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
                       -{node.strategicProject.costPoliticalCapital} رصيد سياسي
@@ -201,9 +215,11 @@
                     {:else if !isProjectAffordableUSD}
                       تعذر الاعتماد: ميزانية دولارية غير كافية
                     {:else}
-                      تعذر الاعتماد: سيولة الخزينة غير كافية
+                      تعذر الاعتماد: سيولة الخزينة غير كافية وتتجاوز تغطية النقد الأجنبي
                     {/if}
                   </span>
+                {:else if isProjectCoveredByFX}
+                  <span>اعتماد المشروع (بتغطية النقد الأجنبي)</span>
                 {:else}
                   <span>اعتماد وإطلاق المشروع الاستراتيجي</span>
                 {/if}
@@ -240,6 +256,8 @@
                   مطهّرة (≤ 8% من المساحة)
                 {:else if !canAffordDemining}
                   ميزانية غير كافية ($20M / 0.8T)
+                {:else if isDeminingCoveredByFX}
+                  تطهير (بتغطية النقد الأجنبي)
                 {:else}
                   تعيين كأولوية تطهير
                 {/if}
@@ -254,6 +272,11 @@
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
                   -0.8T ل.س
                 </span>
+                {#if isDeminingCoveredByFX && !isSelectedForDemining}
+                  <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+                    مغطى بالنقد الأجنبي
+                  </span>
+                {/if}
               </div>
               <span class="font-mono {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">
                 المساحة الملغومة: {node.mineSaturationPct}% من المساحة
@@ -290,6 +313,8 @@
                   الشبكة مستقرة
                 {:else if !canAffordPowerBoost}
                   ميزانية غير كافية ($10M / 0.3T)
+                {:else if isPowerBoostCoveredByFX}
+                  تعزيز الكهرباء (بتغطية النقد الأجنبي)
                 {:else}
                   تعزيز جهود الكهرباء
                 {/if}
@@ -304,6 +329,11 @@
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
                   -0.3T ل.س
                 </span>
+                {#if isPowerBoostCoveredByFX && !isSelectedForPowerBoost}
+                  <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+                    مغطى بالنقد الأجنبي
+                  </span>
+                {/if}
               </div>
               <span class="font-mono {node.dailyBlackoutHours > 12 ? 'text-umber-crimson' : 'text-wheat-light'}">
                 الظلام الحالي: {node.dailyBlackoutHours} س/يوم
