@@ -34,7 +34,7 @@ Political Capital represents the president's political leverage, popular legitim
 
 ---
 
-## 2. The Ministerial Cabinet Structure (Updated to Decree 98, May 2026)
+## 2. The Ministerial Cabinet Structure (Updated to Decree 98/100/101 Reshuffle Package, May 2026)
 
 Executive portfolios operating under the Direct Presidential System:
 
@@ -46,8 +46,8 @@ Executive portfolios operating under the Direct Presidential System:
 | **Ministry of Local Administration & Environment** | وزارة الإدارة المحلية والبيئة | **محمد عنجراني** (Mohammad Anjarani) | Provincial decentralization, municipal utilities, solid waste |
 | **Ministry of Public Works & Housing** | وزارة الأشغال العامة والإسكان | **مصطفى عبد الرزاق** (Mustafa Abdulrazzaq) | Highway infrastructure (M5/M4), master plans, housing reconstruction |
 | **Ministry of Finance** | وزارة المالية | **محمد يسر برنية** (Mohammad Yusr Barnieh) | Fiscal policy, Treasury SYP management, tax reform |
-| **Ministry of Agriculture & Agrarian Reform** | وزارة الزراعة والإصلاح الزراعي | **باسل حافظ السويدان** (Basil Hafez al-Suwaidan) | Decree 98 (May 9, 2026) replacing Amjad Badr; wheat food security, irrigation |
-| **Ministry of Information** | وزارة الإعلام | **خالد فواز زعرور** (Khaled Fawaz Zaarour) | Decree 98 (May 9, 2026) replacing Hamza al-Mustafa; official broadcasting |
+| **Ministry of Agriculture & Agrarian Reform** | وزارة الزراعة والإصلاح الزراعي | **باسل حافظ السويدان** (Basil Hafez al-Suwaidan) | Decree 101 (May 9, 2026) replacing Amjad Badr; wheat food security, irrigation |
+| **Ministry of Information** | وزارة الإعلام | **خالد فواز زعرور** (Khaled Fawaz Zaarour) | Decree 100 (May 9, 2026) replacing Hamza al-Mustafa; official broadcasting |
 | **Ministry of Foreign Affairs & Expatriates** | وزارة الخارجية والمغتربين | **أسعد حسن الشيباني** (Asaad al-Sheibani) | Sanctions relief, diaspora engagement, diplomatic relations |
 | **Ministry of Defense** | وزارة الدفاع | **مرهف أحمد أبو قصرة** (Murhaf Abu Qasra) | Integration of military formations, territorial defense |
 | **Ministry of Interior** | وزارة الداخلية | **أنس خطاب** (Anas Khattab) | Civil policing, internal security, civil registries |
@@ -82,8 +82,8 @@ Directly subordinate to the Presidency, bypassing ministerial red tape to execut
 │ * Customs Deputy: Khaled al-Barrad   │ * Leadership appointments & merit    │
 │ * Seaports DG: Ahmad Ali Mustafa     │   standards in public administration │
 ├──────────────────────────────────────┼──────────────────────────────────────┤
-│ 5. Transitional Justice Commission   │ 6. Supreme Property Rights Committee │
-│ * Head: Mazhar al-Wais (Justice)     │ * Law 10 / Decree 66 settlement      │
+│ 5. Transitional Justice (Decree 20)  │ 6. Property Restitution (Decree 16)  │
+│ * Head: Mazhar al-Wais (Justice)     │ * Reversal of wartime seizures       │
 │ * Vetting security personnel and     │ * Digital land records, protecting   │
 │   addressing war crimes archives     │   diaspora and IDP titles            │
 └──────────────────────────────────────┴──────────────────────────────────────┘
@@ -105,7 +105,8 @@ Directly subordinate to the Presidency, bypassing ministerial red tape to execut
 * **Leadership:** Mohammad Hassan Skaf (Minister of Administrative Development, established May 31, 2025).
 * **Mandate:** Institutional vetting and selective retention of senior technocrats reaching retirement age; preventing human capital collapse in power grids and water networks.
 
-### Sovereign Body 5: National Transitional Justice and Grievances Commission (هيئة العدالة الانتقالية وفحص المظالم)
+### Sovereign Body 5: National Transitional Justice and Grievances Commission (هيئة العدالة الانتقالية وفحص المظالم - المرسوم 20)
+*(Note: Enacted May 17, 2025 via Decree 20 alongside Decree 19 establishing the National Commission for the Missing)*
 * **Leadership:** Mazhar al-Wais (Minister of Justice).
 * **Mandate:** Vetting security apparatus personnel, resolving detention records, and balancing civil peace between minority anxieties and revolutionary demands.
 

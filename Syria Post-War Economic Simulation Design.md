@@ -1290,10 +1290,10 @@ Presidential Commissions operate above ministries to tackle long-term political 
 
 > * **Decree 59 Infrastructure & Returnee Rehabilitation Committee (March 2026):** A multi-ministerial task force (Disaster Management, Finance, Housing, Local Administration, and Regional Governors) created to finance essential services specifically in IDP/refugee absorption corridors.  
   * *Mechanic:* Accelerates provincial reconstruction speed by \+35% in designated returnee hubs, but requires continuous monthly funding in hard currency.  
-> * **Transitional Justice Commission (Decree No. 19 of May 2025):** Investigates human rights abuses, unlawful property expropriation, and security apparatus crimes under the former government.  
-  * *Mechanic:* Raising its budget increases Civic\_Trust (+15) and unlocks Western multilateral funding, but lowers Security\_Apparatus\_Loyalty (-20) and spikes tension in coastal/loyalist minority redoubts.  
-> * **National Commission for the Missing (Decree No. 20 of May 2025):** Mandated to uncover mass graves, review prison registries (e.g., Sednaya files), and resolve missing-person fates.  
+> * **National Commission for the Missing (Decree No. 19 of May 2025):** Mandated to uncover mass graves, review prison registries (e.g., Sednaya files), and resolve missing-person fates.  
   * *Mechanic:* High investment placates revolutionary civic groups and southern factions, but increases the risk of revenge violence in mixed governorates.  
+> * **Transitional Justice Commission (Decree No. 20 of May 2025):** Investigates human rights abuses, unlawful property expropriation, and security apparatus crimes under the former government.  
+  * *Mechanic:* Raising its budget increases Civic\_Trust (+15) and unlocks Western multilateral funding, but lowers Security\_Apparatus\_Loyalty (-20) and spikes tension in coastal/loyalist minority redoubts.  
 > * **Supreme Committee for Property Rights & Title Verification:** Resolves competing ownership claims between original displaced owners, returning refugees, and informal wartime squatters.  
   * *Mechanic:* Freezes arbitrary development; unblocks legal construction investment once title resolution reaches \>70% in a given governorate.
 

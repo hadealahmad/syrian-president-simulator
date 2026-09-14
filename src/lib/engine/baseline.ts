@@ -30,7 +30,6 @@ export function createInitialGameState(seed: number = 20241208): GameState {
       Flag_Southern_Accord_Progress: 0,
       Flag_Bedouin_Restitution_Paid: 0,
       Flag_Port_Graft_Active: 1,
-      Flag_M5_Checkpoint_Formalized: 0,
       Flag_Golan_Tension_Escalation: 0,
     },
     activeEvents: [],

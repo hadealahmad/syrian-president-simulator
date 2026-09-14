@@ -304,8 +304,8 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       id: 'proj_rif_dimashq_cadastre',
       governorateId: 'rif_dimashq',
       titleAr: 'المسح العقاري الرقمي وتطهير المسارات الزراعية بالغوطة',
-      issueDescriptionAr: '70% تلوث بالذخائر في بساتين الغوطة وداريا مع ارتباك الملكيات بفعل القانون 10 وشلل إعادة الإعمار السكني.',
-      solutionDescriptionAr: 'تطبيق التوثيق العقاري الرقمي للأملاك المصادرة ونشر كاسحات الألغام في المسارات الزراعية لحوض الغوطة.',
+      issueDescriptionAr: '70% تلوث بالذخائر في بساتين الغوطة وداريا مع بطء إزالة الأنقاض وشلل إعادة الإعمار السكني.',
+      solutionDescriptionAr: 'تطبيق التوثيق العقاري الرقمي وفق المرسوم 16 ونشر كاسحات الألغام في المسارات الزراعية لحوض الغوطة.',
       costUSD: 35_000_000,
       costSYP: 600_000_000_000,
       costPoliticalCapital: 10,
@@ -684,7 +684,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
   agriculture: {
     id: 'agriculture',
     nameAr: 'وزارة الزراعة والإصلاح الزراعي',
-    ministerNameAr: 'باسل حافظ السويدان',
+    ministerNameAr: 'باسل حافظ السويدان (المرسوم 101)',
     isOpposition: false,
     competence: 48,
     corruption: 40,
@@ -694,7 +694,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
   media: {
     id: 'media',
     nameAr: 'وزارة الإعلام',
-    ministerNameAr: 'خالد فواز زعرور',
+    ministerNameAr: 'خالد فواز زعرور (المرسوم 100)',
     isOpposition: false,
     competence: 50,
     corruption: 32,
@@ -739,7 +739,7 @@ export const BASELINE_COMMISSIONS: Record<string, CommissionState> = {
   },
   transitional_justice: {
     id: 'transitional_justice',
-    nameAr: 'هيئة العدالة الانتقالية وفحص المظالم',
+    nameAr: 'هيئة العدالة الانتقالية وفحص المظالم (المرسوم 20)',
     leaderNameAr: 'مظهر الويس (وزير العدل)',
     mandateAr: 'معالجة تركة الحرب وحفظ السلم الأهلي وإنفاذ سيادة القانون',
     isActive: true,
