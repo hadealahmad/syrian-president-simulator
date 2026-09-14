@@ -100,7 +100,31 @@ function createUIStore() {
       update((s) => ({ ...s, activeEventModalId: eventId }));
     },
     openStatRelatedOptions: (statId: string) => {
-      update((s) => ({ ...s, selectedStatForOptions: statId }));
+      update((s) => {
+        const isSame = s.selectedStatForOptions === statId;
+        const nextStat = isSame ? null : statId;
+
+        let nextMinistryOpen = s.isMinistryDrawerOpen;
+        let nextMinistryTab = s.ministryTab;
+
+        if (nextStat) {
+          nextMinistryOpen = true;
+          if (['corporateTaxRate', 'taxCompliancePct', 'telecomExciseRate', 'sovereignDebtUSD', 'sovereignLeverage', 'nassibTransitFeeUSD'].includes(nextStat)) {
+            nextMinistryTab = 'finance';
+          } else if (['politicalCapital', 'systemicCorruption'].includes(nextStat)) {
+            nextMinistryTab = 'governance';
+          } else {
+            nextMinistryTab = 'macro';
+          }
+        }
+
+        return {
+          ...s,
+          selectedStatForOptions: nextStat,
+          isMinistryDrawerOpen: nextMinistryOpen,
+          ministryTab: nextMinistryTab,
+        };
+      });
     },
     closeStatRelatedOptions: () => {
       update((s) => ({ ...s, selectedStatForOptions: null }));

@@ -131,6 +131,102 @@
 
   let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
 
+  let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  const STAT_NAMES_AR: Record<string, string> = {
+    treasurySYP: 'الخزينة العامة',
+    reservesUSD: 'احتياطي النقد الأجنبي',
+    sovereignDebtUSD: 'الدين السيادي الخارجي',
+    m2MoneySupplySYP: 'الكتلة النقدية M2',
+    parallelRate: 'سعر الصرف الموازي',
+    politicalCapital: 'الرصيد السياسي',
+    civilServiceHeadcount: 'ملاك موظفي الدولة',
+    civilPayrollSYP: 'كتلة أجور الدولة',
+    civilServiceWageUSD: 'متوسط الأجر الحقيقي',
+    taxCompliancePct: 'الامتثال الضريبي',
+    systemicCorruption: 'الفساد المؤسسي',
+    civicTrust: 'الثقة المجتمعية',
+    sovereignLeverage: 'الارتهان السيادي',
+    unrestIndex: 'مؤشر الاحتقان الشعبي',
+  };
+
+  function isOptionRelated(optionKey: string): boolean {
+    if (!selectedStat) return true;
+    switch (optionKey) {
+      case 'wageBumpPercent':
+        return ['unrestIndex', 'civilServiceWageUSD', 'civilPayrollSYP', 'treasurySYP', 'm2MoneySupplySYP', 'civicTrust'].includes(selectedStat);
+      case 'foodSubsidyLevel':
+        return ['unrestIndex', 'treasurySYP', 'reservesUSD', 'civicTrust'].includes(selectedStat);
+      case 'workforceStrategy':
+        return ['civilServiceHeadcount', 'civilPayrollSYP', 'systemicCorruption', 'unrestIndex', 'treasurySYP'].includes(selectedStat);
+      case 'wheatProcurement':
+        return ['unrestIndex', 'treasurySYP', 'reservesUSD', 'civicTrust'].includes(selectedStat);
+      case 'dieselSmuggling':
+        return ['unrestIndex', 'systemicCorruption', 'taxCompliancePct', 'dailyPowerHours'].includes(selectedStat);
+      case 'remittanceCaptureSpread':
+        return ['reservesUSD', 'parallelRate', 'civicTrust', 'm2MoneySupplySYP'].includes(selectedStat);
+      case 'gridCapExUSD':
+        return ['dailyPowerHours', 'reservesUSD', 'taxCompliancePct', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+      case 'dollarAuctionUSD':
+        return ['reservesUSD', 'parallelRate', 'treasurySYP', 'm2MoneySupplySYP'].includes(selectedStat);
+      case 'corporateTaxRate':
+        return ['taxCompliancePct', 'treasurySYP', 'm2MoneySupplySYP'].includes(selectedStat);
+      case 'telecomExciseRate':
+        return ['treasurySYP', 'unrestIndex', 'taxCompliancePct'].includes(selectedStat);
+      case 'nassibTransitFeeUSD':
+        return ['reservesUSD', 'treasurySYP'].includes(selectedStat);
+      case 'taxOverview':
+        return ['taxCompliancePct', 'systemicCorruption', 'civicTrust'].includes(selectedStat);
+      case 'oligarchs':
+        return ['reservesUSD', 'treasurySYP', 'politicalCapital', 'civicTrust', 'systemicCorruption', 'civilServiceHeadcount'].includes(selectedStat);
+      case 'loans':
+        return ['reservesUSD', 'sovereignDebtUSD', 'sovereignLeverage', 'politicalCapital'].includes(selectedStat);
+      case 'mortgages':
+        return ['reservesUSD', 'sovereignLeverage', 'politicalCapital', 'sovereignDebtUSD'].includes(selectedStat);
+      case 'brainGain':
+        return ['civicTrust', 'reservesUSD', 'treasurySYP', 'taxCompliancePct', 'politicalCapital'].includes(selectedStat);
+      default:
+        return false;
+    }
+  }
+
+  function isDecreeRelated(decreeId: string): boolean {
+    if (!selectedStat) return true;
+    switch (decreeId) {
+      case 'anti_corruption_tribunal':
+        return ['systemicCorruption', 'politicalCapital', 'taxCompliancePct', 'civicTrust'].includes(selectedStat);
+      case 'customs_digitization':
+        return ['systemicCorruption', 'treasurySYP', 'taxCompliancePct', 'reservesUSD'].includes(selectedStat);
+      case 'subsidies_smart_card':
+        return ['treasurySYP', 'unrestIndex', 'systemicCorruption'].includes(selectedStat);
+      case 'national_reconciliation':
+        return ['unrestIndex', 'politicalCapital', 'civicTrust'].includes(selectedStat);
+      case 'technocratic_cabinet':
+        return ['civicTrust', 'politicalCapital', 'taxCompliancePct'].includes(selectedStat);
+      case 'syrian_dialogue':
+        return ['politicalCapital', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+      case 'currency_stabilization':
+        return ['parallelRate', 'm2MoneySupplySYP', 'treasurySYP', 'politicalCapital'].includes(selectedStat);
+      default:
+        return false;
+    }
+  }
+
+  function tabHasRelatedOptions(tabId: string): boolean {
+    if (!selectedStat) return false;
+    if (tabId === 'macro') {
+      return ['wageBumpPercent', 'foodSubsidyLevel', 'workforceStrategy', 'wheatProcurement', 'dieselSmuggling', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD'].some(isOptionRelated);
+    }
+    if (tabId === 'finance') {
+      return ['corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'oligarchs', 'loans', 'mortgages', 'taxOverview'].some(isOptionRelated);
+    }
+    if (tabId === 'governance') {
+      return isOptionRelated('brainGain') || DECREES.some(d => isDecreeRelated(d.id));
+    }
+    return false;
+  }
+
+
   let canAffordBrainGain = $derived(
     $draftStore.expatriateBrainGainIncentive ||
     ($budgetStore.remainingUSD >= 20_000_000 && $budgetStore.remainingSYP >= 350_000_000_000)
@@ -152,14 +248,38 @@
         </span>
       </div>
 
+
+    <!-- Active Filter Banner (When a Stat in Top Ribbon is Clicked) -->
+    {#if selectedStat}
+      <div class="p-2.5 bg-forest-surface border border-wheat-gold/80 flex items-center justify-between gap-2 shadow-md">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span class="w-2 h-2 rounded-full bg-wheat-gold animate-pulse shrink-0"></span>
+          <span class="text-[11px] font-bold text-wheat-gold truncate font-heading">
+            عزل الخيارات المرتبطة بـ: {STAT_NAMES_AR[selectedStat] || selectedStat}
+          </span>
+        </div>
+        <button
+          onclick={() => uiStore.closeStatRelatedOptions()}
+          class="px-2 py-0.5 text-[9.5px] bg-forest-mid hover:bg-forest-deep border border-charcoal-mid text-wheat-light hover:text-wheat-gold cursor-pointer shrink-0 font-bold transition-colors"
+          title="إلغاء التصفية واستعادة تفاعل كافة الخيارات"
+        >
+          ✕ إلغاء التصفية
+        </button>
+      </div>
+    {/if}
+
       <!-- Navigation Tabs (3 Consolidated Sovereign Pillars) -->
       <div class="grid grid-cols-3 gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none">
         {#each TABS as tab}
+          {@const hasMatches = tabHasRelatedOptions(tab.id)}
           <button
             onclick={() => uiStore.setMinistryTab(tab.id as MinistryTab)}
-            class="py-1.5 px-2 text-[11px] font-semibold transition-colors rounded-none text-center truncate cursor-pointer {activePillar === tab.id ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
+            class="py-1.5 px-2 text-[11px] font-semibold transition-colors rounded-none text-center truncate cursor-pointer relative {activePillar === tab.id ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
           >
             {tab.labelAr}
+            {#if hasMatches}
+              <span class="w-1.5 h-1.5 rounded-full bg-wheat-gold inline-block mr-1 align-middle"></span>
+            {/if}
           </button>
         {/each}
       </div>
@@ -169,7 +289,7 @@
     {#if activePillar === 'macro'}
       <div class="space-y-3">
         <!-- 1. Civil Service Wages -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('wageBumpPercent') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start text-xs">
             <div>
               <span class="font-bold text-wheat-light font-heading block">زيادة أجور العاملين في الدولة (+{$draftStore.wageBumpPercent}%)</span>
@@ -212,7 +332,7 @@
         </div>
 
         <!-- 2. Food Subsidies Tier -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('foodSubsidyLevel') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start">
             <div>
               <span class="text-xs font-bold text-wheat-light font-heading block">مستوى الدعم التمويني والخبز</span>
@@ -268,7 +388,7 @@
         </div>
 
         <!-- 3. State Workforce Policy -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('workforceStrategy') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start">
             <div>
               <span class="font-bold text-wheat-light font-heading text-xs block">إعادة هيكلة ملاك الدولة والتوظيف</span>
@@ -326,7 +446,7 @@
         </div>
 
         <!-- 4. Wheat Pricing -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('wheatProcurement') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start">
             <div>
               <span class="font-bold text-wheat-light font-heading text-xs block">تسعير شراء القمح المحلي من المزارعين</span>
@@ -382,7 +502,7 @@
         </div>
 
         <!-- 5. Diesel Smuggling Control -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('dieselSmuggling') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start">
             <div>
               <span class="font-bold text-wheat-light font-heading text-xs block">مكافحة تهريب المشتقات النفطية</span>
@@ -438,7 +558,7 @@
         </div>
 
         <!-- 6. Remittance Spread Margin -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('remittanceCaptureSpread') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start text-xs">
             <div>
               <span class="font-bold text-wheat-light font-heading block">هامش اقتطاع الحوالات للمصرف المركزي ({$draftStore.remittanceCaptureSpread}%)</span>
@@ -478,7 +598,7 @@
         </div>
 
         <!-- 7. National Power Grid CapEx Budget -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('gridCapExUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start text-xs">
             <div>
               <span class="font-bold text-wheat-light font-heading block">الاستثمار الرأسمالي لشبكة الكهرباء</span>
@@ -521,7 +641,7 @@
         </div>
 
         <!-- 8. Central Bank Dollar Auction -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('dollarAuctionUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="flex justify-between items-start text-xs">
             <div>
               <span class="font-bold text-wheat-light font-heading block">مزاد التدخل الدولاري للمصرف المركزي</span>
@@ -565,7 +685,7 @@
       <div class="space-y-4">
         <!-- Section: Tax Compliance & Rates -->
         <div class="space-y-3">
-          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-1.5">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-1.5 transition-all duration-300 {selectedStat ? (isOptionRelated('taxOverview') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex justify-between items-center text-xs">
               <span class="text-wheat-dark font-heading">معدل الامتثال الضريبي الوطني التقديري:</span>
               <span class="font-bold font-mono text-wheat-gold text-sm">
@@ -578,7 +698,7 @@
           </div>
 
           <!-- Corporate Tax Rate -->
-          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('corporateTaxRate') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex justify-between items-start text-xs">
               <div>
                 <span class="font-bold text-wheat-light font-heading block">ضريبة أرباح الشركات والمنشآت ({$draftStore.corporateTaxRate}%)</span>
@@ -618,7 +738,7 @@
           </div>
 
           <!-- Telecom Excise Tax -->
-          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('telecomExciseRate') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex justify-between items-start text-xs">
               <div>
                 <span class="font-bold text-wheat-light font-heading block">رسم الإنفاق الاستهلاكي على الاتصالات ({$draftStore.telecomExciseRate}%)</span>
@@ -658,7 +778,7 @@
           </div>
 
           <!-- All Crossings Transit Fee (formerly Nassib) -->
-          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated('nassibTransitFeeUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex justify-between items-start text-xs">
               <div>
                 <span class="font-bold text-wheat-light font-heading block">رسوم الترانزيت بكافة المعابر الحدودية</span>
@@ -698,7 +818,7 @@
           </div>
         </div>
         <!-- Section: Confiscated Assets & War Wealth -->
-        <div class="space-y-2 pt-2 border-t border-charcoal-mid">
+        <div class="space-y-2 pt-2 border-t border-charcoal-mid transition-all duration-300 {selectedStat ? (isOptionRelated('oligarchs') ? 'ring-2 ring-wheat-gold/80 p-2 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <span class="text-xs text-wheat-mid font-semibold font-heading block">الأصول المصادرة وثروات الحرب</span>
           <div class="space-y-2">
             {#each Object.values($gameStore.confiscatedAssets) as asset}
@@ -802,7 +922,7 @@
         </div>
 
         <!-- Section: Foreign Loans & Sovereign Mortgages -->
-        <div class="space-y-2 pt-2 border-t border-charcoal-mid">
+        <div class="space-y-2 pt-2 border-t border-charcoal-mid transition-all duration-300 {selectedStat ? (isOptionRelated('loans') ? 'ring-2 ring-wheat-gold/80 p-2 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <span class="text-xs text-wheat-mid font-semibold font-heading block">خطوط الائتمان والتمويل الخارجي</span>
           <div class="space-y-2">
             {#each $gameStore.foreignLoans as loan}
@@ -838,7 +958,7 @@
           </div>
 
           <!-- Emergency Sovereign Mortgages -->
-          <div class="space-y-2 pt-2">
+          <div class="space-y-2 pt-2 transition-all duration-300 {selectedStat ? (isOptionRelated('mortgages') ? 'ring-2 ring-wheat-gold/80 p-2 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <span class="text-xs text-wheat-mid font-semibold font-heading block">الرهون والامتيازات السيادية الطارئة</span>
             <div class="space-y-2">
               {#each $gameStore.sovereignMortgages as mort}
@@ -884,7 +1004,7 @@
             {@const costPC = DECREE_PC_COSTS[dec.id] || 0}
             {@const canAfford = isActive || costPC <= $budgetStore.remainingPC}
             <div
-              class="p-3 border transition-colors rounded-none {isActive ? 'bg-forest-surface border-wheat-gold shadow-md' : 'bg-charcoal-surface border-charcoal-mid'}"
+              class="p-3 border transition-all duration-300 rounded-none {isActive ? 'bg-forest-surface border-wheat-gold shadow-md' : 'bg-charcoal-surface border-charcoal-mid'} {selectedStat ? (isDecreeRelated(dec.id) ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}"
             >
               <div class="space-y-2">
                 <div class="flex items-start justify-between gap-2">
@@ -924,7 +1044,7 @@
         </div>
 
         <!-- Expatriate Brain-Gain Initiative -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between gap-2">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated('brainGain') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
           <div class="space-y-1">
             <span class="text-xs font-bold text-wheat-light block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
             <div class="flex items-center gap-1.5 flex-wrap">
