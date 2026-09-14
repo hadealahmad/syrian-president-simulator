@@ -2,6 +2,9 @@
   import { draftStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
 
+  let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
+  let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
+
   let totalDraftActions = $derived(
     $draftStore.activePoliticalActions.length +
     $draftStore.provincialProjects.length +
@@ -13,7 +16,7 @@
 <!-- Floating Unified Command Deck Overlay on 3D Map -->
 <div class="pointer-events-none absolute inset-0 z-30 overflow-hidden font-arabic select-none">
   <!-- Left Side Command Deck: Review & End Turn + Reset Draft (Anchored at left-[406px]) -->
-  <div class="pointer-events-auto absolute bottom-6 left-[406px] flex items-center gap-2">
+  <div class="pointer-events-auto absolute bottom-6 flex items-center gap-2 transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[406px]' : 'left-6'}">
     <!-- End Turn & Review Button -->
     <button
       onclick={() => uiStore.setTurnReviewModal(true)}
@@ -46,7 +49,7 @@
   </div>
 
   <!-- Right Side (Opposite) Command Deck: Presidential Guide Wizard & Game Reset (Anchored at right-[406px]) -->
-  <div class="pointer-events-auto absolute bottom-6 right-[406px] flex items-center gap-2">
+  <div class="pointer-events-auto absolute bottom-6 flex items-center gap-2 transition-all duration-300 ease-in-out {isRightOpen ? 'right-[406px]' : 'right-6'}">
     <!-- Presidential Guidebook Wizard Button -->
     <button
       onclick={() => uiStore.setGuideModal(true, 0)}

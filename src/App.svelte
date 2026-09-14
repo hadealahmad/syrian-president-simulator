@@ -12,11 +12,16 @@
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
   import PresidentGuideModal from './lib/ui/PresidentGuideModal.svelte';
   import StatRelatedOptionsModal from './lib/ui/StatRelatedOptionsModal.svelte';
+  import SidebarToggleLip from './lib/ui/SidebarToggleLip.svelte';
+  import { uiStore } from './lib/stores/ui-store';
+
+  let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
+  let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
   <!-- 3D Spatial Hexagonal Map Canvas Viewport (Edge-to-edge between sidebars and below Top Ribbon) -->
-  <div class="fixed top-[84px] bottom-0 left-[390px] right-[390px] overflow-hidden z-10">
+  <div class="fixed top-[84px] bottom-0 overflow-hidden z-10 transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}">
     <HexagonMap />
   </div>
 
@@ -26,6 +31,9 @@
   <!-- Permanent Full-Height Left & Right Sidebars -->
   <ProvincialDrawer />
   <MinistryDrawer />
+
+  <!-- Sidebar Toggle Lip (near top right below top bar area) -->
+  <SidebarToggleLip />
 
   <!-- Floating Command Deck (Buttons outside the sidebars) -->
   <FloatingCommandDeck />

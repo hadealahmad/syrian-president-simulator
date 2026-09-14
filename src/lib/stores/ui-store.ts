@@ -57,6 +57,16 @@ function createUIStore() {
     toggleProvincialDrawer: () => {
       update((s) => ({ ...s, isProvincialDrawerOpen: !s.isProvincialDrawerOpen }));
     },
+    toggleBothSidebars: () => {
+      update((s) => {
+        const anyOpen = s.isMinistryDrawerOpen || s.isProvincialDrawerOpen;
+        return {
+          ...s,
+          isMinistryDrawerOpen: !anyOpen,
+          isProvincialDrawerOpen: !anyOpen,
+        };
+      });
+    },
     setMinistryTab: (tab: MinistryTab) => {
       update((s) => ({ ...s, ministryTab: tab, isMinistryDrawerOpen: true }));
     },
