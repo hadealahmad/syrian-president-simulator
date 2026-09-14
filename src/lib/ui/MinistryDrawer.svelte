@@ -274,9 +274,7 @@
         <h2 class="text-sm font-bold text-wheat-light font-heading">
           غرفة مجلس الوزراء والسياسات الكلية
         </h2>
-        <span class="text-[10px] text-wheat-gold font-mono border border-charcoal-mid px-2 py-0.5 bg-forest-mid">
-          رصيد متاح: {$budgetStore.remainingPC} رصيد سياسي
-        </span>
+
       </div>
 
 
@@ -1145,9 +1143,5 @@
     {/if}
   </div>
 
-  <!-- Footer Information -->
-  <div class="border-t border-charcoal-mid pt-2.5 flex items-center justify-between text-[10px] text-wheat-dark">
-    <span>غرفة القرارات والوزارات السيادية</span>
-    <span class="font-mono text-wheat-mid">دورة التخطيط السداسية</span>
-  </div>
+
 </aside>
