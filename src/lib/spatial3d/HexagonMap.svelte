@@ -168,7 +168,7 @@
     {@const activeDirectives = (isProjectActive ? 1 : 0) + (isDeminingActive ? 1 : 0) + (isPowerBoostActive ? 1 : 0)}
     {@const powerHours = Math.max(0, 24 - gov.dailyBlackoutHours)}
     <div
-      class="absolute bottom-6 right-6 pointer-events-none z-10 bg-[#0e1715]/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic backdrop-blur-sm transition-all duration-150"
+      class="absolute bottom-[82px] right-6 pointer-events-none z-10 bg-[#0e1715]/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic backdrop-blur-sm transition-all duration-150"
     >
       <div class="flex items-center justify-between border-b border-charcoal-mid pb-2 mb-2.5">
         <div class="flex items-center gap-2">
