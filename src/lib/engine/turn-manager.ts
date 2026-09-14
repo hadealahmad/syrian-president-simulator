@@ -251,6 +251,8 @@ export function simulateTurnTransitions(
         if (next.macro.politicalCapital >= loan.politicalCapitalCost) {
           loan.isSigned = true;
           next.macro.reservesUSD += loan.disbursementUSD;
+          next.macro.sovereignDebtUSD = (next.macro.sovereignDebtUSD ?? 6_800_000_000) + loan.disbursementUSD;
+          next.macro.sovereignLeverage = Math.max(0, (next.macro.sovereignLeverage ?? 65) - 8);
           next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - loan.politicalCapitalCost);
         }
       }
@@ -263,6 +265,7 @@ export function simulateTurnTransitions(
       if (mort && !mort.isMortgaged) {
         mort.isMortgaged = true;
         next.macro.reservesUSD += mort.immediateCashUSD;
+        next.macro.sovereignLeverage = Math.max(0, (next.macro.sovereignLeverage ?? 65) - 14);
         next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 5);
       }
     }
@@ -544,6 +547,48 @@ export function calculateProjectedTurnSummary(
       projected.macro.civicTrust,
       true,
       0.5
+    ),
+    sovereignDebtUSD: makeStat(
+      currentState.macro.sovereignDebtUSD ?? 6_800_000_000,
+      projected.macro.sovereignDebtUSD ?? 6_800_000_000,
+      false, // Lower debt is beneficial
+      1_000_000
+    ),
+    m2MoneySupplySYP: makeStat(
+      currentState.macro.m2MoneySupplySYP ?? 18_500_000_000_000,
+      projected.macro.m2MoneySupplySYP ?? 18_500_000_000_000,
+      false, // Lower money printing inflation is beneficial
+      10_000_000_000
+    ),
+    taxCompliancePct: makeStat(
+      currentState.macro.taxCompliancePct ?? 35,
+      projected.macro.taxCompliancePct ?? 35,
+      true, // Higher tax compliance is beneficial
+      0.5
+    ),
+    systemicCorruption: makeStat(
+      currentState.macro.systemicCorruption ?? 58,
+      projected.macro.systemicCorruption ?? 58,
+      false, // Lower systemic corruption is beneficial
+      0.5
+    ),
+    sovereignLeverage: makeStat(
+      currentState.macro.sovereignLeverage ?? 65,
+      projected.macro.sovereignLeverage ?? 65,
+      true, // Higher sovereign autonomy is beneficial
+      0.5
+    ),
+    civilServiceHeadcount: makeStat(
+      currentState.macro.civilServiceHeadcount ?? 1_400_000,
+      projected.macro.civilServiceHeadcount ?? 1_400_000,
+      true,
+      100
+    ),
+    civilPayrollSYP: makeStat(
+      Math.round((currentState.macro.civilServiceHeadcount ?? 1_400_000) * currentState.macro.civilServiceWageSYP * 6),
+      Math.round((projected.macro.civilServiceHeadcount ?? 1_400_000) * projected.macro.civilServiceWageSYP * 6),
+      false, // Lower payroll expenditure is beneficial fiscally
+      10_000_000_000
     ),
     runwayMonths: projected.lastTurnAudit?.runwayMonths ?? 99,
     deficitSYP,

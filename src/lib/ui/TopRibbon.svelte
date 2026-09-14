@@ -13,8 +13,16 @@
     return val.toFixed(2);
   }
 
+  function formatBillionUSD(usd: number): string {
+    return (usd / 1_000_000_000).toFixed(2);
+  }
+
   function formatMillionUSD(usd: number): string {
     return (usd / 1_000_000).toFixed(1);
+  }
+
+  function formatMillionPeople(count: number): string {
+    return (count / 1_000_000).toFixed(2);
   }
 
   let p = $derived($projectedTurnStore);
@@ -29,43 +37,47 @@
 </script>
 
 <header
-  class="fixed top-0 left-[390px] right-[390px] z-20 h-16 px-3 flex items-center justify-between bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic overflow-x-auto scrollbar-none gap-2 flex-nowrap"
+  class="fixed top-0 left-[390px] right-[390px] z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between"
 >
-  <!-- CLUSTER 1: FISCAL RESERVES & SOVEREIGN CALENDAR -->
-  <div class="flex items-center gap-2.5 shrink-0">
+  <!-- ========================================================================= -->
+  <!-- ROW 1: CALENDAR, PUBLIC TREASURY, RESERVES, DEBT, M2 & PARALLEL FX        -->
+  <!-- ========================================================================= -->
+  <div class="h-[41px] px-3 flex items-center justify-between gap-2 border-b border-charcoal-mid/60 overflow-x-auto scrollbar-none flex-nowrap">
     <!-- Item 1: Turn & Calendar -->
-    <div class="flex flex-col shrink-0 min-w-[70px]">
-      <div class="flex items-center gap-1">
-        <span class="text-xs text-wheat-gold font-bold font-mono font-heading">الدور {String($gameStore.turnNumber).padStart(2, '0')}/40</span>
-        <span class="text-[10px] text-wheat-mid font-mono">({$gameStore.calendarYear})</span>
-      </div>
-      <div class="flex items-center gap-1">
-        <span class="text-[10px] text-wheat-dark font-heading leading-tight">{seasonText}</span>
-        {#if p.hasSelections}
-          <span class="px-1 py-0 rounded-full bg-forest-mid border border-forest-accent text-forest-accent text-[8px] font-bold">
-            تخطيط
-          </span>
-        {/if}
+    <div class="flex items-center gap-2 shrink-0 min-w-[125px]">
+      <div class="flex flex-col">
+        <div class="flex items-center gap-1">
+          <span class="text-xs text-wheat-gold font-bold font-mono font-heading">الدور {String($gameStore.turnNumber).padStart(2, '0')}/40</span>
+          <span class="text-[10px] text-wheat-mid font-mono">({$gameStore.calendarYear})</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-[10px] text-wheat-dark font-heading leading-tight">{seasonText}</span>
+          {#if p.hasSelections}
+            <span class="px-1 py-0 rounded-full bg-forest-mid border border-forest-accent text-forest-accent text-[8px] font-bold">
+              تخطيط
+            </span>
+          {/if}
+        </div>
       </div>
     </div>
 
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
     <!-- Item 2: Public Treasury SYP -->
     <div
-      class="flex flex-col shrink-0 min-w-[85px]"
+      class="flex flex-col shrink-0 min-w-[80px]"
       title="الخزينة العامة: الحالي {formatTrillion(p.treasurySYP.current)}T ل.س {p.treasurySYP.current < 0 ? '(عجز)' : ''} | المتوقع للدور القادم {formatTrillion(p.treasurySYP.projected)}T ل.س {p.treasurySYP.projected < 0 ? '(عجز)' : ''} ({p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الخزينة</span>
         {#if p.treasurySYP.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.treasurySYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.treasurySYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
             {p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%
           </span>
         {:else if p.treasurySYP.current < 0}
-          <span class="px-1 py-0 rounded-full bg-umber-deep border border-umber-border text-umber-crimson text-[8px] font-bold">
+          <span class="px-1 py-0 rounded-full bg-umber-deep border border-umber-border text-umber-crimson text-[7.5px] font-bold">
             عجز
           </span>
         {/if}
@@ -73,37 +85,37 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span dir="ltr" class="text-xs font-bold {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-light'}">{formatTrillion(p.treasurySYP.current)}T</span>
         {#if p.treasurySYP.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
           <span dir="ltr" class="text-xs font-bold {p.treasurySYP.projected < 0 ? 'text-umber-crimson' : p.treasurySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatTrillion(p.treasurySYP.projected)}T
           </span>
         {:else}
-          <span class="text-[9px] {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">ل.س</span>
+          <span class="text-[8.5px] {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">ل.س</span>
         {/if}
       </div>
     </div>
 
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 3: FX Reserves USD + Runway Badge -->
+    <!-- Item 3: FX Reserves USD -->
     <div
-      class="flex flex-col shrink-0 min-w-[85px]"
+      class="flex flex-col shrink-0 min-w-[80px]"
       title="احتياطي النقد الأجنبي: الحالي ${formatMillionUSD(p.reservesUSD.current)}M | المتوقع للدور القادم ${formatMillionUSD(p.reservesUSD.projected)}M ({p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%) | كفاية الاحتياطي: {runwayMonths} شهراً"
     >
       <div class="flex items-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتياطي ($)</span>
         {#if p.reservesUSD.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.reservesUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.reservesUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
             {p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%
           </span>
         {:else if runwayAlertTier === 'CRITICAL'}
-          <span class="px-1 py-0 bg-umber-deep border border-umber-crimson text-umber-crimson text-[8px] font-bold animate-pulse">
+          <span class="px-1 py-0 bg-umber-deep border border-umber-crimson text-umber-crimson text-[7.5px] font-bold animate-pulse">
             خطر
           </span>
         {:else if runwayAlertTier === 'WARNING'}
-          <span class="px-1 py-0 bg-forest-mid border border-wheat-mid text-wheat-gold text-[8px] font-semibold">
+          <span class="px-1 py-0 bg-forest-mid border border-wheat-mid text-wheat-gold text-[7.5px] font-semibold">
             تنبيه
           </span>
         {/if}
@@ -111,30 +123,84 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">${formatMillionUSD(p.reservesUSD.current)}M</span>
         {#if p.reservesUSD.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
           <span class="text-xs font-bold {p.reservesUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             ${formatMillionUSD(p.reservesUSD.projected)}M
           </span>
         {/if}
       </div>
     </div>
-  </div>
 
-  <!-- THEMATIC CENTRAL DIVIDER -->
-  <div class="h-8 w-[1px] bg-charcoal-mid/80 shrink-0"></div>
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-  <!-- CLUSTER 2: LIVING STANDARDS, CURRENCY, TRUST & UNREST -->
-  <div class="flex items-center gap-2.5 shrink-0">
-    <!-- Item 4: Parallel Rate -->
+    <!-- Item 4: External Sovereign Debt USD -->
     <div
-      class="flex flex-col shrink-0 min-w-[85px] text-center"
+      class="flex flex-col shrink-0 min-w-[78px] text-center"
+      title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الدين الخارجي</span>
+        {#if p.sovereignDebtUSD.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.sovereignDebtUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-mid">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
+        {#if p.sovereignDebtUSD.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.sovereignDebtUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            ${formatBillionUSD(p.sovereignDebtUSD.projected)}B
+          </span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 5: M2 Money Supply -->
+    <div
+      class="flex flex-col shrink-0 min-w-[78px] text-center"
+      title="الكتلة النقدية الإجمالية (M2): الحالي {formatTrillion(p.m2MoneySupplySYP.current)}T ل.س | المتوقع {formatTrillion(p.m2MoneySupplySYP.projected)}T ل.س ({p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الكتلة (M2)</span>
+        {#if p.m2MoneySupplySYP.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.m2MoneySupplySYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.m2MoneySupplySYP.current)}T</span>
+        {#if p.m2MoneySupplySYP.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.m2MoneySupplySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {formatTrillion(p.m2MoneySupplySYP.projected)}T
+          </span>
+        {:else}
+          <span class="text-[8.5px] text-wheat-dark font-normal">ل.س</span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 6: Parallel Rate -->
+    <div
+      class="flex flex-col shrink-0 min-w-[80px] text-center"
       title="سعر صرف الليرة بالسوق الموازي: الحالي 1$ = {formatNumber(p.parallelRateSYP.current)} | المتوقع 1$ = {formatNumber(p.parallelRateSYP.projected)} ({p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">السوق الموازي</span>
         {#if p.parallelRateSYP.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.parallelRateSYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.parallelRateSYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
             {p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%
           </span>
@@ -143,7 +209,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-mid">{formatNumber(p.parallelRateSYP.current)}</span>
         {#if p.parallelRateSYP.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
           <span class="text-xs font-bold {p.parallelRateSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatNumber(p.parallelRateSYP.projected)}
           </span>
@@ -151,39 +217,9 @@
       </div>
     </div>
 
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 5: Real Wage -->
-    <div
-      class="flex flex-col shrink-0 min-w-[70px] text-center"
-      title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
-    >
-      <div class="flex items-center justify-center gap-1">
-        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
-        {#if p.realWageUSD.isChanged}
-          <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.realWageUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
-          >
-            {p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%
-          </span>
-        {/if}
-      </div>
-      <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
-        {#if p.realWageUSD.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
-          <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            ${p.realWageUSD.projected}
-          </span>
-        {:else}
-          <span class="text-[9px] text-wheat-dark font-normal">/ش</span>
-        {/if}
-      </div>
-    </div>
-
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 6: Political Capital -->
+    <!-- Item 7: Political Capital -->
     <div
       class="flex flex-col shrink-0 min-w-[75px]"
       title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
@@ -192,7 +228,7 @@
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
         {#if p.politicalCapital.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.politicalCapital.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.politicalCapital.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
             {p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%
           </span>
@@ -201,7 +237,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
         {#if p.politicalCapital.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
           <span class="text-xs font-bold {p.politicalCapital.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.politicalCapital.projected}%
           </span>
@@ -209,18 +245,253 @@
       </div>
     </div>
 
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 7: National Unrest / RRI (مؤشر الاحتقان الوطني) -->
+    <!-- Meta Utility Buttons -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <!-- Guidebook Button -->
+      <button
+        onclick={() => uiStore.setGuideModal(true, 0)}
+        class="p-1 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none"
+        title="دليل البروتوكول الرئاسي (إرشادات إدارة الدولة وطريقة اللعب)"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      </button>
+
+      <!-- Restart Simulation Button -->
+      <button
+        onclick={() => uiStore.setRestartModal(true)}
+        class="p-1 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none"
+        title="إعادة تشغيل المحاكاة (بدء ولاية جديدة)"
+      >
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- ROW 2: WORKFORCE, WAGE BILL, TAX, CORRUPTION, TRUST, LEVERAGE & UNREST   -->
+  <!-- ========================================================================= -->
+  <div class="h-[42px] px-3 flex items-center justify-between gap-2 bg-[#091210]/95 overflow-x-auto scrollbar-none flex-nowrap">
+    <!-- Item 8: Civil Service Headcount -->
+    <div
+      class="flex flex-col shrink-0 min-w-[75px]"
+      title="الجهاز الوظيفي العام: الحالي {formatMillionPeople(p.civilServiceHeadcount.current)}M موظف ({formatNumber(p.civilServiceHeadcount.current)}) | المتوقع {formatMillionPeople(p.civilServiceHeadcount.projected)}M ({p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الموظفون</span>
+        {#if p.civilServiceHeadcount.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold bg-forest-mid border border-forest-accent text-forest-accent"
+          >
+            {p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-light">{formatMillionPeople(p.civilServiceHeadcount.current)}M</span>
+        {#if p.civilServiceHeadcount.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold text-forest-accent">
+            {formatMillionPeople(p.civilServiceHeadcount.projected)}M
+          </span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 9: Cost of Wages (Wage Bill for the turn) -->
+    <div
+      class="flex flex-col shrink-0 min-w-[80px]"
+      title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">فاتورة الرواتب</span>
+        {#if p.civilPayrollSYP.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.civilPayrollSYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.civilPayrollSYP.current)}T</span>
+        {#if p.civilPayrollSYP.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.civilPayrollSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {formatTrillion(p.civilPayrollSYP.projected)}T
+          </span>
+        {:else}
+          <span class="text-[8.5px] text-wheat-dark font-normal">ل.س</span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 10: Real Civil Service Wage USD -->
+    <div
+      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
+        {#if p.realWageUSD.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.realWageUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
+        {#if p.realWageUSD.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            ${p.realWageUSD.projected}
+          </span>
+        {:else}
+          <span class="text-[8.5px] text-wheat-dark font-normal">/ش</span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 11: Tax Compliance Rate -->
+    <div
+      class="flex flex-col shrink-0 min-w-[75px] text-center"
+      title="معدل الامتثال والتحصيل الضريبي: الحالي {p.taxCompliancePct.current}% | المتوقع {p.taxCompliancePct.projected}% ({p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الامتثال الضريبي</span>
+        {#if p.taxCompliancePct.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.taxCompliancePct.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-light">{p.taxCompliancePct.current}%</span>
+        {#if p.taxCompliancePct.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.taxCompliancePct.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {p.taxCompliancePct.projected}%
+          </span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 12: Systemic Corruption -->
+    <div
+      class="flex flex-col shrink-0 min-w-[75px] text-center"
+      title="مؤشر الفساد المؤسسي والتسرب: الحالي {p.systemicCorruption.current}/100 | المتوقع {p.systemicCorruption.projected}/100 ({p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الفساد المؤسسي</span>
+        {#if p.systemicCorruption.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.systemicCorruption.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold {p.systemicCorruption.current > 65 ? 'text-umber-crimson' : 'text-wheat-gold'}">{p.systemicCorruption.current}</span>
+        {#if p.systemicCorruption.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.systemicCorruption.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {p.systemicCorruption.projected}
+          </span>
+        {:else}
+          <span class="text-[8.5px] text-wheat-dark font-normal">/100</span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 13: Civic Trust -->
+    <div
+      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      title="مؤشر الثقة الشعبية بالحكومة: الحالي {p.civicTrust.current}% | المتوقع {p.civicTrust.projected}% ({p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الثقة الشعبية</span>
+        {#if p.civicTrust.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.civicTrust.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold {p.civicTrust.current < 35 ? 'text-umber-crimson' : 'text-forest-accent'}">{p.civicTrust.current}%</span>
+        {#if p.civicTrust.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.civicTrust.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {p.civicTrust.projected}%
+          </span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 14: Sovereign Leverage -->
+    <div
+      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      title="مؤشر السيادة والاستقلال الاستراتيجي: الحالي {p.sovereignLeverage.current}% | المتوقع {p.sovereignLeverage.projected}% ({p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">السيادة الوطنية</span>
+        {#if p.sovereignLeverage.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.sovereignLeverage.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-light">{p.sovereignLeverage.current}%</span>
+        {#if p.sovereignLeverage.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-xs font-bold {p.sovereignLeverage.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {p.sovereignLeverage.projected}%
+          </span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item 15: National Unrest / RRI -->
     <div
       class="flex flex-col shrink-0 min-w-[75px] text-center"
       title="مؤشر الاحتقان الوطني: الحالي {p.nationalRRI.current}/100 | المتوقع للدور القادم {p.nationalRRI.projected}/100 ({p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
-        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">مؤشر الاحتقان</span>
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">مؤشر الاحتقان</span>
         {#if p.nationalRRI.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8.5px] font-mono font-bold {p.nationalRRI.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.nationalRRI.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
             {p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%
           </span>
@@ -231,43 +502,14 @@
           {p.nationalRRI.current}
         </span>
         {#if p.nationalRRI.isChanged}
-          <span class="text-[9px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">➔</span>
           <span class="text-xs font-bold {p.nationalRRI.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.nationalRRI.projected}
           </span>
         {:else}
-          <span class="text-[9px] text-wheat-dark">/100</span>
+          <span class="text-[8.5px] text-wheat-dark">/100</span>
         {/if}
       </div>
     </div>
-
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Meta Utility: Presidential Protocol Guidebook Button -->
-    <button
-      onclick={() => uiStore.setGuideModal(true, 0)}
-      class="p-1.5 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none shrink-0"
-      title="دليل البروتوكول الرئاسي (إرشادات إدارة الدولة وطريقة اللعب)"
-    >
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-        <line x1="12" y1="17" x2="12.01" y2="17" />
-      </svg>
-    </button>
-
-    <div class="h-7 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Meta Utility: Restart Simulation Button -->
-    <button
-      onclick={() => uiStore.setRestartModal(true)}
-      class="p-1.5 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none shrink-0"
-      title="إعادة تشغيل المحاكاة (بدء ولاية جديدة)"
-    >
-      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-        <path d="M3 3v5h5" />
-      </svg>
-    </button>
   </div>
 </header>

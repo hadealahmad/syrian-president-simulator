@@ -29,7 +29,7 @@ export function auditSemiannualBudget(
   // Compliance Rate = Base (30%) + (PowerHours/24 * 0.25) + (Competence/100 * 0.25)
   //                   - (Corruption/100 * 0.30) - (PRRI/100 * 0.25)
   // ---------------------------------------------------------
-  const baseCompliance = 0.30;
+  const baseCompliance = 0.47;
   const powerFactor = (macro.dailyPowerHours / 24) * 0.25;
   const competenceFactor = (avgMinistryCompetence / 100) * 0.25;
   const corruptionDrag = (macro.systemicCorruption / 100) * 0.30;

@@ -180,7 +180,7 @@
     <!-- Interactive Spotlights based on active step -->
     {#if activeData.spotlight === 'top-ribbon'}
       <div
-        class="pointer-events-none absolute top-0 left-[390px] right-[390px] h-16 border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-0 left-[390px] right-[390px] h-[84px] border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
       >
         <span class="absolute -bottom-6 right-4 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           الشريط السيادي المستهدف
@@ -188,7 +188,7 @@
       </div>
     {:else if activeData.spotlight === 'map-viewport'}
       <div
-        class="pointer-events-none absolute top-16 bottom-0 left-[390px] right-[390px] border-2 border-wheat-gold shadow-[inset_0_0_40px_rgba(223,202,160,0.35)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-[84px] bottom-0 left-[390px] right-[390px] border-2 border-wheat-gold shadow-[inset_0_0_40px_rgba(223,202,160,0.35)] z-40 transition-all duration-300"
       >
         <span class="absolute top-4 right-4 px-2.5 py-1 bg-wheat-gold text-forest-deep text-[11px] font-bold font-heading shadow-md">
           خريطة العمليات الثلاثية الأبعاد

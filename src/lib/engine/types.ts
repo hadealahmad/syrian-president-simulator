@@ -260,6 +260,13 @@ export interface ProjectedTurnSummary {
   nationalRRI: ProjectedStat;
   dailyPowerHours: ProjectedStat;
   civicTrust: ProjectedStat;
+  sovereignDebtUSD: ProjectedStat;
+  m2MoneySupplySYP: ProjectedStat;
+  taxCompliancePct: ProjectedStat;
+  systemicCorruption: ProjectedStat;
+  sovereignLeverage: ProjectedStat;
+  civilServiceHeadcount: ProjectedStat;
+  civilPayrollSYP: ProjectedStat;
   runwayMonths: number;
   deficitSYP: number;
   hasSelections: boolean;

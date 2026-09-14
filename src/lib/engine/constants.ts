@@ -21,7 +21,7 @@ export const BASELINE_MACRO = {
   nationalRRI: 45,                      // 0 - 100 (National Riot Risk Index)
   gridCapacityMW: 2_250,                // Operational power (demand: 8,500 MW)
   dailyPowerHours: 3.5,                 // Average daily electricity
-  taxCompliancePct: 42,                 // 0 - 100 (Dynamic fiscal compliance)
+  taxCompliancePct: 35,                 // 0 - 100 (Dynamic fiscal compliance)
   civilServiceHeadcount: 1_400_000,     // Total active public & security personnel
 };
 
