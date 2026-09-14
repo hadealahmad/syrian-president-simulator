@@ -6,6 +6,7 @@
   import { draftStore, budgetStore } from '../stores/draft-store';
   import {
     createGovernorateHex,
+    updateGovernorateHex,
     getTierColor,
     refreshGovernorateLabel,
     type HexMeshEntry,
@@ -64,11 +65,14 @@
 
     raycaster.setFromCamera(pointer, camera);
     const meshes = Array.from(hexEntries.values()).map((e) => e.mesh);
-    const intersects = raycaster.intersectObjects(meshes, false);
+    const intersects = raycaster.intersectObjects(meshes, true);
 
     if (intersects.length > 0) {
-      const hit = intersects[0].object as THREE.Mesh;
-      hoveredNodeId = hit.userData.nodeId ?? null;
+      let hitObj: THREE.Object3D | null = intersects[0].object;
+      while (hitObj && !hitObj.userData?.nodeId) {
+        hitObj = hitObj.parent;
+      }
+      hoveredNodeId = hitObj?.userData?.nodeId ?? null;
     } else {
       hoveredNodeId = null;
     }
@@ -130,7 +134,7 @@
     renderer.domElement.addEventListener('pointermove', handlePointerMove);
     renderer.domElement.addEventListener('click', handleClick);
 
-    const animate = () => {
+    const animate = (time: number = 0) => {
       animationFrameId = requestAnimationFrame(animate);
 
       // Update mesh states based on selection/hover/tier
@@ -145,18 +149,40 @@
           const mat = entry.mesh.material as THREE.MeshStandardMaterial;
           const baseColor = getTierColor(node);
 
+          // Dynamic Unrest Alert Pulsing for RIOT and REVOLT
+          let defaultEmissive = new THREE.Color(0x000000);
+          let defaultEmissiveIntensity = 1.0;
+
+          if (node.tier === 'RIOT') {
+            defaultEmissive = new THREE.Color(0x5c0e18);
+            defaultEmissiveIntensity = 0.25 + 0.2 * Math.sin(time * 0.003);
+          } else if (node.tier === 'REVOLT') {
+            defaultEmissive = new THREE.Color(0x991b1b);
+            defaultEmissiveIntensity = 0.4 + 0.35 * Math.sin(time * 0.008);
+          }
+
           if (isSelected) {
             mat.emissive = new THREE.Color(0x5a481c);
+            mat.emissiveIntensity = 1.0;
             mat.color = new THREE.Color(0xf2cf77);
             entry.mesh.position.y = entry.baseY + 0.35;
           } else if (isHovered) {
             mat.emissive = new THREE.Color(0x1a453e);
+            mat.emissiveIntensity = 1.0;
             mat.color = new THREE.Color(baseColor);
             entry.mesh.position.y = entry.baseY + 0.15;
           } else {
-            mat.emissive = new THREE.Color(0x000000);
+            mat.emissive = defaultEmissive;
+            mat.emissiveIntensity = defaultEmissiveIntensity;
             mat.color = new THREE.Color(baseColor);
             entry.mesh.position.y = entry.baseY;
+          }
+
+          // Subtle electrical substation hum on power core
+          const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
+          if (powerHours >= 12 && entry.powerMesh.material[1]) {
+            const powerTopMat = entry.powerMesh.material[1] as THREE.MeshStandardMaterial;
+            powerTopMat.emissiveIntensity = 0.65 * (0.94 + 0.08 * Math.sin(time * 0.004));
           }
         }
       });
@@ -168,6 +194,15 @@
   }
 
   $effect(() => {
+    // Dynamic updates when governorates change
+    const governorates = $gameStore.governorates;
+    hexEntries.forEach((entry, id) => {
+      const node = governorates[id];
+      if (node) {
+        updateGovernorateHex(entry, node);
+      }
+    });
+
     // Refresh labels when fonts are loaded or state updates
     if (document.fonts) {
       document.fonts.ready.then(() => {
