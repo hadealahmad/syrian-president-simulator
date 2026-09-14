@@ -11,7 +11,8 @@
   import CenturyReport from './lib/ui/CenturyReport.svelte';
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
   import PresidentGuideModal from './lib/ui/PresidentGuideModal.svelte';
-    import SidebarToggleLip from './lib/ui/SidebarToggleLip.svelte';
+  import SidebarToggleLip from './lib/ui/SidebarToggleLip.svelte';
+  import VersionUpdateBanner from './lib/ui/VersionUpdateBanner.svelte';
   import { uiStore } from './lib/stores/ui-store';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
@@ -36,6 +37,9 @@
 
   <!-- Floating Command Deck (Buttons outside the sidebars) -->
   <FloatingCommandDeck />
+
+  <!-- New Version Alert Banner -->
+  <VersionUpdateBanner />
 
   <!-- Intelligence & Crisis Modals -->
   <TurnReviewModal />
