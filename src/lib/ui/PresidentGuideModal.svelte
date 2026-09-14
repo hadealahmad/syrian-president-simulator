@@ -167,9 +167,9 @@
 
 {#if $uiStore.isGuideModalOpen}
   <div class="fixed inset-0 z-50 overflow-hidden font-arabic select-none pointer-events-auto">
-    <!-- Dark Backdrop Overlay -->
+    <!-- Non-obscuring Transparent Backdrop: Keeps the entire application behind crystal clear -->
     <div
-      class="absolute inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+      class="absolute inset-0 bg-black/25 transition-opacity duration-300"
       onclick={handleClose}
       onkeydown={(e) => e.key === 'Escape' && handleClose()}
       role="button"
@@ -180,7 +180,7 @@
     <!-- Interactive Spotlights based on active step -->
     {#if activeData.spotlight === 'top-ribbon'}
       <div
-        class="pointer-events-none absolute top-0 left-[390px] right-[390px] h-16 border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.45)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-0 left-[390px] right-[390px] h-16 border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
       >
         <span class="absolute -bottom-6 right-4 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           الشريط السيادي المستهدف
@@ -188,7 +188,7 @@
       </div>
     {:else if activeData.spotlight === 'map-viewport'}
       <div
-        class="pointer-events-none absolute top-16 bottom-0 left-[390px] right-[390px] border-2 border-wheat-gold shadow-[inset_0_0_40px_rgba(223,202,160,0.25)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-16 bottom-0 left-[390px] right-[390px] border-2 border-wheat-gold shadow-[inset_0_0_40px_rgba(223,202,160,0.35)] z-40 transition-all duration-300"
       >
         <span class="absolute top-4 right-4 px-2.5 py-1 bg-wheat-gold text-forest-deep text-[11px] font-bold font-heading shadow-md">
           خريطة العمليات الثلاثية الأبعاد
@@ -197,7 +197,7 @@
     {:else if activeData.spotlight === 'sidebars'}
       <!-- Left Sidebar Spotlight -->
       <div
-        class="pointer-events-none absolute top-0 bottom-0 left-0 w-[390px] border-r-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.35)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-0 bottom-0 left-0 w-[390px] border-r-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.4)] z-40 transition-all duration-300"
       >
         <span class="absolute top-20 right-4 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           لوحة المحافظات
@@ -205,7 +205,7 @@
       </div>
       <!-- Right Sidebar Spotlight -->
       <div
-        class="pointer-events-none absolute top-0 bottom-0 right-0 w-[390px] border-l-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.35)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute top-0 bottom-0 right-0 w-[390px] border-l-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.4)] z-40 transition-all duration-300"
       >
         <span class="absolute top-20 left-4 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           مجلس الوزراء والمراسيم
@@ -213,7 +213,7 @@
       </div>
     {:else if activeData.spotlight === 'command-deck'}
       <div
-        class="pointer-events-none absolute bottom-4 left-[398px] w-[350px] h-[68px] border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.45)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute bottom-4 left-[398px] w-[350px] h-[68px] border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
       >
         <span class="absolute -top-6 right-2 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           منصة القيادة واعتماد الدور
@@ -221,37 +221,37 @@
       </div>
     {/if}
 
-    <!-- Guidebook Central Modal Card -->
+    <!-- Guidebook Central Modal Card (Constrained between sidebars, leaves sidebars and top ribbon clear) -->
     <div
       class="absolute inset-0 flex items-center justify-center p-4 z-50 pointer-events-none"
     >
       <div
-        class="pointer-events-auto w-full max-w-3xl bg-forest-deep border-2 border-wheat-mid/70 shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col max-h-[90vh] overflow-hidden text-wheat-light"
+        class="pointer-events-auto w-full max-w-[630px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] flex flex-col max-h-[82vh] overflow-hidden text-wheat-light"
       >
         <!-- Modal Top Bar -->
-        <header class="flex items-center justify-between px-6 py-4 bg-charcoal-deep border-b border-charcoal-mid shrink-0">
-          <div class="flex items-center gap-3">
+        <header class="flex items-center justify-between px-5 py-3.5 bg-charcoal-deep border-b border-charcoal-mid shrink-0">
+          <div class="flex items-center gap-2.5">
             <!-- Presidential Heraldic Icon -->
-            <div class="w-8 h-8 bg-forest-mid border border-wheat-gold flex items-center justify-center shrink-0 text-wheat-gold">
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+            <div class="w-7 h-7 bg-forest-mid border border-wheat-gold flex items-center justify-center shrink-0 text-wheat-gold">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
               </svg>
             </div>
             <div>
               <div class="flex items-center gap-2">
-                <h2 class="text-base font-bold text-wheat-light font-heading tracking-wide">البروتوكول الرئاسي // دليل قيادة الدولة</h2>
-                <span class="px-2 py-0.5 bg-wheat-gold/20 text-wheat-gold text-[10px] font-mono border border-wheat-gold/40 font-bold">
+                <h2 class="text-sm font-bold text-wheat-light font-heading tracking-wide">البروتوكول الرئاسي // دليل قيادة الدولة</h2>
+                <span class="px-1.5 py-0.2 bg-wheat-gold/20 text-wheat-gold text-[9px] font-mono border border-wheat-gold/40 font-bold">
                   {activeData.badge}
                 </span>
               </div>
-              <p class="text-[11px] text-wheat-dark">وثيقة التوجيه الاستراتيجي لإدارة المرحلة الانتقالية</p>
+              <p class="text-[10px] text-wheat-dark">وثيقة التوجيه الاستراتيجي لإدارة المرحلة الانتقالية</p>
             </div>
           </div>
 
           <!-- Dismiss Button -->
           <button
             onclick={handleClose}
-            class="px-3 py-1.5 text-xs text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid border border-transparent hover:border-charcoal-mid transition-colors cursor-pointer font-heading"
+            class="px-2.5 py-1 text-xs text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid border border-transparent hover:border-charcoal-mid transition-colors cursor-pointer font-heading"
           >
             تخطي الدليل [X]
           </button>
@@ -262,34 +262,34 @@
           {#each STEPS as step, idx}
             <button
               onclick={() => handleJump(idx)}
-              class="flex-1 min-w-[120px] py-2.5 px-3 text-center border-l border-charcoal-mid last:border-l-0 transition-colors font-heading text-[11px] flex items-center justify-center gap-1.5 cursor-pointer {currentStep === idx ? 'bg-forest-deep text-wheat-gold font-bold border-b-2 border-b-wheat-gold' : 'text-wheat-dark hover:text-wheat-mid hover:bg-forest-mid'}"
+              class="flex-1 min-w-[100px] py-2 px-2 text-center border-l border-charcoal-mid last:border-l-0 transition-colors font-heading text-[10px] flex items-center justify-center gap-1 cursor-pointer {currentStep === idx ? 'bg-forest-deep text-wheat-gold font-bold border-b-2 border-b-wheat-gold' : 'text-wheat-dark hover:text-wheat-mid hover:bg-forest-mid'}"
             >
-              <span class="font-mono text-[10px] opacity-70">0{idx + 1}</span>
+              <span class="font-mono text-[9px] opacity-70">0{idx + 1}</span>
               <span class="truncate">{step.title.split(' ')[0]} {step.title.split(' ')[1] ?? ''}</span>
             </button>
           {/each}
         </nav>
 
         <!-- Modal Body Content Area -->
-        <main class="p-6 overflow-y-auto space-y-5 flex-1 bg-gradient-to-b from-forest-deep to-charcoal-deep/80">
+        <main class="p-5 overflow-y-auto space-y-4 flex-1 bg-gradient-to-b from-forest-deep to-charcoal-deep/80">
           <div>
-            <span class="text-[11px] text-wheat-gold font-mono font-bold">{activeData.badge}</span>
-            <h3 class="text-xl font-bold text-wheat-light font-heading mt-0.5">{activeData.title}</h3>
-            <p class="text-xs text-wheat-mid mt-1 leading-relaxed">{activeData.subtitle}</p>
+            <span class="text-[10px] text-wheat-gold font-mono font-bold">{activeData.badge}</span>
+            <h3 class="text-lg font-bold text-wheat-light font-heading mt-0.5">{activeData.title}</h3>
+            <p class="text-[11px] text-wheat-mid mt-0.5 leading-relaxed">{activeData.subtitle}</p>
           </div>
 
           <!-- Section Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             {#each activeData.sections as item}
-              <div class="p-3.5 bg-charcoal-deep/90 border border-charcoal-mid flex flex-col justify-between space-y-2 shadow-sm hover:border-wheat-mid/50 transition-colors">
+              <div class="p-3 bg-charcoal-deep/90 border border-charcoal-mid flex flex-col justify-between space-y-1.5 shadow-sm hover:border-wheat-mid/50 transition-colors">
                 <div>
-                  <div class="flex items-center justify-between gap-2 mb-1.5">
+                  <div class="flex items-center justify-between gap-2 mb-1">
                     <span class="text-xs font-bold text-wheat-gold font-heading">{item.label}</span>
                     <span class="text-[9px] px-1.5 py-0.2 bg-forest-mid text-wheat-mid border border-charcoal-mid font-mono">
                       {item.tag}
                     </span>
                   </div>
-                  <p class="text-[11.5px] text-wheat-light/90 leading-relaxed">
+                  <p class="text-[11px] text-wheat-light/90 leading-relaxed">
                     {item.desc}
                   </p>
                 </div>
@@ -299,9 +299,9 @@
         </main>
 
         <!-- Modal Footer Navigation -->
-        <footer class="flex items-center justify-between px-6 py-4 bg-charcoal-deep border-t border-charcoal-mid shrink-0">
+        <footer class="flex items-center justify-between px-5 py-3.5 bg-charcoal-deep border-t border-charcoal-mid shrink-0">
           <!-- Step Counter -->
-          <div class="flex items-center gap-2 text-xs text-wheat-dark font-mono">
+          <div class="flex items-center gap-1.5 text-xs text-wheat-dark font-mono">
             <span>الخطوة</span>
             <span class="text-wheat-gold font-bold text-sm">0{currentStep + 1}</span>
             <span>/</span>
@@ -309,11 +309,11 @@
           </div>
 
           <!-- Next / Previous Controls -->
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2.5">
             <button
               onclick={handlePrev}
               disabled={currentStep === 0}
-              class="px-4 py-2 border border-charcoal-mid text-xs font-heading font-bold transition-all {currentStep === 0 ? 'opacity-30 cursor-not-allowed text-wheat-dark' : 'text-wheat-mid hover:text-wheat-light hover:border-wheat-mid cursor-pointer'}"
+              class="px-3.5 py-1.5 border border-charcoal-mid text-xs font-heading font-bold transition-all {currentStep === 0 ? 'opacity-30 cursor-not-allowed text-wheat-dark' : 'text-wheat-mid hover:text-wheat-light hover:border-wheat-mid cursor-pointer'}"
             >
               السابق
             </button>
@@ -321,7 +321,7 @@
             {#if currentStep < STEPS.length - 1}
               <button
                 onclick={handleNext}
-                class="flex items-center gap-2 px-5 py-2 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-md active:translate-y-0.5 cursor-pointer"
+                class="flex items-center gap-1.5 px-4.5 py-1.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-md active:translate-y-0.5 cursor-pointer"
               >
                 <span>التالي</span>
                 <svg class="w-3.5 h-3.5 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -331,7 +331,7 @@
             {:else}
               <button
                 onclick={handleClose}
-                class="flex items-center gap-2 px-6 py-2 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-xl active:translate-y-0.5 cursor-pointer"
+                class="flex items-center gap-2 px-5 py-1.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-xl active:translate-y-0.5 cursor-pointer"
               >
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <polyline points="20 6 9 17 4 12" />

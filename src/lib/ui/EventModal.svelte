@@ -32,10 +32,10 @@
 
 {#if currentEvent}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-charcoal-deep/90 backdrop-blur-md p-4 select-none font-arabic"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
   >
     <div
-      class="w-full max-w-2xl bg-forest-deep border border-wheat-mid shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light"
+      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light"
     >
       <!-- Telex Header -->
       <div class="px-6 py-3.5 bg-forest-mid border-b border-charcoal-mid flex items-center justify-between">

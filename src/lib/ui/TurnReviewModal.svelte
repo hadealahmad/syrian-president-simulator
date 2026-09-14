@@ -94,10 +94,10 @@
 
 {#if $uiStore.isTurnReviewModalOpen}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-charcoal-deep/90 backdrop-blur-md p-4 select-none font-arabic"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
   >
     <div
-      class="w-full max-w-2xl bg-forest-deep border border-wheat-mid shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col max-h-[90vh]"
+      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col max-h-[90vh]"
     >
       <!-- Header -->
       <div class="border-b border-charcoal-mid pb-3 shrink-0">

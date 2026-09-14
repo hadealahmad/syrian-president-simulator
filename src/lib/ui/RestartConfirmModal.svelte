@@ -20,12 +20,12 @@
 
 {#if $uiStore.isRestartModalOpen}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-charcoal-deep/90 backdrop-blur-md p-4 select-none font-arabic"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
     role="dialog"
     aria-modal="true"
   >
     <div
-      class="w-full max-w-md bg-forest-deep border-2 border-umber-crimson shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
+      class="w-full max-w-md bg-forest-deep/95 border-2 border-umber-crimson shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
     >
       <!-- Header -->
       <div class="border-b border-charcoal-mid pb-3 space-y-1">
