@@ -24,6 +24,10 @@ export interface TurnBudget {
   remainingPC: number;
   remainingUSD: number;
   remainingSYP: number;
+
+  usdNeededToCoverSYP: (costSYP: number) => number;
+  canAffordWithFxCoverage: (costUSD: number, costSYP: number) => boolean;
+  isCoveredByFX: (costUSD: number, costSYP: number) => boolean;
 }
 
 export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives): TurnBudget {
@@ -115,6 +119,22 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
   const remainingUSD = Math.max(0, initialUSD - committedUSD);
   const remainingSYP = initialSYP - committedSYP;
 
+  const parallelRate = Math.max(1, gameState.macro.parallelRateSYP || 14000);
+
+  const usdNeededToCoverSYP = (costSYP: number): number => {
+    const sypShortfall = Math.max(0, costSYP - remainingSYP);
+    return sypShortfall / parallelRate;
+  };
+
+  const canAffordWithFxCoverage = (costUSD: number, costSYP: number): boolean => {
+    const extraUSD = usdNeededToCoverSYP(costSYP);
+    return remainingUSD >= (costUSD + extraUSD);
+  };
+
+  const isCoveredByFX = (costUSD: number, costSYP: number): boolean => {
+    return costSYP > remainingSYP && canAffordWithFxCoverage(costUSD, costSYP);
+  };
+
   return {
     initialPC,
     initialUSD,
@@ -125,6 +145,9 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     remainingPC,
     remainingUSD,
     remainingSYP,
+    usdNeededToCoverSYP,
+    canAffordWithFxCoverage,
+    isCoveredByFX,
   };
 }
 

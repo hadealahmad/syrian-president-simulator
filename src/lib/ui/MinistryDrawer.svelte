@@ -277,7 +277,11 @@
 
   let canAffordBrainGain = $derived(
     $draftStore.expatriateBrainGainIncentive ||
-    ($budgetStore.remainingUSD >= 20_000_000 && $budgetStore.remainingSYP >= 350_000_000_000)
+    $budgetStore.canAffordWithFxCoverage(20_000_000, 350_000_000_000)
+  );
+  let isBrainGainCoveredByFX = $derived(
+    !$draftStore.expatriateBrainGainIncentive &&
+    $budgetStore.isCoveredByFX(20_000_000, 350_000_000_000)
   );
 </script>
 
@@ -1152,6 +1156,11 @@
               <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.35T ل.س</span>
               <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+8% كفاءة</span>
               <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+4 ثقة</span>
+              {#if isBrainGainCoveredByFX && !$draftStore.expatriateBrainGainIncentive}
+                <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+                  مغطى بالنقد الأجنبي
+                </span>
+              {/if}
             </div>
           </div>
           <button
@@ -1167,6 +1176,8 @@
               مُفعّل (مستمر)
             {:else if !canAffordBrainGain}
               ميزانية غير كافية
+            {:else if isBrainGainCoveredByFX}
+              تفعيل (بتغطية النقد الأجنبي)
             {:else}
               مُعطّل
             {/if}
