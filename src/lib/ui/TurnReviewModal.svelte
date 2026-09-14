@@ -590,7 +590,7 @@
           class="px-6 py-2.5 text-xs font-bold border transition-colors rounded-none flex items-center gap-2 {isOverBudget ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed opacity-60' : 'bg-forest-surface hover:bg-wheat-gold text-wheat-gold hover:text-forest-deep border-wheat-mid shadow-lg cursor-pointer'}"
         >
           <span>تأكيد المراسيم وإنهاء الدور</span>
-          <span class="font-mono text-[10px]">➔</span>
+          <span class="font-mono text-[10px]">←</span>
         </button>
       </div>
     </div>
