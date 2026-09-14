@@ -14,6 +14,15 @@
     REVOLT: 'تمرد مسلح',
   };
 
+  const ARCHETYPE_NAMES_AR: Record<string, string> = {
+    revolution_hub: 'حاضرة ثورية / مركز مدني',
+    coastal_enclave: 'جيب ساحلي',
+    metropolitan_regime: 'عاصمة ومركز إداري',
+    agricultural_hinterland: 'عمق زراعي وريفي',
+    energy_corridor: 'ممر طاقة ونفط',
+    autonomous_frontier: 'بادية وأطراف حدودية',
+  };
+
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let selectedId = $derived($uiStore.selectedGovernorateId);
   let node = $derived(selectedId ? $gameStore.governorates[selectedId] : null);
@@ -89,7 +98,7 @@
             </span>
           </div>
           <span class="text-xs text-wheat-dark font-mono">
-            {node.archetype}
+            {ARCHETYPE_NAMES_AR[node.archetype] ?? node.archetype}
           </span>
         </div>
 
