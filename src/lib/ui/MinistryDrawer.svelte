@@ -133,6 +133,37 @@
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
+  const SUBSIDY_NAMES_AR: Record<string, string> = {
+    AUSTERE: 'تقشف',
+    STANDARD: 'اعتيادي',
+    GENEROUS: 'موسع',
+  };
+
+  const WORKFORCE_NAMES_AR: Record<string, string> = {
+    MAINTAIN: 'تثبيت الملاك',
+    PRUNE_CIVIL_SERVICE: 'شطب الوهمي',
+    ABSORB_MILITIAS: 'استيعاب المسلحين',
+  };
+
+  const WHEAT_NAMES_AR: Record<string, string> = {
+    SUBSIDIZED_LOW: 'سعر إلزامي',
+    MARKET_PARITY: 'سعر عادل',
+    PREMIUM_INCENTIVE: 'علاوة تحفيز',
+  };
+
+  const SMUGGLING_NAMES_AR: Record<string, string> = {
+    CRACKDOWN: 'حملة صارمة',
+    STANDARD: 'رقابة اعتيادية',
+    PERMISSIVE: 'غض الطرف',
+  };
+
+  const ASSET_STATUS_AR: Record<string, string> = {
+    PENDING: 'قيد الانتظار',
+    SETTLED: 'تسوية مالية مصادقة',
+    NATIONALIZED: 'تأميم حكومي قطاع عام',
+    LIQUIDATED: 'تصفية خارجية',
+  };
+
   const STAT_NAMES_AR: Record<string, string> = {
     treasurySYP: 'الخزينة العامة',
     reservesUSD: 'احتياطي النقد الأجنبي',
@@ -339,7 +370,7 @@
               <span class="text-[10px] text-wheat-dark">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-              {$draftStore.foodSubsidyLevel || 'STANDARD'}
+              {SUBSIDY_NAMES_AR[$draftStore.foodSubsidyLevel || 'STANDARD'] ?? ($draftStore.foodSubsidyLevel || 'اعتيادي')}
             </span>
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
@@ -395,7 +426,7 @@
               <span class="text-[10px] text-wheat-dark">إدارة الوظائف الحكومية والبطالة المقنعة</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-              {$draftStore.workforceStrategy || 'MAINTAIN'}
+              {WORKFORCE_NAMES_AR[$draftStore.workforceStrategy || 'MAINTAIN'] ?? ($draftStore.workforceStrategy || 'تثبيت الملاك')}
             </span>
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
@@ -453,7 +484,7 @@
               <span class="text-[10px] text-wheat-dark">ضمان الأمن الغذائي واستلام محصول القمح السوري</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-              {$draftStore.wheatProcurement || 'MARKET_PARITY'}
+              {WHEAT_NAMES_AR[$draftStore.wheatProcurement || 'MARKET_PARITY'] ?? ($draftStore.wheatProcurement || 'سعر عادل')}
             </span>
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
@@ -509,7 +540,7 @@
               <span class="text-[10px] text-wheat-dark">ضبط المازوت والفيول لدعم محطات التوليد</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-              {$draftStore.dieselSmuggling || 'STANDARD'}
+              {SMUGGLING_NAMES_AR[$draftStore.dieselSmuggling || 'STANDARD'] ?? ($draftStore.dieselSmuggling || 'رقابة اعتيادية')}
             </span>
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
@@ -913,7 +944,7 @@
                   </div>
                 {:else}
                   <div class="text-[10px] text-wheat-mid font-mono pt-1 border-t border-charcoal-mid">
-                    تمت المعالجة: {asset.status === 'SETTLED' ? 'تسوية مالية مصادقة' : asset.status === 'NATIONALIZED' ? 'تأميم حكومي قطاع عام' : asset.status === 'LIQUIDATED' ? 'تصفية خارجية' : asset.status}
+                    تمت المعالجة: {ASSET_STATUS_AR[asset.status] ?? asset.status}
                   </div>
                 {/if}
               </div>
