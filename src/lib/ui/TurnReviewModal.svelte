@@ -431,7 +431,7 @@
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.8T ل.س</span>
-                <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض تلوث الألغام بنسبة 8% وتأمين الأراضي الزراعية</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض مساحة الألغام بنسبة 8% من مساحة المحافظة وتأمين الأراضي الزراعية</span>
               </div>
             </div>
             <button

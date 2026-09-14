@@ -195,7 +195,7 @@
                   {/if}
                 </div>
                 <span class="text-[10px] text-wheat-dark">
-                  {canDeployDemining ? 'تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة' : 'الأراضي مؤمنة، نسبة التلوث منخفضة (أقل من 8%)'}
+                  {canDeployDemining ? 'تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة' : 'الأراضي مؤمنة، المساحة الملغومة منخفضة (أقل من 8% من المساحة)'}
                 </span>
               </div>
               <button
@@ -210,7 +210,7 @@
                 {#if isSelectedForDemining}
                   أولوية معتمدة (إلغاء)
                 {:else if !canDeployDemining}
-                  مطهرة (≤ 8%)
+                  مطهّرة (≤ 8% من المساحة)
                 {:else if !canAffordDemining}
                   ميزانية غير كافية ($20M / 0.8T)
                 {:else}
@@ -229,7 +229,7 @@
                 </span>
               </div>
               <span class="font-mono {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">
-                التلوث الحالي: {node.mineSaturationPct}%
+                المساحة الملغومة: {node.mineSaturationPct}% من المساحة
               </span>
             </div>
           </div>

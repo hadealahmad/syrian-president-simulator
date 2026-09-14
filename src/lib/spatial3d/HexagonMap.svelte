@@ -195,9 +195,9 @@
             <span class="text-wheat-light font-bold">{powerHours} س/يوم</span>
           </div>
           <div>
-            <span class="text-wheat-dark font-arabic block text-[10px]">تلوث الألغام:</span>
+            <span class="text-wheat-dark font-arabic block text-[10px]">مساحة الألغام:</span>
             <span class="{gov.mineSaturationPct > 10 ? 'text-[#ce1126]' : 'text-wheat-light'} font-bold">
-              {Math.round(gov.mineSaturationPct * 120).toLocaleString()} هـ
+              {gov.mineSaturationPct}% من المساحة
             </span>
           </div>
         </div>
