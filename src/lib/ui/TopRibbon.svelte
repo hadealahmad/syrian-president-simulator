@@ -93,7 +93,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span dir="ltr" class="text-xs font-bold {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-light'}">{formatTrillion(p.treasurySYP.current)}T</span>
         {#if p.treasurySYP.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span dir="ltr" class="text-xs font-bold {p.treasurySYP.projected < 0 ? 'text-umber-crimson' : p.treasurySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatTrillion(p.treasurySYP.projected)}T
           </span>
@@ -135,7 +135,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">${formatMillionUSD(p.reservesUSD.current)}M</span>
         {#if p.reservesUSD.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.reservesUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             ${formatMillionUSD(p.reservesUSD.projected)}M
           </span>
@@ -167,7 +167,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-mid">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
         {#if p.sovereignDebtUSD.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.sovereignDebtUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             ${formatBillionUSD(p.sovereignDebtUSD.projected)}B
           </span>
@@ -199,7 +199,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.m2MoneySupplySYP.current)}T</span>
         {#if p.m2MoneySupplySYP.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.m2MoneySupplySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatTrillion(p.m2MoneySupplySYP.projected)}T
           </span>
@@ -233,7 +233,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-mid">{formatNumber(p.parallelRateSYP.current)}</span>
         {#if p.parallelRateSYP.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.parallelRateSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatNumber(p.parallelRateSYP.projected)}
           </span>
@@ -265,7 +265,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
         {#if p.politicalCapital.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.politicalCapital.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.politicalCapital.projected}%
           </span>
@@ -302,7 +302,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">{formatMillionPeople(p.civilServiceHeadcount.current)}M</span>
         {#if p.civilServiceHeadcount.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold text-forest-accent">
             {formatMillionPeople(p.civilServiceHeadcount.projected)}M
           </span>
@@ -334,7 +334,7 @@
       <div class="flex items-baseline gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.civilPayrollSYP.current)}T</span>
         {#if p.civilPayrollSYP.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.civilPayrollSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {formatTrillion(p.civilPayrollSYP.projected)}T
           </span>
@@ -368,7 +368,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
         {#if p.realWageUSD.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             ${p.realWageUSD.projected}
           </span>
@@ -402,7 +402,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">{p.taxCompliancePct.current}%</span>
         {#if p.taxCompliancePct.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.taxCompliancePct.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.taxCompliancePct.projected}%
           </span>
@@ -434,7 +434,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold {p.systemicCorruption.current > 65 ? 'text-umber-crimson' : 'text-wheat-gold'}">{p.systemicCorruption.current}</span>
         {#if p.systemicCorruption.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.systemicCorruption.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.systemicCorruption.projected}
           </span>
@@ -468,7 +468,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold {p.civicTrust.current < 35 ? 'text-umber-crimson' : 'text-forest-accent'}">{p.civicTrust.current}%</span>
         {#if p.civicTrust.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.civicTrust.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.civicTrust.projected}%
           </span>
@@ -500,7 +500,7 @@
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">{p.sovereignLeverage.current}%</span>
         {#if p.sovereignLeverage.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.sovereignLeverage.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.sovereignLeverage.projected}%
           </span>
@@ -534,7 +534,7 @@
           {p.nationalRRI.current}
         </span>
         {#if p.nationalRRI.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">➔</span>
+          <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.nationalRRI.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
             {p.nationalRRI.projected}
           </span>
