@@ -2,6 +2,13 @@
   import { gameStore } from '../stores/game-store';
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
+  import {
+    getOligarchSettlementIncome,
+    getOligarchLiquidationIncome,
+    getOligarchSettlementPCCost,
+    getOligarchLiquidationPCCost,
+    getOligarchNationalizePCEarned,
+  } from '../engine/oligarch-helpers';
 
   function formatNumber(num: number): string {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
@@ -496,6 +503,58 @@
               إلغاء
             </button>
           </div>
+        {/each}
+
+        <!-- Oligarch Decisions -->
+        {#each Object.entries($draftStore.oligarchDecisions || {}) as [assetId, action]}
+          {@const asset = $gameStore.confiscatedAssets.find((a) => a.id === assetId)}
+          {#if asset && asset.status === 'PENDING'}
+            {@const settlementIncomeUSD = getOligarchSettlementIncome(asset.valuationUSD)}
+            {@const liquidationIncomeUSD = getOligarchLiquidationIncome(asset.valuationUSD)}
+            {@const settlementPCCost = getOligarchSettlementPCCost(asset.valuationUSD)}
+            {@const liquidationPCCost = getOligarchLiquidationPCCost(asset.valuationUSD)}
+            {@const nationalizePCEarned = getOligarchNationalizePCEarned(asset.valuationUSD)}
+            <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+              <div class="space-y-1">
+                <span class="font-bold text-wheat-light block font-heading">
+                  ثروات الحرب والأوليغارشيا: {asset.titleAr} — {action === 'SETTLEMENT_80_20' ? 'تسوية 80/20' : action === 'NATIONALIZE_SOE' ? 'تأميم حكومي' : 'تصفية خارجية'}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {#if action === 'SETTLEMENT_80_20'}
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                      +${formatMillionUSD(settlementIncomeUSD)}M
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                      -{settlementPCCost} رصيد
+                    </span>
+                    <span class="text-[11px] text-forest-accent mr-2">| الأثر: استرداد أصول كاش بنسبة 80% وتثبيت الثقة السيادية</span>
+                  {:else if action === 'NATIONALIZE_SOE'}
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                      +{nationalizePCEarned} رصيد
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[10px]">
+                      +{(asset.soeVenueSYPPerTurn / 1_000_000_000_000).toFixed(2)}T ل.س/دور
+                    </span>
+                    <span class="text-[11px] text-forest-accent mr-2">| الأثر: ملكية عامة للدولة وتوفير 8000 وظيفة إنتاجية</span>
+                  {:else if action === 'FOREIGN_LIQUIDATION'}
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                      +${formatMillionUSD(liquidationIncomeUSD)}M
+                    </span>
+                    <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                      -{liquidationPCCost} رصيد
+                    </span>
+                    <span class="text-[11px] text-umber-crimson mr-2">| الأثر: بيع عاجل بخصم 40% وضخ سيولة أجنبية فورية</span>
+                  {/if}
+                </div>
+              </div>
+              <button
+                onclick={() => draftStore.removeOligarchDecision(asset.id)}
+                class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          {/if}
         {/each}
 
         <!-- 13. Presidential Decrees & Political Actions -->

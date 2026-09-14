@@ -6,6 +6,11 @@ import {
   calculateProjectedTurnSummary,
 } from '../engine/turn-manager';
 import { gameStore } from './game-store';
+import {
+  getOligarchSettlementPCCost,
+  getOligarchLiquidationPCCost,
+  getOligarchNationalizePCEarned,
+} from '../engine/oligarch-helpers';
 
 export interface TurnBudget {
   initialPC: number;
@@ -76,9 +81,9 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     for (const [assetId, action] of Object.entries(draft.oligarchDecisions)) {
       const asset = gameState.confiscatedAssets.find((a) => a.id === assetId);
       if (asset && asset.status === 'PENDING') {
-        if (action === 'SETTLEMENT_80_20') committedPC += 8;
-        else if (action === 'FOREIGN_LIQUIDATION') committedPC += 10;
-        else if (action === 'NATIONALIZE_SOE') committedPC -= 5;
+        if (action === 'SETTLEMENT_80_20') committedPC += getOligarchSettlementPCCost(asset.valuationUSD);
+        else if (action === 'FOREIGN_LIQUIDATION') committedPC += getOligarchLiquidationPCCost(asset.valuationUSD);
+        else if (action === 'NATIONALIZE_SOE') committedPC -= getOligarchNationalizePCEarned(asset.valuationUSD);
       }
     }
   }

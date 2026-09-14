@@ -11,6 +11,13 @@ import { drawEventsForTurn } from './events';
 import { checkFailStates } from './fail-states';
 import { projectCenturyOutcome } from './century-engine';
 import { PRNG } from './prng';
+import {
+  getOligarchSettlementIncome,
+  getOligarchLiquidationIncome,
+  getOligarchSettlementPCCost,
+  getOligarchLiquidationPCCost,
+  getOligarchNationalizePCEarned,
+} from './oligarch-helpers';
 
 export function getDefaultTurnDirectives(): TurnDirectives {
   return {
@@ -208,25 +215,28 @@ export function simulateTurnTransitions(
       const asset = next.confiscatedAssets.find((a) => a.id === assetId);
       if (asset && asset.status === 'PENDING') {
         if (action === 'SETTLEMENT_80_20') {
-          if (next.macro.politicalCapital >= 8) {
+          const costPC = getOligarchSettlementPCCost(asset.valuationUSD);
+          if (next.macro.politicalCapital >= costPC) {
             asset.status = 'SETTLED';
-            const cashUSD = asset.valuationUSD * 0.8;
+            const cashUSD = getOligarchSettlementIncome(asset.valuationUSD);
             next.macro.reservesUSD += cashUSD;
-            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 8);
+            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - costPC);
             next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
           }
         } else if (action === 'NATIONALIZE_SOE') {
           asset.status = 'NATIONALIZED';
+          const earnedPC = getOligarchNationalizePCEarned(asset.valuationUSD);
           next.macro.civilServiceHeadcount = (next.macro.civilServiceHeadcount ?? 850_000) + 8000;
           next.macro.systemicCorruption = Math.min(100, next.macro.systemicCorruption + 5);
-          next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 5);
+          next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + earnedPC);
         } else if (action === 'FOREIGN_LIQUIDATION') {
-          if (next.macro.politicalCapital >= 10) {
+          const costPC = getOligarchLiquidationPCCost(asset.valuationUSD);
+          if (next.macro.politicalCapital >= costPC) {
             asset.status = 'LIQUIDATED';
-            const cashUSD = asset.valuationUSD * 0.6;
+            const cashUSD = getOligarchLiquidationIncome(asset.valuationUSD);
             next.macro.reservesUSD += cashUSD;
             next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 4);
-            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 10);
+            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - costPC);
           }
         }
       }

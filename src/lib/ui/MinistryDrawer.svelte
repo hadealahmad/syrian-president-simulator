@@ -2,6 +2,13 @@
   import { gameStore } from '../stores/game-store';
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore, type MinistryTab } from '../stores/ui-store';
+  import {
+    getOligarchSettlementIncome,
+    getOligarchLiquidationIncome,
+    getOligarchSettlementPCCost,
+    getOligarchLiquidationPCCost,
+    getOligarchNationalizePCEarned,
+  } from '../engine/oligarch-helpers';
 
   interface PoliticalDecreeItem {
     id: string;
@@ -92,6 +99,12 @@
 
   function formatM(val: number): string {
     return (val / 1_000_000).toFixed(1);
+  }
+
+  function formatTrillion(syp: number): string {
+    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+    if (Object.is(val, -0) || val === 0) return '0.00';
+    return val.toFixed(2);
   }
 
   const TABS = [
@@ -456,8 +469,13 @@
           <div class="space-y-2">
             {#each Object.values($gameStore.confiscatedAssets) as asset}
               {@const decision = $draftStore.oligarchDecisions[asset.id] || asset.status}
-              {@const canAffordSettlement = decision === 'SETTLEMENT_80_20' || $budgetStore.remainingPC >= 8}
-              {@const canAffordLiquidation = decision === 'FOREIGN_LIQUIDATION' || $budgetStore.remainingPC >= 10}
+              {@const settlementIncomeUSD = getOligarchSettlementIncome(asset.valuationUSD)}
+              {@const liquidationIncomeUSD = getOligarchLiquidationIncome(asset.valuationUSD)}
+              {@const settlementPCCost = getOligarchSettlementPCCost(asset.valuationUSD)}
+              {@const liquidationPCCost = getOligarchLiquidationPCCost(asset.valuationUSD)}
+              {@const nationalizePCEarned = getOligarchNationalizePCEarned(asset.valuationUSD)}
+              {@const canAffordSettlement = decision === 'SETTLEMENT_80_20' || $budgetStore.remainingPC >= settlementPCCost}
+              {@const canAffordLiquidation = decision === 'FOREIGN_LIQUIDATION' || $budgetStore.remainingPC >= liquidationPCCost}
               <div class="p-3 bg-charcoal-surface border border-charcoal-mid rounded-none space-y-2 text-[11px]">
                 <div class="flex justify-between items-start">
                   <div>
@@ -467,7 +485,8 @@
                   <span class="font-mono text-wheat-gold text-xs font-bold">${formatM(asset.valuationUSD)}M</span>
                 </div>
                 {#if asset.status === 'PENDING'}
-                  <div class="grid grid-cols-3 gap-1 text-[10px] pt-1">
+                  <div class="grid grid-cols-3 gap-1.5 text-[10px] pt-1">
+                    <!-- Option 1: 80/20 Settlement -->
                     <button
                       disabled={decision !== 'SETTLEMENT_80_20' && !canAffordSettlement}
                       onclick={() => {
@@ -477,14 +496,21 @@
                           draftStore.setOligarchDecision(asset.id, 'SETTLEMENT_80_20');
                         }
                       }}
-                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-                      title="تسوية 80/20: تحصيل 80% كاش (+${formatM(asset.valuationUSD * 0.8)}M$)، +2 ثقة، كلفة 8 رصيد سياسي"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      title="تسوية 80/20: تحصيل 80% كاش (+${formatM(settlementIncomeUSD)}M$)، كلفة {settlementPCCost} رصيد سياسي، +2 ثقة"
                     >
-                      <span>تسوية 80/20</span>
-                      <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-                        +${formatM(asset.valuationUSD * 0.8)}M
-                      </span>
+                      <span class="font-bold text-[10px]">تسوية 80/20</span>
+                      <div class="flex items-center gap-1 flex-wrap justify-center">
+                        <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
+                          +${formatM(settlementIncomeUSD)}M
+                        </span>
+                        <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
+                          -{settlementPCCost} رصيد
+                        </span>
+                      </div>
                     </button>
+
+                    <!-- Option 2: Nationalize SOE -->
                     <button
                       onclick={() => {
                         if (decision === 'NATIONALIZE_SOE') {
@@ -493,14 +519,21 @@
                           draftStore.setOligarchDecision(asset.id, 'NATIONALIZE_SOE');
                         }
                       }}
-                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-                      title="تأميم حكومي: ضم الأصل لشركات الدولة، +8000 وظيفة، +5 رصيد سياسي، +5 فساد"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
+                      title="تأميم حكومي: ضم الأصل لشركات الدولة، كسب +{nationalizePCEarned} رصيد سياسي، +{formatTrillion(asset.soeVenueSYPPerTurn)}T ل.س/دور، +8000 موظف، +5 فساد"
                     >
-                      <span>تأميم حكومي</span>
-                      <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-charcoal-light text-wheat-gold font-mono font-bold text-[9px]">
-                        +5 رصيد
-                      </span>
+                      <span class="font-bold text-[10px]">تأميم حكومي</span>
+                      <div class="flex items-center gap-1 flex-wrap justify-center">
+                        <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
+                          +{nationalizePCEarned} رصيد
+                        </span>
+                        <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">
+                          +{formatTrillion(asset.soeVenueSYPPerTurn)}T/دور
+                        </span>
+                      </div>
                     </button>
+
+                    <!-- Option 3: Foreign Liquidation -->
                     <button
                       disabled={decision !== 'FOREIGN_LIQUIDATION' && !canAffordLiquidation}
                       onclick={() => {
@@ -510,13 +543,18 @@
                           draftStore.setOligarchDecision(asset.id, 'FOREIGN_LIQUIDATION');
                         }
                       }}
-                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-                      title="تصفية خارجية: بيع سريع بالدولار بخصم 40% لجلب +${formatM(asset.valuationUSD * 0.6)}M$ كاش، -4 ثقة، كلفة 10 رصيد سياسي"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      title="تصفية خارجية: بيع سريع بالدولار بخصم 40% (+${formatM(liquidationIncomeUSD)}M$)، كلفة {liquidationPCCost} رصيد سياسي، -4 ثقة"
                     >
-                      <span>تصفية خارجية</span>
-                      <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-                        +${formatM(asset.valuationUSD * 0.6)}M
-                      </span>
+                      <span class="font-bold text-[10px]">تصفية خارجية</span>
+                      <div class="flex items-center gap-1 flex-wrap justify-center">
+                        <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
+                          +${formatM(liquidationIncomeUSD)}M
+                        </span>
+                        <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
+                          -{liquidationPCCost} رصيد
+                        </span>
+                      </div>
                     </button>
                   </div>
                 {:else}

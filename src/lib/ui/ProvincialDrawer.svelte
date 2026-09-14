@@ -369,9 +369,5 @@
     </div>
   {/if}
 
-  <!-- Footer Indicator -->
-  <div class="border-t border-charcoal-mid pt-2.5 flex items-center justify-between text-[10px] text-wheat-dark">
-    <span>غرفة المتابعة الإقليمية</span>
-    <span class="font-mono text-wheat-mid">14 / 14 محافظة</span>
-  </div>
+
 </aside>
