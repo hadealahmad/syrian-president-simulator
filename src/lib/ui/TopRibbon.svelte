@@ -177,34 +177,68 @@
 
     <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 5: M2 Money Supply -->
+    <!-- Item: Cost of Wages (فاتورة الرواتب) -->
     <div
       role="button"
       tabindex="0"
-      onclick={() => uiStore.openStatRelatedOptions('m2MoneySupplySYP')}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('m2MoneySupplySYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'm2MoneySupplySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
-      title="الكتلة النقدية الإجمالية (M2): الحالي {formatTrillion(p.m2MoneySupplySYP.current)}T ل.س | المتوقع {formatTrillion(p.m2MoneySupplySYP.projected)}T ل.س ({p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%)"
+      onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
-        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الكتلة (M2)</span>
-        {#if p.m2MoneySupplySYP.isChanged}
+        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">فاتورة الرواتب</span>
+        {#if p.civilPayrollSYP.isChanged}
           <span
-            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.m2MoneySupplySYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.civilPayrollSYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
           >
-            {p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%
+            {p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%
           </span>
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.m2MoneySupplySYP.current)}T</span>
-        {#if p.m2MoneySupplySYP.isChanged}
+        <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.civilPayrollSYP.current)}T</span>
+        {#if p.civilPayrollSYP.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
-          <span class="text-xs font-bold {p.m2MoneySupplySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            {formatTrillion(p.m2MoneySupplySYP.projected)}T
+          <span class="text-xs font-bold {p.civilPayrollSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {formatTrillion(p.civilPayrollSYP.projected)}T
           </span>
         {:else}
           <span class="text-[8.5px] text-wheat-dark font-normal">ل.س</span>
+        {/if}
+      </div>
+    </div>
+
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item: Real Civil Service Wage USD (أجر الموظف) -->
+    <div
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
+        {#if p.realWageUSD.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.realWageUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
+        {#if p.realWageUSD.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">←</span>
+          <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            ${p.realWageUSD.projected}
+          </span>
+        {:else}
+          <span class="text-[8.5px] text-wheat-dark font-normal">/ش</span>
         {/if}
       </div>
     </div>
@@ -310,73 +344,7 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 9: Cost of Wages (Wage Bill for the turn) -->
-    <div
-      role="button"
-      tabindex="0"
-      onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
-      title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
-    >
-      <div class="flex items-center gap-1">
-        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">فاتورة الرواتب</span>
-        {#if p.civilPayrollSYP.isChanged}
-          <span
-            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.civilPayrollSYP.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
-          >
-            {p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%
-          </span>
-        {/if}
-      </div>
-      <div class="flex items-baseline gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-mid">{formatTrillion(p.civilPayrollSYP.current)}T</span>
-        {#if p.civilPayrollSYP.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">←</span>
-          <span class="text-xs font-bold {p.civilPayrollSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            {formatTrillion(p.civilPayrollSYP.projected)}T
-          </span>
-        {:else}
-          <span class="text-[8.5px] text-wheat-dark font-normal">ل.س</span>
-        {/if}
-      </div>
-    </div>
-
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 10: Real Civil Service Wage USD -->
-    <div
-      role="button"
-      tabindex="0"
-      onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
-      title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
-    >
-      <div class="flex items-center justify-center gap-1">
-        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
-        {#if p.realWageUSD.isChanged}
-          <span
-            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.realWageUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
-          >
-            {p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%
-          </span>
-        {/if}
-      </div>
-      <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
-        {#if p.realWageUSD.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">←</span>
-          <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            ${p.realWageUSD.projected}
-          </span>
-        {:else}
-          <span class="text-[8.5px] text-wheat-dark font-normal">/ش</span>
-        {/if}
-      </div>
-    </div>
 
     <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
 
