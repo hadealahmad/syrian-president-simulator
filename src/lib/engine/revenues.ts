@@ -299,13 +299,10 @@ export function auditSemiannualBudget(
     brainGainCostSYP +
     provincialProjectsCostSYP;
 
-  // Seigniorage: calculate domestic deficit and required money printing
+  // Seigniorage & Domestic Fiscal Balance (SYP)
+  // Unfunded domestic spending draws down the public treasury directly into an overdraft / deficit.
   const rawSYPDeficit = expendedSYP - grossCapturedSYP;
-  let seignioragePrintedSYP = directives.moneyPrintingSYP;
-
-  if (rawSYPDeficit > macro.treasurySYP && seignioragePrintedSYP < (rawSYPDeficit - macro.treasurySYP)) {
-    seignioragePrintedSYP = rawSYPDeficit - macro.treasurySYP;
-  }
+  const seignioragePrintedSYP = directives.moneyPrintingSYP ?? 0;
 
   const netSYPDelta = grossCapturedSYP + seignioragePrintedSYP - expendedSYP;
 

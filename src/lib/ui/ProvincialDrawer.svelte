@@ -48,8 +48,8 @@
   );
 
   $effect(() => {
-    if (selectedId && $draftStore.deminingPriorityId === selectedId && node && node.mineSaturationPct <= 8) {
-      draftStore.setField('deminingPriorityId', null);
+    if (selectedId) {
+      activeProvincialTab = 'directives';
     }
   });
 </script>
@@ -58,161 +58,144 @@
   class="fixed top-0 left-0 bottom-0 w-[390px] h-screen z-30 bg-forest-deep border-r border-charcoal-mid shadow-2xl p-4 flex flex-col justify-between overflow-y-auto select-none rounded-none font-arabic text-wheat-light"
 >
   {#if node}
-    <!-- Detail View for Selected Governorate -->
-    <div class="space-y-3.5">
-      <!-- Header & Action Status -->
+    <div class="space-y-4">
+      <!-- Dossier Header & Navigation Tabs -->
       <div class="border-b border-charcoal-mid pb-3 space-y-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <h2 class="text-base font-bold text-wheat-light font-heading">{node.nameAr}</h2>
             <span
-              class="text-[10px] px-2 py-0.5 font-bold rounded-none border {node.tier === 'CALM' ? 'bg-forest-surface border-forest-accent text-forest-accent' : node.tier === 'TENSE' ? 'bg-forest-mid border-wheat-mid text-wheat-gold' : node.tier === 'RIOT' ? 'bg-umber-mid border-umber-border text-wheat-light' : 'bg-umber-deep border-umber-crimson text-umber-crimson animate-pulse'}"
+              class="px-2 py-0.5 text-[10px] font-bold border font-mono {node.tier === 'CALM' ? 'bg-forest-mid border-forest-accent text-forest-accent' : node.tier === 'TENSE' ? 'bg-charcoal-surface border-wheat-mid text-wheat-gold' : 'bg-umber-deep border-umber-crimson text-umber-crimson animate-pulse'}"
             >
               {TIER_NAMES_AR[node.tier] ?? node.tier}
             </span>
           </div>
-          <button
-            onclick={() => uiStore.selectGovernorate(null)}
-            class="text-wheat-dark hover:text-wheat-light text-xs px-2.5 py-1 bg-charcoal-surface hover:bg-forest-surface border border-charcoal-mid rounded-none transition-colors cursor-pointer"
-          >
-            إلغاء التحديد
-          </button>
+          <span class="text-xs text-wheat-dark font-mono">
+            {node.archetype}
+          </span>
         </div>
 
-        <!-- High-level Vital Signs Ticker -->
-        <div class="grid grid-cols-3 gap-1 text-center text-[11px] pt-1">
-          <div class="p-1.5 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block">الاحتقان</span>
-            <span class="font-bold font-mono {node.prri < 40 ? 'text-forest-accent' : node.prri < 65 ? 'text-wheat-gold' : 'text-umber-crimson'}">{node.prri}/100</span>
-          </div>
-          <div class="p-1.5 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block">التغذية</span>
-            <span class="font-bold font-mono text-wheat-light">{24 - node.dailyBlackoutHours} س</span>
-          </div>
-          <div class="p-1.5 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block">تلوث الألغام</span>
-            <span class="font-bold font-mono {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">{node.mineSaturationPct}%</span>
-          </div>
-        </div>
-
-        <!-- Two Sub-Tabs Navigation -->
-        <div class="grid grid-cols-2 gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none mt-1">
+        <!-- 2 Clean Dossier Tabs -->
+        <div class="grid grid-cols-2 gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none">
           <button
             onclick={() => (activeProvincialTab = 'directives')}
-            class="py-1.5 px-2 text-[11px] font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'directives' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
+            class="py-1.5 px-3 text-xs font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'directives' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
           >
-            أوامر التدخل الميداني
+            القرارات والمشاريع
           </button>
           <button
             onclick={() => (activeProvincialTab = 'field')}
-            class="py-1.5 px-2 text-[11px] font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'field' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
+            class="py-1.5 px-3 text-xs font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'field' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
           >
-            البيانات والديموغرافيا
+            الموقف الميداني والسكان
           </button>
         </div>
       </div>
 
-      <!-- SUB-TAB 1: ACTIONABLE DIRECTIVES & INTERVENTIONS -->
+      <!-- SUB-TAB 1: DIRECTIVES & STRATEGIC INVESTMENTS -->
       {#if activeProvincialTab === 'directives'}
-        <div class="space-y-3">
-          <!-- Strategic Project Dossier & Presidential Directive Card -->
-          {#if node.strategicProject}
-            <div class="p-3 bg-charcoal-surface border {node.strategicProject.isExecuted ? 'border-forest-accent/50' : isProjectCommitted ? 'border-wheat-gold' : 'border-charcoal-mid'} space-y-2 rounded-none">
-              <div class="flex items-start justify-between gap-2 border-b border-charcoal-mid pb-1.5">
-                <div>
-                  <span class="text-[10px] text-wheat-gold uppercase tracking-wider font-bold block font-heading">
-                    مشروع التدخل الاستراتيجي الرئاسي
-                  </span>
-                  <h3 class="text-xs font-bold text-wheat-light font-heading">
-                    {node.strategicProject.titleAr}
-                  </h3>
-                </div>
-                {#if node.strategicProject.isExecuted}
-                  <span class="text-[10px] px-2 py-0.5 bg-forest-surface text-forest-accent border border-forest-accent font-bold">
-                    [تم الإنجاز]
-                  </span>
-                {:else if isProjectCommitted}
-                  <span class="text-[10px] px-2 py-0.5 bg-forest-surface text-wheat-gold border border-wheat-gold font-bold">
-                    [معتمد للدور]
-                  </span>
-                {/if}
+        <div class="space-y-4">
+          <!-- Sovereign Strategic Project Card -->
+          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-3 rounded-none">
+            <div class="flex justify-between items-start gap-2">
+              <div class="space-y-0.5">
+                <span class="text-[10px] text-wheat-gold font-bold font-mono tracking-wider">مشروع سيادي معتمد</span>
+                <h3 class="text-xs font-bold text-wheat-light font-heading leading-tight">
+                  {node.strategicProject.titleAr}
+                </h3>
+              </div>
+              <span
+                class="px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 {node.strategicProject.isExecuted ? 'bg-forest-mid border border-forest-accent text-forest-accent' : isProjectCommitted ? 'bg-forest-surface border border-wheat-mid text-wheat-gold' : 'bg-charcoal-surface border border-charcoal-light text-wheat-dark'}"
+              >
+                {node.strategicProject.isExecuted ? 'مُنفّذ' : isProjectCommitted ? 'قيد التنفيذ' : 'متاح للتمويل'}
+              </span>
+            </div>
+
+            <!-- Problem vs Solution Comparison -->
+            <div class="grid grid-cols-1 gap-2 text-[11px]">
+              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-0.5">
+                <span class="text-wheat-dark font-semibold block font-heading">التحدي الميداني القائم:</span>
+                <p class="text-wheat-light leading-relaxed text-[10px]">
+                  {node.strategicProject.issueDescriptionAr}
+                </p>
               </div>
 
-              <!-- Problem & Solution Dossier -->
-              <div class="space-y-1.5 text-[11px]">
-                <div class="p-2 bg-forest-deep border border-charcoal-mid space-y-0.5">
-                  <span class="text-wheat-dark font-semibold block font-heading">المعضلة الميدانية:</span>
-                  <p class="text-wheat-light leading-relaxed text-[10px]">
-                    {node.strategicProject.issueDescriptionAr}
-                  </p>
-                </div>
+              <div class="p-2 bg-forest-deep border border-charcoal-mid space-y-0.5">
+                <span class="text-wheat-dark font-semibold block font-heading">القرار الرئاسي المقترح:</span>
+                <p class="text-wheat-light leading-relaxed text-[10px]">
+                  {node.strategicProject.solutionDescriptionAr}
+                </p>
+              </div>
+            </div>
 
-                <div class="p-2 bg-forest-deep border border-charcoal-mid space-y-0.5">
-                  <span class="text-wheat-dark font-semibold block font-heading">القرار الرئاسي المقترح:</span>
-                  <p class="text-wheat-light leading-relaxed text-[10px]">
-                    {node.strategicProject.solutionDescriptionAr}
-                  </p>
+            <!-- Cost & Impact Breakdown with Red/Green Pills -->
+            <div class="p-2 bg-forest-mid border border-charcoal-mid text-[11px] space-y-1.5">
+              <div class="flex justify-between items-center flex-wrap gap-1">
+                <span class="text-wheat-dark font-heading">الكلفة المطلوبة:</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                    -${node.strategicProject.costUSD / 1_000_000}M
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                    -${(node.strategicProject.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
+                  </span>
+                  {#if node.strategicProject.costPoliticalCapital > 0}
+                    <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
+                      -{node.strategicProject.costPoliticalCapital} رصيد سياسي
+                    </span>
+                  {/if}
                 </div>
               </div>
+              <div class="flex justify-between items-center">
+                <span class="text-wheat-dark font-heading">الأثر المباشر:</span>
+                <span class="text-forest-accent font-semibold text-[10px]">
+                  {node.strategicProject.effectDescriptionAr}
+                </span>
+              </div>
+            </div>
 
-              <!-- Cost & Impact Breakdown -->
-              <div class="p-2 bg-forest-mid border border-charcoal-mid text-[11px] space-y-1">
-                <div class="flex justify-between items-center">
-                  <span class="text-wheat-dark font-heading">الكلفة المطلوبة:</span>
-                  <span class="font-bold text-wheat-light font-mono text-[10px]">
-                    {node.strategicProject.costUSD / 1_000_000} مليون دولار + {node.strategicProject.costSYP / 1_000_000_000_000} تريليون ل.س
-                    {#if node.strategicProject.costPoliticalCapital > 0}
-                      <span class="text-wheat-gold"> | {node.strategicProject.costPoliticalCapital} رصيد سياسي</span>
+            <!-- Decision Execution Button -->
+            {#if !node.strategicProject.isExecuted}
+              <button
+                onclick={() => {
+                  if (node?.strategicProject) {
+                    draftStore.toggleProvincialProject(node.strategicProject.id);
+                  }
+                }}
+                disabled={!isProjectCommitted && !canAffordProject}
+                class="w-full py-2 px-3 text-xs font-bold border transition-colors rounded-none flex items-center justify-center gap-2 {isProjectCommitted ? 'bg-wheat-gold text-forest-deep border-wheat-gold hover:bg-wheat-mid cursor-pointer' : canAffordProject ? 'bg-forest-mid hover:bg-forest-surface text-wheat-light border-charcoal-light hover:border-wheat-mid cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
+              >
+                {#if isProjectCommitted}
+                  <span>إلغاء اعتماد تمويل المشروع</span>
+                {:else if !canAffordProject}
+                  <span>
+                    {#if !isProjectAffordablePC}
+                      تعذر الاعتماد: رصيد سياسي غير كافٍ ({node.strategicProject.costPoliticalCapital})
+                    {:else if !isProjectAffordableUSD}
+                      تعذر الاعتماد: ميزانية دولارية غير كافية
+                    {:else}
+                      تعذر الاعتماد: سيولة الخزينة غير كافية
                     {/if}
                   </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-wheat-dark font-heading">الأثر المباشر:</span>
-                  <span class="text-forest-accent font-semibold text-[10px]">
-                    {node.strategicProject.effectDescriptionAr}
-                  </span>
-                </div>
-              </div>
+                {:else}
+                  <span>اعتماد وإطلاق المشروع الاستراتيجي</span>
+                {/if}
+              </button>
+            {/if}
+          </div>
 
-              <!-- Decision Execution Button -->
-              {#if !node.strategicProject.isExecuted}
-                <button
-                  onclick={() => {
-                    if (node?.strategicProject) {
-                      draftStore.toggleProvincialProject(node.strategicProject.id);
-                    }
-                  }}
-                  disabled={!isProjectCommitted && !canAffordProject}
-                  class="w-full py-2 px-3 text-xs font-bold border transition-colors rounded-none {isProjectCommitted ? 'bg-wheat-gold text-forest-deep border-wheat-gold hover:bg-wheat-light cursor-pointer' : canAffordProject ? 'bg-forest-surface hover:bg-wheat-gold hover:text-forest-deep text-wheat-light border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
-                >
-                  {#if isProjectCommitted}
-                    إلغاء اعتماد المشروع لهذا الدور
-                  {:else if !isProjectAffordablePC}
-                    تعذر الاعتماد: رصيد سياسي غير كافٍ (المتاح: {$budgetStore.remainingPC})
-                  {:else if !isProjectAffordableUSD}
-                    تعذر الاعتماد: ميزانية دولارية غير كافية
-                  {:else if !isProjectAffordableSYP}
-                    تعذر الاعتماد: سيولة ليرة غير كافية
-                  {:else}
-                    إصدار القرار الرئاسي واعتماد المشروع
-                  {/if}
-                </button>
-              {/if}
-            </div>
-          {/if}
-
-          <!-- Demining Priority Directive -->
+          <!-- Mine Clearance Directive -->
           <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 rounded-none">
             <div class="flex items-center justify-between">
               <div>
                 <div class="flex items-center gap-1.5">
-                  <h3 class="text-xs text-wheat-light font-semibold block font-heading">فرق نزع الألغام الهندسية</h3>
+                  <h3 class="text-xs text-wheat-light font-semibold block font-heading">توجيه فرق نزع الألغام</h3>
                   {#if isSelectedForDemining}
-                    <span class="text-[9px] px-1.5 py-0.2 bg-forest-surface text-forest-accent border border-forest-accent font-mono font-bold">-8% ألغام</span>
+                    <span class="text-[9px] px-1.5 py-0.2 bg-forest-surface text-wheat-gold border border-wheat-gold font-mono font-bold">-8% تلوث</span>
                   {/if}
                 </div>
                 <span class="text-[10px] text-wheat-dark">
-                  {canDeployDemining ? 'تطهير 8% من الأراضي الملغومة بالمخلفات الحربية' : 'تطهير منجز أو نسبة الألغام أقل من الحد الأدنى (8%)'}
+                  {canDeployDemining ? 'تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة' : 'الأراضي مؤمنة، نسبة التلوث منخفضة (أقل من 8%)'}
                 </span>
               </div>
               <button
@@ -225,7 +208,7 @@
                 class="px-3 py-1.5 text-xs font-bold border transition-colors rounded-none {isSelectedForDemining ? 'bg-wheat-gold text-forest-deep border-wheat-gold cursor-pointer' : (canDeployDemining && canAffordDemining) ? 'bg-charcoal-surface hover:bg-forest-surface text-wheat-light border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
               >
                 {#if isSelectedForDemining}
-                  أولوية تطهير معتمدة (إلغاء)
+                  أولوية معتمدة (إلغاء)
                 {:else if !canDeployDemining}
                   مطهرة (≤ 8%)
                 {:else if !canAffordDemining}
@@ -235,8 +218,16 @@
                 {/if}
               </button>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1">
-              <span>الكلفة: 20 مليون دولار + 0.8 تريليون ل.س</span>
+            <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1 flex-wrap gap-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -$20M
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -0.8T ل.س
+                </span>
+              </div>
               <span class="font-mono {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">
                 التلوث الحالي: {node.mineSaturationPct}%
               </span>
@@ -277,8 +268,16 @@
                 {/if}
               </button>
             </div>
-            <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1">
-              <span>الكلفة: 10 مليون دولار + 0.3 تريليون ل.س</span>
+            <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1 flex-wrap gap-1">
+              <div class="flex items-center gap-1.5">
+                <span class="text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -$10M
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -0.3T ل.س
+                </span>
+              </div>
               <span class="font-mono {node.dailyBlackoutHours > 12 ? 'text-umber-crimson' : 'text-wheat-light'}">
                 الظلام الحالي: {node.dailyBlackoutHours} س/يوم
               </span>

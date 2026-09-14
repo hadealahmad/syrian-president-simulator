@@ -29,7 +29,7 @@
       titleAr: 'مرسوم إطلاق هيئة النزاهة وتدقيق الأصول',
       descAr: 'تفتيش مركزي على مناقصات الإعمار وكبار أمراء الحرب والمصادرة الوقائية للأموال المشبوهة.',
       costAr: 'يستهلك 15 رصيد سياسي',
-      gainAr: 'يقلص الفساد الوطني (-8) ويحد من هدر الموازنة',
+      gainAr: 'يقلص الفساد الوطني (-8) ويحد من هدر الموازنة ويرفع الثقة (+5)',
       category: 'DECREE',
     },
     {
@@ -37,7 +37,7 @@
       titleAr: 'المنصة الرقمية لرد الملكيات العقارية للاجئين',
       descAr: 'إنفاذ المرسوم 16 لرد الملكيات وتثبيت القيود رقمياً عبر سندات الطابو وحجج الوقف الموثقة.',
       costAr: 'يستهلك 10 رصيد سياسي',
-      gainAr: 'يشجع عودة اللاجئين ويخفض الاحتقان في حمص وريف دمشق',
+      gainAr: 'يشجع عودة اللاجئين ويخفض مؤشر الاحتقان في حمص وريف دمشق ويرفع الثقة (+4)',
       category: 'DECREE',
     },
     {
@@ -45,7 +45,7 @@
       titleAr: 'الحملة الوطنية المشتركة لضبط الحدود ومكافحة التهريب',
       descAr: 'نشر سرايا الهجانة ومفارز الجمارك على المعابر غير الشرعية وضبط تهريب المازوت والسلع المدعومة.',
       costAr: 'يستهلك 12 رصيد سياسي',
-      gainAr: 'يحد من نزيف العملة الأجنبية ويزيد حصيلة الجمارك (+40M$)',
+      gainAr: 'يحد من نزيف العملة الأجنبية ويجلب سيولة جمركية (+15M$) ويقلص الفساد (-4)',
       category: 'DECREE',
     },
     {
@@ -53,7 +53,7 @@
       titleAr: 'ميثاق التفاهم العشائري وتأمين الترانزيت الشرقي',
       descAr: 'إشراك وجهاء العشائر في حماية قوافل الترانزيت على طريق M4 مقابل عوائد تنموية محلية.',
       costAr: 'يستهلك 8 رصيد سياسي',
-      gainAr: 'يؤمن حركة الترانزيت ويخفض اضطرابات دير الزور والرقة (-10 RRI)',
+      gainAr: 'يؤمن حركة الترانزيت ويخفض اضطرابات دير الزور والرقة (-10 بمؤشر الاحتقان)',
       category: 'DECREE',
     },
     {
@@ -61,7 +61,7 @@
       titleAr: 'جلسة مساءلة حكومية علنية ونشر الذمة المالية',
       descAr: 'استدعاء وزراء المالية والتجارة والكهرباء لمساءلة مفتوحة أمام وسائل الإعلام وبثها للرأي العام.',
       costAr: 'صفر رصيد سياسي (مجاني)',
-      gainAr: 'يرفع الثقة المجتمعية (+5) ولكنه قد يربك التضامن الحكومي (-2 كفاءة)',
+      gainAr: 'يرفع الرصيد السياسي (+8) والثقة المجتمعية (+3) وكفاءة الوزارات (+2)',
       category: 'POLITICAL',
     },
     {
@@ -69,7 +69,7 @@
       titleAr: 'خطاب المصالحة الوطنية والعهد المدني الشامل',
       descAr: 'إعلان رئاسي رسمي بإنهاء كافة الملاحقات الإدارية والترحيب بعودة الكفاءات ورؤوس الأموال المهاجرة.',
       costAr: 'صفر رصيد سياسي (مجاني)',
-      gainAr: 'يرفع مؤشر الثقة (+8) ويشجع العودة المدنية وتدفق الحوالات',
+      gainAr: 'يرفع الرصيد السياسي (+4) والثقة (+2) ويخفض مؤشر الاحتقان (-3)',
       category: 'POLITICAL',
     },
     {
@@ -77,15 +77,15 @@
       titleAr: 'توسيع التشكيل الحكومي واستيعاب معارضة التكنوقراط',
       descAr: 'تعيين وزيرين مستقلين في حقيبتي الشؤون الاجتماعية والصناعة لضمان إجماع أوسع.',
       costAr: 'يستهلك تفاهمات سياسية محدودة',
-      gainAr: 'يمنح +18 رصيد سياسي كبير و +4 ثقة شعبية',
+      gainAr: 'يمنح +18 رصيد سياسي و +4 ثقة شعبية بإشراك الكفاءات الوطنية',
       category: 'POLITICAL',
     },
     {
       id: 'MARTIAL_LAW',
       titleAr: 'إعلان حالة الطوارئ والأحكام العرفية',
       descAr: 'تجميد فوري لمؤشر الشغب والاحتجاجات وفرض منع التجوال في المناطق المشتعلة.',
-      costAr: 'هبوط الثقة المدنية (-12) وخطر اشتباك مسلح محتمل (8%)',
-      gainAr: 'تخفيض فوري حاسم للشغب الوطني (-15 RRI)',
+      costAr: 'هبوط الثقة المدنية (-12) وخطر توتر أمني محتمل',
+      gainAr: 'تخفيض فوري حاسم لمؤشر الاحتقان الوطني (-15 نقطة) والمحلي (-12)',
       category: 'POLITICAL',
     },
   ];
@@ -172,6 +172,10 @@
             <span>0% (تقشف وتثبيت)</span>
             <span>+25% (امتصاص الاحتقان)</span>
           </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            <span class="text-wheat-gold font-medium">الأثر المباشر:</span>
+            زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع أجر الموظف الحقيقي ($) وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة السورية ومخاطر عجز الموازنة والتضخم.
+          </div>
         </div>
 
         <!-- 2. Food Subsidies Tier -->
@@ -190,6 +194,15 @@
                 {opt.label}
               </button>
             {/each}
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            {#if $draftStore.foodSubsidyLevel === 'AUSTERE'}
+              <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة الليرة، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
+            {:else if $draftStore.foodSubsidyLevel === 'GENEROUS'}
+              <span class="text-forest-accent font-medium">الأثر:</span> تثبيت شامل لأسعار الخبز والسلع وتخفيض الاحتقان (-12 نقطة)، مع استنزاف إضافي لسيولة الليرة والدولار لاستيراد القمح.
+            {:else}
+              <span class="text-wheat-mid font-medium">الأثر:</span> دعم متوازن يضمن توفير الخبز والمواد التموينية المدعومة ضمن الحدود المالية المقبولة للموازنة.
+            {/if}
           </div>
         </div>
 
@@ -210,6 +223,15 @@
               </button>
             {/each}
           </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
+              <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
+            {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
+              <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن، مقابل تضخم كتلة الرواتب الحكومية وزيادة الفساد الإداري.
+            {:else}
+              <span class="text-wheat-mid font-medium">الأثر:</span> الحفاظ على قوام الموظفين ورواتب الملاك الحكومي الراهن دون تعديل.
+            {/if}
+          </div>
         </div>
 
         <!-- 4. Wheat Pricing -->
@@ -229,6 +251,15 @@
               </button>
             {/each}
           </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
+              <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بالليرة، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
+            {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
+              <span class="text-forest-accent font-medium">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بالليرة.
+            {:else}
+              <span class="text-wheat-mid font-medium">الأثر:</span> تسعير عادل يضمن توريد القمح المحلي بالسعر الرائج واستقرار مخزون الطحين.
+            {/if}
+          </div>
         </div>
 
         <!-- 5. Diesel Smuggling Control -->
@@ -247,6 +278,15 @@
                 {opt.label}
               </button>
             {/each}
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            {#if $draftStore.dieselSmuggling === 'CRACKDOWN'}
+              <span class="text-forest-accent font-medium">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
+            {:else if $draftStore.dieselSmuggling === 'PERMISSIVE'}
+              <span class="text-amber-300 font-medium">الأثر:</span> تفادي الصدام العشائري، مقابل هدر المحروقات المدعومة وتراجع ساعات التغذية الكهربائية.
+            {:else}
+              <span class="text-wheat-mid font-medium">الأثر:</span> رقابة روتينية توازن بين حماية المحروقات وتجنب التصعيد الحدودي.
+            {/if}
           </div>
         </div>
 
@@ -268,6 +308,10 @@
           <div class="flex justify-between text-[10px] text-wheat-dark">
             <span>5% (جذب التدفقات الرسمية)</span>
             <span>25% (اقتطاع جائر للمركزي)</span>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            <span class="text-wheat-gold font-medium">الأثر:</span>
+            نسبة اقتطاع المركزي ({$draftStore.remittanceCaptureSpread}%). الهامش المنخفض يحفز التحويل عبر القنوات الرسمية ويعظم تدفق الدولار، ورفعه يجبي سيولة سريعة لكن ينعش السوق الموازي.
           </div>
         </div>
 
@@ -293,6 +337,10 @@
             <span>$0M</span>
             <span>الحد الأقصى المتاح: ${maxCapEx}M</span>
           </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            <span class="text-forest-accent font-medium">الأثر:</span>
+            استثمار ${$draftStore.gridCapExUSD / 1_000_000}M$ يضيف نحو {Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط للشبكة القومية، مما يرفع ساعات الكهرباء في كافة المحافظات ويدعم النشاط الصناعي والامتثال الضريبي.
+          </div>
         </div>
 
         <!-- 8. Central Bank Dollar Auction -->
@@ -313,6 +361,10 @@
           <div class="flex justify-between text-[10px] text-wheat-dark">
             <span>$0M</span>
             <span>الحد الأقصى المتاح: ${maxAuction}M</span>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            <span class="text-amber-300 font-medium">الأثر:</span>
+            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M$ في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي.
           </div>
         </div>
       </div>
@@ -349,6 +401,10 @@
               oninput={(e) => draftStore.setField('corporateTaxRate', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+              <span class="text-wheat-gold font-medium">الأثر:</span>
+              معدل الضريبة ({$draftStore.corporateTaxRate}%). رفعه يزيد إيرادات الخزينة بالليرة السورية لكن يقلص الاستثمار وقد يحفز التهرب الضريبي.
+            </div>
           </div>
 
           <!-- Telecom Excise Tax -->
@@ -366,12 +422,16 @@
               oninput={(e) => draftStore.setField('telecomExciseRate', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+              <span class="text-wheat-gold font-medium">الأثر:</span>
+              رسم استهلاكي ({$draftStore.telecomExciseRate}%). جباية سريعة ومباشرة بالليرة للخزينة، لكن رفعه يثقل كاهل المواطنين ويزيد الاحتقان المعيشي.
+            </div>
           </div>
 
-          <!-- Nassib Transit Fee -->
+          <!-- All Crossings Transit Fee (formerly Nassib) -->
           <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
             <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-wheat-light font-heading">رسوم الترانزيت البري بمعبر نصيب الحدودي</span>
+              <span class="font-bold text-wheat-light font-heading">رسوم الترانزيت البري بكافة المعابر الحدودية</span>
               <span class="font-mono text-wheat-gold font-bold">${$draftStore.nassibTransitFeeUSD} / شاحنة</span>
             </div>
             <input
@@ -383,6 +443,10 @@
               oninput={(e) => draftStore.setField('nassibTransitFeeUSD', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+              <span class="text-wheat-gold font-medium">الأثر:</span>
+              تعرفة ${$draftStore.nassibTransitFeeUSD} على الشاحنات الأجنبية بكافة المعابر البرية (نصيب، البوكمال، التنف، كسب، باب الهوى) لتعظيم عوائد النقد الأجنبي المباشرة ($) للخزينة.
+            </div>
           </div>
         </div>
 
@@ -409,24 +473,36 @@
                       onclick={() => {
                         if (canAffordSettlement) draftStore.setOligarchDecision(asset.id, 'SETTLEMENT_80_20');
                       }}
-                      class="p-1.5 border text-center transition-colors rounded-none {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      title="تسوية 80/20: تحصيل 80% كاش (+${formatM(asset.valuationUSD * 0.8)}M$)، +2 ثقة، كلفة 8 رصيد سياسي"
                     >
-                      تسوية 80/20 (8 رصيد)
+                      <span>تسوية 80/20</span>
+                      <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+                        +${formatM(asset.valuationUSD * 0.8)}M
+                      </span>
                     </button>
                     <button
                       onclick={() => draftStore.setOligarchDecision(asset.id, 'NATIONALIZE_SOE')}
-                      class="p-1.5 border text-center transition-colors rounded-none {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
+                      title="تأميم حكومي: ضم الأصل لشركات الدولة، +8000 وظيفة، +5 رصيد سياسي، +5 فساد"
                     >
-                      تأميم حكومي
+                      <span>تأميم حكومي</span>
+                      <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-charcoal-light text-wheat-gold font-mono font-bold text-[9px]">
+                        +5 رصيد
+                      </span>
                     </button>
                     <button
                       disabled={!canAffordLiquidation}
                       onclick={() => {
                         if (canAffordLiquidation) draftStore.setOligarchDecision(asset.id, 'FOREIGN_LIQUIDATION');
                       }}
-                      class="p-1.5 border text-center transition-colors rounded-none {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                      title="تصفية خارجية: بيع سريع بالدولار بخصم 40% لجلب +${formatM(asset.valuationUSD * 0.6)}M$ كاش، -4 ثقة، كلفة 10 رصيد سياسي"
                     >
-                      تصفية خارجية (10 رصيد)
+                      <span>تصفية خارجية</span>
+                      <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+                        +${formatM(asset.valuationUSD * 0.6)}M
+                      </span>
                     </button>
                   </div>
                 {:else}
@@ -452,7 +528,9 @@
                     <span class="text-wheat-light font-bold block">{loan.titleAr}</span>
                     <span class="text-wheat-dark text-[10px]">{loan.lenderAr}</span>
                   </div>
-                  <span class="font-mono text-forest-accent text-xs font-bold">+${loan.disbursementUSD / 1_000_000}M</span>
+                  <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                    +${loan.disbursementUSD / 1_000_000}M
+                  </span>
                 </div>
                 <p class="text-[11px] text-wheat-dark leading-relaxed">{loan.concessionSummaryAr}</p>
                 <div class="flex justify-between items-center pt-1.5 border-t border-charcoal-mid">
@@ -485,11 +563,15 @@
                       <span class="text-wheat-light font-bold block">{mort.titleAr}</span>
                       <span class="text-wheat-dark text-[10px]">امتياز لـ {mort.concessionDurationYears} سنة</span>
                     </div>
-                    <span class="font-mono text-wheat-gold text-xs font-bold">+${mort.immediateCashUSD / 1_000_000}M كاش</span>
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                      +${mort.immediateCashUSD / 1_000_000}M
+                    </span>
                   </div>
                   <p class="text-[10px] text-umber-crimson leading-relaxed">{mort.sovereigntyPenaltyAr}</p>
                   <div class="flex justify-between items-center pt-1.5 border-t border-charcoal-mid">
-                    <span class="text-[10px] text-wheat-dark font-mono">خسارة إيراد -${mort.turnRevenueLossUSD / 1_000_000}M / نصف سنوي</span>
+                    <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
+                      -${mort.turnRevenueLossUSD / 1_000_000}M / دور
+                    </span>
                     <button
                       disabled={mort.isMortgaged}
                       onclick={() => draftStore.toggleMortgage(mort.id)}
@@ -508,7 +590,7 @@
     <!-- PILLAR 3: DECREES & STATE GOVERNANCE -->
     {:else if activePillar === 'governance'}
       <div class="space-y-4">
-        <!-- List of Presidential Decrees & Political Actions (Redundant Standalone PC Card Removed) -->
+        <!-- List of Presidential Decrees & Political Actions -->
         <div class="space-y-2">
           <span class="text-xs text-wheat-mid font-semibold font-heading block">المراسيم الرئاسية والقرارات السيادية</span>
           {#each DECREES as dec}
@@ -554,9 +636,14 @@
 
         <!-- Expatriate Brain-Gain Initiative -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between">
-          <div>
+          <div class="space-y-1">
             <span class="text-xs font-bold text-wheat-light block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
-            <span class="text-[10px] text-wheat-dark">كلفة $20M + 0.35T ليرة لرفع كفاءة الجهاز الإداري العام</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] text-wheat-dark">الكلفة:</span>
+              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
+              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.35T ل.س</span>
+            </div>
+            <span class="text-[10px] text-forest-accent block">الأثر: رفع كفاءة كافة الوزارات التنفيذية (+8%) وزيادة الثقة (+4)</span>
           </div>
           <button
             disabled={!$draftStore.expatriateBrainGainIncentive && !canAffordBrainGain}

@@ -137,18 +137,28 @@
                   </div>
                   <p class="text-xs text-wheat-dark">{opt.descriptionAr}</p>
 
-                  <!-- Cost & Effect Tags -->
+                  <!-- Cost & Effect Tags with Red/Green Pills -->
                   <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
                     {#if opt.costUSD > 0}
-                      <span class="px-1.5 py-0.5 border font-mono rounded-none {$gameStore.macro.reservesUSD < opt.costUSD ? 'bg-umber-deep/80 border-umber-crimson text-umber-glow' : 'bg-umber-deep border-umber-border text-umber-crimson'}">
-                        -${formatMillionUSD(opt.costUSD)}M نقد أجنبي
+                      <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold {$gameStore.macro.reservesUSD < opt.costUSD ? 'bg-umber-deep/80 border border-umber-crimson text-umber-glow' : 'bg-umber-deep border border-umber-border text-umber-crimson'}">
+                        -${formatMillionUSD(opt.costUSD)}M
+                      </span>
+                    {:else if opt.costUSD < 0}
+                      <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
+                        +${formatMillionUSD(-opt.costUSD)}M
                       </span>
                     {/if}
+
                     {#if opt.costSYP > 0}
-                      <span class="px-1.5 py-0.5 bg-charcoal-surface border border-wheat-mid/60 text-wheat-gold font-mono rounded-none">
-                        -{formatTrillionSYP(opt.costSYP)}T ليرة
+                      <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold {$gameStore.macro.treasurySYP < opt.costSYP ? 'bg-umber-deep/80 border border-umber-crimson text-umber-glow' : 'bg-umber-deep border border-umber-border text-umber-crimson'}">
+                        -{formatTrillionSYP(opt.costSYP)}T ل.س
+                      </span>
+                    {:else if opt.costSYP < 0}
+                      <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
+                        +{formatTrillionSYP(-opt.costSYP)}T ل.س
                       </span>
                     {/if}
+
                     {#if opt.costPC > 0}
                       <span class="px-1.5 py-0.5 border font-mono rounded-none {$gameStore.macro.politicalCapital < opt.costPC ? 'bg-umber-deep/80 border-umber-crimson text-umber-glow font-bold' : 'bg-charcoal-surface border-charcoal-light text-wheat-mid'}">
                         -{opt.costPC}% رصيد سياسي
@@ -178,10 +188,9 @@
                 <button
                   disabled={!opt.canChoose}
                   onclick={() => handleSelectOption(opt.id)}
-                  class="px-4 py-2 text-xs font-bold shrink-0 border transition-colors rounded-none {opt.canChoose ? 'bg-wheat-gold hover:bg-wheat-light text-forest-deep border-wheat-gold active:translate-y-0.5 cursor-pointer shadow-md' : 'bg-charcoal-surface text-wheat-dark/40 border-charcoal-mid cursor-not-allowed opacity-50'}"
-                  title={!opt.canChoose ? (opt.deficitReason || 'لا تملك الرصيد الكافي لاعتماد هذا التوجيه') : 'اعتماد التوجيه الرئاسي'}
+                  class="px-5 py-2 text-xs font-bold shrink-0 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-surface hover:bg-wheat-gold text-wheat-light hover:text-forest-deep border-wheat-mid shadow-md cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-50'}"
                 >
-                  اعتماد التوجيه
+                  اعتماد الخيار
                 </button>
               </div>
             </div>

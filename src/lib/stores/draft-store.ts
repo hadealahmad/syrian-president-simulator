@@ -1,6 +1,10 @@
 import { writable, derived } from 'svelte/store';
-import type { TurnDirectives, OligarchPolicyAction, GameState } from '../engine/types';
-import { getDefaultTurnDirectives, evaluateRehearsalDirectives } from '../engine/turn-manager';
+import type { TurnDirectives, OligarchPolicyAction, GameState, ProjectedTurnSummary } from '../engine/types';
+import {
+  getDefaultTurnDirectives,
+  evaluateRehearsalDirectives,
+  calculateProjectedTurnSummary,
+} from '../engine/turn-manager';
 import { gameStore } from './game-store';
 
 export interface TurnBudget {
@@ -79,8 +83,8 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     }
   }
 
-  // 6. Foreign Loans
-  if (draft.signedLoanIds) {
+  // 6. Foreign Loans (Political Capital commitments)
+  if (draft.signedLoanIds && draft.signedLoanIds.length > 0) {
     for (const loanId of draft.signedLoanIds) {
       const loan = gameState.foreignLoans.find((l) => l.id === loanId);
       if (loan && !loan.isSigned) {
@@ -89,7 +93,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     }
   }
 
-  // 7. Expatriate Brain-Gain Initiative
+  // 7. Expatriate Brain-Gain
   if (draft.expatriateBrainGainIncentive) {
     committedUSD += 20_000_000;
     committedSYP += 350_000_000_000;
@@ -103,7 +107,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
   const remainingPC = Math.max(0, initialPC - committedPC);
   const remainingUSD = Math.max(0, initialUSD - committedUSD);
-  const remainingSYP = Math.max(0, initialSYP - committedSYP);
+  const remainingSYP = initialSYP - committedSYP;
 
   return {
     initialPC,
@@ -190,4 +194,9 @@ export const budgetStore = derived(
 export const previewRangesStore = derived(
   [gameStore, draftStore],
   ([$game, $draft]) => evaluateRehearsalDirectives($game, $draft)
+);
+
+export const projectedTurnStore = derived(
+  [gameStore, draftStore],
+  ([$game, $draft]) => calculateProjectedTurnSummary($game, $draft)
 );

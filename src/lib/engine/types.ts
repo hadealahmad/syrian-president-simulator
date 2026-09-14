@@ -241,6 +241,30 @@ export interface PredictivePreviewRanges {
   requiresPrintingSYP: number;
 }
 
+export interface ProjectedStat {
+  current: number;
+  projected: number;
+  delta: number;
+  pctChange: number;
+  isBeneficial: boolean;
+  isHarmful: boolean;
+  isChanged: boolean;
+}
+
+export interface ProjectedTurnSummary {
+  treasurySYP: ProjectedStat;
+  reservesUSD: ProjectedStat;
+  parallelRateSYP: ProjectedStat;
+  realWageUSD: ProjectedStat;
+  politicalCapital: ProjectedStat;
+  nationalRRI: ProjectedStat;
+  dailyPowerHours: ProjectedStat;
+  civicTrust: ProjectedStat;
+  runwayMonths: number;
+  deficitSYP: number;
+  hasSelections: boolean;
+}
+
 export interface EventOption {
   id: string;
   labelAr: string;

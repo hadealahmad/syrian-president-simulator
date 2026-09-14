@@ -7,7 +7,9 @@
   }
 
   function formatTrillionSYP(syp: number): string {
-    return (syp / 1_000_000_000_000).toFixed(2);
+    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+    if (Object.is(val, -0) || val === 0) return '0.00';
+    return val.toFixed(2);
   }
 
   function formatMillionUSD(usd: number): string {
@@ -63,10 +65,14 @@
 
           <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-1 rounded-none">
             <span class="text-[11px] text-wheat-dark block font-heading">رصيد الخزينة (الليرة)</span>
-            <span class="text-sm font-bold text-wheat-light font-mono">
+            <span dir="ltr" class="text-sm font-bold {$gameStore.macro.treasurySYP < 0 ? 'text-umber-crimson' : 'text-wheat-light'} font-mono">
               {formatTrillionSYP($gameStore.macro.treasurySYP)} تريليون
             </span>
-            {#if audit.seignioragePrintedSYP > 0}
+            {#if $gameStore.macro.treasurySYP < 0}
+              <span class="text-[10px] text-umber-crimson block font-heading">
+                عجز مالي متراكم على الخزينة العامة
+              </span>
+            {:else if audit.seignioragePrintedSYP > 0}
               <span class="text-[10px] text-wheat-gold block font-mono">
                 إصدار نقدي: +{formatTrillionSYP(audit.seignioragePrintedSYP)}T
               </span>

@@ -2,6 +2,8 @@ import type {
   GameState,
   TurnDirectives,
   PredictivePreviewRanges,
+  ProjectedStat,
+  ProjectedTurnSummary,
 } from './types';
 import { auditSemiannualBudget } from './revenues';
 import { calculateParallelRate, calculateRealWageUSD } from './currency';
@@ -38,6 +40,36 @@ export function getDefaultTurnDirectives(): TurnDirectives {
     executedMortgageIds: [],
     expatriateBrainGainIncentive: false,
   };
+}
+
+
+export function hasDraftSelections(directives: TurnDirectives): boolean {
+  if (!directives) return false;
+  const def = getDefaultTurnDirectives();
+  return (
+    directives.wageBumpPercent !== def.wageBumpPercent ||
+    directives.foodSubsidyLevel !== def.foodSubsidyLevel ||
+    directives.workforceStrategy !== def.workforceStrategy ||
+    directives.wheatProcurement !== def.wheatProcurement ||
+    directives.dieselSmuggling !== def.dieselSmuggling ||
+    directives.remittanceCaptureSpread !== def.remittanceCaptureSpread ||
+    directives.corporateTaxRate !== def.corporateTaxRate ||
+    directives.telecomExciseRate !== def.telecomExciseRate ||
+    directives.nassibTransitFeeUSD !== def.nassibTransitFeeUSD ||
+    directives.gridCapExUSD !== def.gridCapExUSD ||
+    directives.dollarAuctionUSD !== def.dollarAuctionUSD ||
+    directives.deminingPriorityId !== def.deminingPriorityId ||
+    directives.powerBoostGovId !== def.powerBoostGovId ||
+    directives.expatriateBrainGainIncentive !== def.expatriateBrainGainIncentive ||
+    directives.propertyRestitution !== def.propertyRestitution ||
+    (directives.activePoliticalActions && directives.activePoliticalActions.length > 0) ||
+    (directives.provincialProjects && directives.provincialProjects.length > 0) ||
+    (directives.signedLoanIds && directives.signedLoanIds.length > 0) ||
+    (directives.executedMortgageIds && directives.executedMortgageIds.length > 0) ||
+    Object.keys(directives.oligarchDecisions || {}).length > 0 ||
+    directives.southernPolicy !== def.southernPolicy ||
+    directives.golanBorderStance !== def.golanBorderStance
+  );
 }
 
 export function evaluateRehearsalDirectives(
@@ -97,7 +129,7 @@ export function evaluateRehearsalDirectives(
   };
 }
 
-export function executeTurnLifecycle(
+export function simulateTurnTransitions(
   currentState: GameState,
   directives: TurnDirectives
 ): GameState {
@@ -333,7 +365,7 @@ export function executeTurnLifecycle(
   next.lastTurnAudit = audit;
 
   next.macro.reservesUSD = Math.max(0, next.macro.reservesUSD + audit.netUSDDelta);
-  next.macro.treasurySYP = Math.max(0, next.macro.treasurySYP + audit.netSYPDelta);
+  next.macro.treasurySYP = next.macro.treasurySYP + audit.netSYPDelta;
   next.macro.m2MoneySupplySYP += audit.seignioragePrintedSYP;
 
   // Update civil service wage
@@ -363,6 +395,106 @@ export function executeTurnLifecycle(
     else if (gov.prri < 85) gov.tier = 'RIOT';
     else gov.tier = 'REVOLT';
   }
+
+  return next;
+}
+
+export function calculateProjectedTurnSummary(
+  currentState: GameState,
+  directives: TurnDirectives
+): ProjectedTurnSummary {
+  const projected = simulateTurnTransitions(currentState, directives);
+
+  function makeStat(
+    current: number,
+    nextVal: number,
+    positiveIsBeneficial: boolean,
+    threshold = 0.01
+  ): ProjectedStat {
+    const delta = nextVal - current;
+    const pctChange = current !== 0 ? (delta / Math.abs(current)) * 100 : 0;
+    const isChanged = Math.abs(delta) >= threshold;
+    const isBeneficial = positiveIsBeneficial ? delta > 0 : delta < 0;
+    const isHarmful = positiveIsBeneficial ? delta < 0 : delta > 0;
+    return {
+      current,
+      projected: nextVal,
+      delta,
+      pctChange,
+      isBeneficial: isChanged && isBeneficial,
+      isHarmful: isChanged && isHarmful,
+      isChanged,
+    };
+  }
+
+  const currentRealWageUSD = Math.round(
+    currentState.macro.civilServiceWageSYP / currentState.macro.parallelRateSYP
+  );
+  const projectedRealWageUSD = Math.round(
+    projected.macro.civilServiceWageSYP / projected.macro.parallelRateSYP
+  );
+
+  const deficitSYP = Math.max(
+    0,
+    (projected.lastTurnAudit?.expendedSYP ?? 0) -
+      (projected.lastTurnAudit?.grossCapturedSYP ?? 0)
+  );
+
+  return {
+    treasurySYP: makeStat(
+      currentState.macro.treasurySYP,
+      projected.macro.treasurySYP,
+      true,
+      10_000_000
+    ),
+    reservesUSD: makeStat(
+      currentState.macro.reservesUSD,
+      projected.macro.reservesUSD,
+      true,
+      100_000
+    ),
+    parallelRateSYP: makeStat(
+      currentState.macro.parallelRateSYP,
+      projected.macro.parallelRateSYP,
+      false,
+      5
+    ), // Lower parallel rate is beneficial
+    realWageUSD: makeStat(currentRealWageUSD, projectedRealWageUSD, true, 0.5),
+    politicalCapital: makeStat(
+      currentState.macro.politicalCapital,
+      projected.macro.politicalCapital,
+      true,
+      0.5
+    ),
+    nationalRRI: makeStat(
+      currentState.macro.nationalRRI,
+      projected.macro.nationalRRI,
+      false,
+      0.5
+    ), // Lower RRI (unrest) is beneficial
+    dailyPowerHours: makeStat(
+      currentState.macro.dailyPowerHours,
+      projected.macro.dailyPowerHours,
+      true,
+      0.1
+    ),
+    civicTrust: makeStat(
+      currentState.macro.civicTrust,
+      projected.macro.civicTrust,
+      true,
+      0.5
+    ),
+    runwayMonths: projected.lastTurnAudit?.runwayMonths ?? 99,
+    deficitSYP,
+    hasSelections: hasDraftSelections(directives),
+  };
+}
+
+export function executeTurnLifecycle(
+  currentState: GameState,
+  directives: TurnDirectives
+): GameState {
+  const next: GameState = simulateTurnTransitions(currentState, directives);
 
   // =========================================================================
   // PHASE 7: ADVANCE CALENDAR & GENERATE EVENTS

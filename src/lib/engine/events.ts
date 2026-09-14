@@ -89,18 +89,9 @@ export function resolveEventOption(
   state.macro.reservesUSD = Math.max(0, state.macro.reservesUSD - option.costUSD);
   state.macro.politicalCapital = Math.max(0, Math.min(100, state.macro.politicalCapital - option.costPC));
 
-  // Domestic SYP financing: deduct from treasury or finance via emergency sovereign monetization
+  // Domestic SYP financing: deduct directly from public treasury balance (allowing sovereign overdraft/deficit)
   if (option.costSYP > 0) {
-    if (state.macro.treasurySYP >= option.costSYP) {
-      state.macro.treasurySYP -= option.costSYP;
-    } else {
-      const remainingSYP = option.costSYP - state.macro.treasurySYP;
-      state.macro.treasurySYP = 0;
-      state.macro.m2MoneySupplySYP += remainingSYP;
-      // Linear depreciation impact of emergency crisis money creation
-      const moneyFactor = state.macro.m2MoneySupplySYP > 0 ? (remainingSYP / state.macro.m2MoneySupplySYP) : 0.05;
-      state.macro.parallelRateSYP = Math.round(state.macro.parallelRateSYP * (1 + Math.min(0.25, moneyFactor * 0.5)));
-    }
+    state.macro.treasurySYP -= option.costSYP;
   }
 
   // Apply governance deltas

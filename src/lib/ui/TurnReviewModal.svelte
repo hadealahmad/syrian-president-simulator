@@ -12,7 +12,9 @@
   }
 
   function formatTrillion(syp: number): string {
-    return (syp / 1_000_000_000_000).toFixed(2);
+    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+    if (Object.is(val, -0) || val === 0) return '0.00';
+    return val.toFixed(2);
   }
 
   const DECREE_TITLES_AR: Record<string, string> = {
@@ -52,8 +54,7 @@
 
   let isOverBudget = $derived(
     $budgetStore.remainingPC < 0 ||
-    $budgetStore.remainingUSD < 0 ||
-    $budgetStore.remainingSYP < 0
+    $budgetStore.remainingUSD < 0
   );
 
   let hasAnyActions = $derived(
@@ -133,7 +134,7 @@
           </div>
           <div class="p-1.5 bg-charcoal-surface border border-charcoal-mid">
             <span class="text-[10px] text-wheat-dark block">سيولة الخزينة المتبقية:</span>
-            <span class="font-bold font-mono {$budgetStore.remainingSYP < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">
+            <span dir="ltr" class="font-bold font-mono {$budgetStore.remainingSYP < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">
               {formatTrillion($budgetStore.remainingSYP)}T ل.س
             </span>
           </div>
@@ -144,7 +145,7 @@
           <div class="mt-2 p-2 bg-umber-deep border border-umber-crimson text-umber-crimson text-xs flex items-center justify-between">
             <div class="flex items-center gap-1.5 font-bold">
               <span class="w-2 h-2 bg-umber-crimson"></span>
-              <span>تجاوز حدود الميزانية أو الرصيد السياسي! لا يمكن إنهاء الدور دون تعديل القرارات.</span>
+              <span>تجاوز حدود النقد الأجنبي أو الرصيد السياسي! لا يمكن إنهاء الدور دون تعديل القرارات.</span>
             </div>
             <span class="font-mono text-[10px]">عجز سيادي</span>
           </div>
@@ -160,8 +161,8 @@
           <!-- Deficit -->
           <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
             <span class="text-[10px] text-wheat-dark block mb-0.5">عجز الموازنة</span>
-            <span class="font-bold text-wheat-light font-mono">
-              {formatTrillion($previewRangesStore.deficitSYP)} تريليون ل.س
+            <span dir="ltr" class="font-bold text-wheat-light font-mono">
+              {formatTrillion($previewRangesStore.deficitSYP)}T ل.س
             </span>
           </div>
 
@@ -181,21 +182,24 @@
             </span>
           </div>
 
-          <!-- Real Civil Service Wage Range -->
+          <!-- Real Wage Range -->
           <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
             <span class="text-[10px] text-wheat-dark block mb-0.5">أجر الموظف الحقيقي المتوقع</span>
-            <span class="font-bold text-forest-accent font-mono">
-              ${$previewRangesStore.realWageMin} - ${$previewRangesStore.realWageMax}
+            <span class="font-bold font-mono text-wheat-gold">
+              ${Math.round($previewRangesStore.realWageMin)} - ${Math.round($previewRangesStore.realWageMax)}
             </span>
           </div>
         </div>
       </div>
 
-      <!-- Decisions List (Scrollable) -->
-      <div class="space-y-2.5 overflow-y-auto pr-1 flex-1 text-xs">
+      <!-- Action Items Ledger List (Scrollable) -->
+      <div class="space-y-2 overflow-y-auto flex-1 pr-1 text-xs">
         {#if !hasAnyActions}
-          <div class="p-4 bg-charcoal-surface border border-charcoal-mid text-center text-wheat-dark">
-            لم يتم اتخاذ أي قرارات استثنائية لهذا الدور. سيتم اعتماد السياسات الاعتيادية السابقة وإدارة المرافق دون تعديل.
+          <div class="p-8 text-center bg-charcoal-surface border border-charcoal-mid rounded-none text-wheat-dark space-y-2">
+            <p class="font-heading text-sm text-wheat-light">لم يتم اعتماد أي قرارات أو تعديل في السياسات لهذا الدور</p>
+            <p class="text-xs">
+              ستسري السياسات الافتراضية والرواتب المعتادة وتستمر الدولة في مسارها التلقائي.
+            </p>
           </div>
         {/if}
 
@@ -353,6 +357,26 @@
           </div>
         {/if}
 
+        <!-- All Crossings Transit Fee -->
+        {#if $draftStore.nassibTransitFeeUSD !== 450}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div>
+              <span class="font-bold text-wheat-light block font-heading">
+                رسوم الترانزيت البري بكافة المعابر الحدودية: ${$draftStore.nassibTransitFeeUSD} / شاحنة
+              </span>
+              <span class="text-[11px] text-wheat-dark">
+                الأثر: تعديل الرسوم المفروضة على الشاحنات الأجنبية بكافة المنافذ والمعابر الحدودية لتعظيم إيراد النقد الأجنبي ($).
+              </span>
+            </div>
+            <button
+              onclick={() => draftStore.setField('nassibTransitFeeUSD', 450)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
         <!-- 9. Dollar Auction -->
         {#if $draftStore.dollarAuctionUSD > 0}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
@@ -373,16 +397,42 @@
           </div>
         {/if}
 
+        <!-- Expatriate Brain-Gain -->
+        {#if $draftStore.expatriateBrainGainIncentive}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">
+                حوافز استقطاب الكفاءات والمهاجرين
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.35T ل.س</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: رفع كفاءة الوزارات (+8%) والثقة (+4)</span>
+              </div>
+            </div>
+            <button
+              onclick={() => draftStore.setField('expatriateBrainGainIncentive', false)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
         <!-- 10. Demining Priority -->
         {#if deminingGov}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
-            <div>
+            <div class="space-y-1">
               <span class="font-bold text-wheat-light block font-heading">
                 أولوية نزع الألغام الهندسية: محافظة {deminingGov.nameAr}
               </span>
-              <span class="text-[11px] text-wheat-dark">
-                الكلفة: $20M + 0.8T ل.س | الأثر: خفض تلوث الألغام بنسبة 8% وتأمين الأراضي الزراعية.
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.8T ل.س</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض تلوث الألغام بنسبة 8% وتأمين الأراضي الزراعية</span>
+              </div>
             </div>
             <button
               onclick={() => draftStore.setField('deminingPriorityId', null)}
@@ -396,13 +446,16 @@
         <!-- 11. Power Boost Priority -->
         {#if powerGov}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
-            <div>
+            <div class="space-y-1">
               <span class="font-bold text-wheat-light block font-heading">
                 أولوية تعزيز التغذية والكهرباء: محافظة {powerGov.nameAr}
               </span>
-              <span class="text-[11px] text-wheat-dark">
-                الكلفة: $10M + 0.3T ل.س | الأثر: خفض 4 ساعات ظلام إضافية وتهدئة الاحتقان الإقليمي.
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$10M</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.3T ل.س</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض 4 ساعات ظلام إضافية وتهدئة الاحتقان الإقليمي</span>
+              </div>
             </div>
             <button
               onclick={() => draftStore.setField('powerBoostGovId', null)}
@@ -416,13 +469,25 @@
         <!-- 12. Committed Strategic Provincial Projects -->
         {#each activeProjects as item}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
-            <div>
+            <div class="space-y-1">
               <span class="font-bold text-wheat-light block font-heading">
                 مشروع استراتيجي [{item.governorateName}]: {item.project.titleAr}
               </span>
-              <span class="text-[11px] text-wheat-dark">
-                الكلفة: ${item.project.costUSD / 1_000_000}M + {item.project.costSYP / 1_000_000_000_000}T ل.س | {item.project.solutionDescriptionAr}
-              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -${item.project.costUSD / 1_000_000}M
+                </span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -${(item.project.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
+                </span>
+                {#if item.project.costPoliticalCapital > 0}
+                  <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
+                    -{item.project.costPoliticalCapital} رصيد
+                  </span>
+                {/if}
+                <span class="text-[11px] text-forest-accent mr-2">| {item.project.effectDescriptionAr}</span>
+              </div>
             </div>
             <button
               onclick={() => draftStore.toggleProvincialProject(item.project.id)}
@@ -459,12 +524,14 @@
         >
           مواصلة تعديل القرارات
         </button>
+
         <button
           disabled={isOverBudget}
           onclick={handleConfirmEndTurn}
-          class="px-6 py-2 border text-xs font-bold font-heading rounded-none transition-all duration-200 {isOverBudget ? 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-50' : 'bg-wheat-gold hover:bg-wheat-light text-forest-deep border-wheat-gold shadow-lg cursor-pointer active:translate-y-0.5'}"
+          class="px-6 py-2.5 text-xs font-bold border transition-colors rounded-none flex items-center gap-2 {isOverBudget ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed opacity-60' : 'bg-forest-surface hover:bg-wheat-gold text-wheat-gold hover:text-forest-deep border-wheat-mid shadow-lg cursor-pointer'}"
         >
-          {isOverBudget ? 'ميزانية متجاوزة — تعذر المصادقة' : 'مصادقة نهائية وإنهاء الدور'}
+          <span>تأكيد المراسيم وإنهاء الدور</span>
+          <span class="font-mono text-[10px]">➔</span>
         </button>
       </div>
     </div>
