@@ -3,7 +3,7 @@
   import * as THREE from 'three';
   import { gameStore } from '../stores/game-store';
   import { uiStore } from '../stores/ui-store';
-  import { draftStore, budgetStore } from '../stores/draft-store';
+  import { draftStore } from '../stores/draft-store';
   import {
     createGovernorateHex,
     updateGovernorateHex,
@@ -22,9 +22,9 @@
   const pointer = new THREE.Vector2();
 
   let hoveredNodeId = $state<string | null>(null);
-  // Camera static framing: entire Syrian territory (all 14 governorates) edge-to-edge in viewport
-  const targetCameraPos = new THREE.Vector3(-1.75, 38.5, 27.8);
-  const targetLookAt = new THREE.Vector3(-1.75, 0, 1.8);
+  // Camera static framing: entire Syrian Republic sovereign territory (all 14 governorates) edge-to-edge in viewport
+  const targetCameraPos = new THREE.Vector3(0, 42.5, 31.0);
+  const targetLookAt = new THREE.Vector3(0, 0, 0.5);
 
   const TIER_NAMES_AR: Record<string, string> = {
     CALM: 'مستقرة',
@@ -102,7 +102,7 @@
     container.appendChild(renderer.domElement);
 
     // Warm presidential cinematic lighting
-    const ambientLight = new THREE.AmbientLight(0xf7f5eb, 1.15);
+    const ambientLight = new THREE.AmbientLight(0xf7f5eb, 1.25);
     scene.add(ambientLight);
 
     const dirLight = new THREE.DirectionalLight(0xf2cf77, 1.45); // Wheat-gold highlight
@@ -117,14 +117,14 @@
     scene.add(fillLight);
 
     // Subtle national map base plane
-    const baseGeo = new THREE.PlaneGeometry(36, 32);
+    const baseGeo = new THREE.PlaneGeometry(46, 40);
     const baseMat = new THREE.MeshBasicMaterial({
       color: 0x0a110f,
       side: THREE.DoubleSide,
     });
     const baseMesh = new THREE.Mesh(baseGeo, baseMat);
     baseMesh.rotation.x = -Math.PI / 2;
-    baseMesh.position.set(0, -0.05, 1.5);
+    baseMesh.position.set(0, -0.05, 0);
     scene.add(baseMesh);
 
     buildGovernorateMeshes();
@@ -138,56 +138,23 @@
 
       // Update mesh states based on selection/hover/tier
       const selectedId = $uiStore.selectedGovernorateId;
+      const elapsedSec = time * 0.001;
 
       hexEntries.forEach((entry, id) => {
         const isSelected = selectedId === id;
         const isHovered = hoveredNodeId === id;
         const node = $gameStore.governorates[id];
 
-        if (node && entry.mesh.material) {
-          const sideMat = (entry.mesh.material as THREE.Material[])[0] as THREE.MeshStandardMaterial;
+        if (node) {
+          updateGovernorateHex(entry, node, isSelected, isHovered, elapsedSec);
 
-          // Dynamic Unrest Alert Pulsing for RIOT and REVOLT
-          let defaultEmissive = new THREE.Color(0x000000);
-          let defaultEmissiveIntensity = 1.0;
-
-          if (node.tier === 'RIOT') {
-            defaultEmissive = new THREE.Color(0x4a0e16);
-            defaultEmissiveIntensity = 0.25 + 0.2 * Math.sin(time * 0.003);
-            if (entry.beaconCoreMesh) {
-              const r = 0.65 + 0.35 * Math.sin(time * 0.003);
-              entry.beaconCoreMesh.material.color.setRGB(r, 0.05, 0.05);
-            }
-          } else if (node.tier === 'REVOLT') {
-            defaultEmissive = new THREE.Color(0x8a1522);
-            defaultEmissiveIntensity = 0.4 + 0.35 * Math.sin(time * 0.008);
-            if (entry.beaconCoreMesh) {
-              const flash = Math.sin(time * 0.01) > 0 ? 1.0 : 0.15;
-              entry.beaconCoreMesh.material.color.setRGB(flash, 0.0, 0.0);
-            }
-          }
-
+          // Subtle elevation lift when selected or hovered
           if (isSelected) {
-            sideMat.emissive = new THREE.Color(0x5a481c);
-            sideMat.emissiveIntensity = 1.0;
-            sideMat.color = new THREE.Color(0xfde68a); // Warm gold tint on milled texture
-            entry.mesh.position.y = entry.baseY + 0.35;
+            entry.mesh.position.y = 0.35;
           } else if (isHovered) {
-            sideMat.emissive = new THREE.Color(0x1a453e);
-            sideMat.emissiveIntensity = 1.0;
-            sideMat.color = new THREE.Color(0xd1fae5); // Cool teal tint on milled texture
-            entry.mesh.position.y = entry.baseY + 0.15;
+            entry.mesh.position.y = 0.15;
           } else {
-            sideMat.emissive = defaultEmissive;
-            sideMat.emissiveIntensity = defaultEmissiveIntensity;
-            sideMat.color = new THREE.Color(0xffffff); // Full native texture colors
-            entry.mesh.position.y = entry.baseY;
-          }
-
-          // Subtle tungsten filament oscillation on transmission pylon
-          const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
-          if (powerHours >= 12 && entry.pylonCoreMesh) {
-            entry.pylonCoreMesh.material.emissiveIntensity = 0.95 * (0.94 + 0.08 * Math.sin(time * 0.005));
+            entry.mesh.position.y = 0.0;
           }
         }
       });
@@ -201,10 +168,11 @@
   $effect(() => {
     // Dynamic updates when governorates change
     const governorates = $gameStore.governorates;
+    const selectedId = $uiStore.selectedGovernorateId;
     hexEntries.forEach((entry, id) => {
       const node = governorates[id];
       if (node) {
-        updateGovernorateHex(entry, node);
+        updateGovernorateHex(entry, node, selectedId === id, hoveredNodeId === id, 0);
       }
     });
 
@@ -219,15 +187,13 @@
   });
 
   onMount(() => {
-    (window as any).__uiStore = uiStore;
-    (window as any).__gameStore = gameStore;
-    (window as any).__draftStore = draftStore;
-    (window as any).__budgetStore = budgetStore;
     initThree();
   });
 
   onDestroy(() => {
-    if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+    }
     window.removeEventListener('resize', handleResize);
     if (renderer) {
       renderer.domElement.removeEventListener('pointermove', handlePointerMove);
@@ -238,31 +204,105 @@
 </script>
 
 <div
-  bind:this={container}
-  class="w-full h-full relative cursor-default select-none overflow-hidden"
+  class="relative w-full h-full overflow-hidden select-none bg-forest-deep"
+  style="cursor: {hoveredNodeId ? 'pointer' : 'default'};"
 >
-  {#if hoveredNodeId && hoveredNodeId !== $uiStore.selectedGovernorateId && $gameStore.governorates[hoveredNodeId]}
-    {@const node = $gameStore.governorates[hoveredNodeId]}
+  <div bind:this={container} class="w-full h-full"></div>
+
+  <!-- Tabletop Map Title Plate (top right corner) -->
+  <div class="absolute top-4 right-4 pointer-events-none z-10 flex flex-col items-end gap-1">
+    <div class="flex items-center gap-2 bg-forest-deep/90 border border-charcoal-mid/80 px-3 py-1.5 rounded-none shadow-md">
+      <span class="w-2 h-2 rounded-full bg-forest-accent animate-pulse"></span>
+      <span class="text-xs font-heading font-bold text-wheat-light tracking-wide">الخارطة الاستراتيجية للجمهورية العربية السورية</span>
+    </div>
+    <span class="text-[10px] font-mono text-wheat-dark/80 bg-black/40 px-2 py-0.5 border border-charcoal-mid/40">
+      مقياس العمليات: 14 محافظة • قطاع موحد
+    </span>
+  </div>
+
+  <!-- Floating HUD Panel for Hovered Governorate -->
+  {#if hoveredNodeId && $gameStore.governorates[hoveredNodeId]}
+    {@const gov = $gameStore.governorates[hoveredNodeId]}
+    {@const isProjectActive = Boolean(gov.strategicProject && $draftStore.provincialProjects.includes(gov.strategicProject.id))}
+    {@const isDeminingActive = $draftStore.deminingPriorityId === hoveredNodeId}
+    {@const isPowerBoostActive = $draftStore.powerBoostGovId === hoveredNodeId}
+    {@const activeDirectives = (isProjectActive ? 1 : 0) + (isDeminingActive ? 1 : 0) + (isPowerBoostActive ? 1 : 0)}
+    {@const powerHours = Math.max(0, 24 - gov.dailyBlackoutHours)}
     <div
-      class="absolute top-4 left-6 z-20 pointer-events-none p-3.5 bg-forest-deep/95 border border-wheat-mid/70 backdrop-blur-md rounded-none shadow-2xl font-arabic text-wheat-light space-y-1.5 text-xs min-w-[210px]"
+      class="absolute bottom-6 left-6 pointer-events-none z-10 bg-forest-deep/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic"
     >
-      <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center justify-between border-b border-charcoal-mid pb-2 mb-2.5">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-none bg-wheat-gold"></span>
-          <span class="font-bold text-sm text-wheat-light font-heading">{node.nameAr}</span>
+          <span class="w-2.5 h-2.5 {gov.tier === 'CALM' ? 'bg-forest-accent' : gov.tier === 'TENSE' ? 'bg-wheat-gold' : 'bg-umber-crimson'} rounded-none"></span>
+          <h3 class="font-heading font-bold text-sm text-wheat-light">{gov.nameAr}</h3>
         </div>
-        <span class="text-[10px] text-wheat-gold border border-charcoal-mid px-1.5 py-0.5 bg-forest-mid font-bold">
-          {TIER_NAMES_AR[node.tier] ?? node.tier}
+        <span class="text-[10px] px-2 py-0.5 font-bold font-mono border rounded-none {gov.tier === 'CALM' ? 'bg-forest-mid border-forest-accent text-forest-light' : gov.tier === 'TENSE' ? 'bg-wheat-mid/20 border-wheat-mid text-wheat-gold' : 'bg-umber-deep border-umber-border text-umber-crimson'}">
+          {TIER_NAMES_AR[gov.tier] ?? gov.tier}
         </span>
       </div>
-      <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] pt-1.5 border-t border-charcoal-mid">
-        <span class="text-wheat-dark">مؤشر الاحتقان:</span>
-        <span class="font-mono font-bold text-wheat-light text-left">{node.prri}%</span>
-        <span class="text-wheat-dark">ساعات التغذية:</span>
-        <span class="font-mono font-bold text-wheat-light text-left">{24 - node.dailyBlackoutHours} س</span>
-        <span class="text-wheat-dark">تلوث الألغام:</span>
-        <span class="font-mono font-bold text-left {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">{node.mineSaturationPct}%</span>
+
+      <div class="space-y-2 text-xs font-mono">
+        <div class="flex justify-between items-center text-wheat-mid">
+          <span class="font-arabic text-wheat-dark">نسبة الإعمار:</span>
+          <span class="text-wheat-gold font-bold">{(gov.reconstructionScore * 100).toFixed(0)}%</span>
+        </div>
+        <div class="w-full bg-charcoal-deep h-1.5 border border-charcoal-mid overflow-hidden rounded-none">
+          <div class="bg-forest-accent h-full transition-all" style="width: {gov.reconstructionScore * 100}%"></div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1 border-t border-charcoal-mid/60 text-[11px]">
+          <div>
+            <span class="text-wheat-dark font-arabic block text-[10px]">التغذية الكهربائية:</span>
+            <span class="text-wheat-light font-bold">{powerHours} س/يوم</span>
+          </div>
+          <div>
+            <span class="text-wheat-dark font-arabic block text-[10px]">تلوث الألغام:</span>
+            <span class="{gov.mineSaturationPct > 10 ? 'text-umber-crimson' : 'text-wheat-light'} font-bold">
+              {Math.round(gov.mineSaturationPct * 120).toLocaleString()} هـ
+            </span>
+          </div>
+        </div>
+
+        {#if activeDirectives > 0}
+          <div class="pt-2 border-t border-charcoal-mid flex items-center justify-between text-[11px] text-wheat-gold font-bold">
+            <span class="font-arabic">التوجيهات المجدولة بالدور:</span>
+            <span>{activeDirectives}</span>
+          </div>
+        {/if}
+      </div>
+
+      <div class="mt-2.5 pt-2 border-t border-charcoal-mid/80 text-[10px] text-wheat-dark text-center font-arabic">
+        انقر لفتح ملف المحافظة وتكليف المشاريع
       </div>
     </div>
   {/if}
+
+  <!-- Interactive Tabletop Map Legend (bottom right) -->
+  <div class="absolute bottom-6 right-6 pointer-events-none z-10 bg-forest-deep/90 border border-charcoal-mid p-3 shadow-lg rounded-none text-wheat-light font-arabic">
+    <div class="text-[10px] font-bold text-wheat-gold mb-1.5 border-b border-charcoal-mid pb-1 font-heading">
+      دليل الرموز التكتيكية
+    </div>
+    <div class="space-y-1.5 text-[10px] text-wheat-mid font-mono">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-2 bg-forest-accent/70 border border-forest-accent"></span>
+        <span class="font-arabic">مستقرة (Calm)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-2 bg-wheat-gold/70 border border-wheat-mid"></span>
+        <span class="font-arabic">متوترة (Tense)</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-2 bg-umber-crimson/70 border border-umber-border"></span>
+        <span class="font-arabic">اضطرابات / تمرد</span>
+      </div>
+      <div class="flex items-center gap-2 pt-1 border-t border-charcoal-mid/60">
+        <span class="w-2.5 h-2.5 bg-yellow-400 rounded-full inline-block"></span>
+        <span class="font-arabic">أبراج الربط الكهربائي</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-red-600 rounded-none inline-block"></span>
+        <span class="font-arabic">حقول الألغام والذخائر</span>
+      </div>
+    </div>
+  </div>
 </div>
