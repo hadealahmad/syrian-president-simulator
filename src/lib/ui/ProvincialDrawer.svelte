@@ -396,21 +396,7 @@
                 </div>
               </div>
 
-              <!-- Ending Impact & Relations -->
-              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-1.5 text-[10px] text-wheat-dark leading-relaxed">
-                <div class="flex items-start gap-1">
-                  <span class="text-wheat-gold font-bold shrink-0 font-heading">الأثر على نهاية اللعبة:</span>
-                  <span class="text-wheat-light">
-                    تثبيت شريط الهدنة وخفض التوغل يمنع انزلاق سوريا إلى حرب استنزاف دفاعية ويشكل ركيزة حاسمة لنهاية <strong class="text-wheat-gold">"العنقاء السيادية"</strong> بدلاً من التفكك أو عسكرة الاقتصاد الدائمة.
-                  </span>
-                </div>
-                <div class="flex items-start gap-1 pt-1 border-t border-charcoal-mid/60">
-                  <span class="text-forest-accent font-bold shrink-0 font-heading">القرارات المؤثرة:</span>
-                  <span class="text-wheat-light">
-                    مشروع تطهير حزام الجولان الرئاسي (-20 توتر)، مع الموازنة بين خياري ضبط النفس ونشر الوحدات في التوجيهات السيادية.
-                  </span>
-                </div>
-              </div>
+
             </div>
           {/if}
 
@@ -478,21 +464,7 @@
                 </div>
               </div>
 
-              <!-- Ending Impact & Relations -->
-              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-1.5 text-[10px] text-wheat-dark leading-relaxed">
-                <div class="flex items-start gap-1">
-                  <span class="text-wheat-gold font-bold shrink-0 font-heading">الأثر على نهاية اللعبة:</span>
-                  <span class="text-wheat-light">
-                    رفع الاندماج الوطني إلى <strong>80%+</strong> يحقق النهاية الإقليمية الكبرى <strong class="text-wheat-gold">"وفاق السهل والجبل"</strong>. في المقابل، بلوغ الانفصال <strong>85%</strong> بالتزامن مع ثورات الأطراف يطلق الانهيار الفوري للدولة <strong class="text-umber-crimson">(التفكك المناطقي الشامل)</strong>.
-                  </span>
-                </div>
-                <div class="flex items-start gap-1 pt-1 border-t border-charcoal-mid/60">
-                  <span class="text-forest-accent font-bold shrink-0 font-heading">القرارات المؤثرة:</span>
-                  <span class="text-wheat-light">
-                    مشروع محطة كهرباء الجبل (+40% اندماج، وخفض الانفصال لـ 4%)، وسياسة الجبهة الجنوبية "الوفاق التاريخي" في التوجيهات السيادية.
-                  </span>
-                </div>
-              </div>
+
             </div>
           {/if}
 
