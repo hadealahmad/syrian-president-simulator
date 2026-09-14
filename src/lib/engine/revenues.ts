@@ -245,12 +245,18 @@ export function auditSemiannualBudget(
   // Utility Bills
   const utilityBillsSYP = Math.round(1_100_000_000_000 * (macro.dailyPowerHours / 12) * complianceRate);
 
+  // Central Bank Dollar Auction SYP proceeds (absorbing domestic currency from street)
+  const dollarAuctionProceedsSYP = Math.round(
+    (directives.dollarAuctionUSD ?? 0) * (macro.parallelRateSYP * 0.95)
+  );
+
   const grossCapturedSYP =
     corporateTaxSYP +
     telecomExciseSYP +
     fuelSurchargeSYP +
     utilityBillsSYP +
     recurringSOEProfitSYP +
+    dollarAuctionProceedsSYP +
     oligarchCashInflowSYP;
 
   // ---------------------------------------------------------

@@ -95,7 +95,9 @@ export function evaluateRehearsalDirectives(
     state.macro.m2MoneySupplySYP,
     seigniorageNeeded,
     fxDrainUSD,
-    Math.max(0, state.macro.reservesUSD + netUSDDelta)
+    Math.max(0, state.macro.reservesUSD + netUSDDelta),
+    2.5,
+    directives.dollarAuctionUSD || 0
   );
 
   const fxRateMin = Math.round(estParallelRate * 0.96);
@@ -440,7 +442,9 @@ export function simulateTurnTransitions(
     next.macro.m2MoneySupplySYP,
     audit.seignioragePrintedSYP,
     fxDrainUSD,
-    next.macro.reservesUSD
+    next.macro.reservesUSD,
+    2.5,
+    directives.dollarAuctionUSD || 0
   );
 
   // =========================================================================
