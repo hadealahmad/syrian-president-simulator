@@ -113,6 +113,21 @@
 
     <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
+    <!-- Meta Utility: Presidential Protocol Guidebook Button -->
+    <button
+      onclick={() => uiStore.setGuideModal(true, 0)}
+      class="p-1.5 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none shrink-0"
+      title="دليل البروتوكول الرئاسي (إرشادات إدارة الدولة وطريقة اللعب)"
+    >
+      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    </button>
+
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
+
     <!-- Meta Utility: Restart Simulation Button -->
     <button
       onclick={() => uiStore.setRestartModal(true)}

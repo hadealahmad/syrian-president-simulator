@@ -10,8 +10,19 @@ export interface UIState {
   isTurnSummaryModalOpen: boolean;
   isTurnReviewModalOpen: boolean;
   isRestartModalOpen: boolean;
+  isGuideModalOpen: boolean;
+  guideStep: number;
   activeEventModalId: string | null;
   ministryTab: MinistryTab;
+}
+
+const GUIDE_STORAGE_KEY = 'president_has_seen_guide_v1';
+
+function checkInitialGuideSeen(): boolean {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage.getItem(GUIDE_STORAGE_KEY) === 'true';
+  }
+  return false;
 }
 
 function createUIStore() {
@@ -23,6 +34,8 @@ function createUIStore() {
     isTurnSummaryModalOpen: false,
     isTurnReviewModalOpen: false,
     isRestartModalOpen: false,
+    isGuideModalOpen: !checkInitialGuideSeen(),
+    guideStep: 0,
     activeEventModalId: null,
     ministryTab: 'macro',
   });
@@ -62,6 +75,15 @@ function createUIStore() {
     setRestartModal: (open: boolean) => {
       update((s) => ({ ...s, isRestartModalOpen: open }));
     },
+    setGuideModal: (open: boolean, step: number = 0) => {
+      if (typeof window !== 'undefined' && window.localStorage && !open) {
+        window.localStorage.setItem(GUIDE_STORAGE_KEY, 'true');
+      }
+      update((s) => ({ ...s, isGuideModalOpen: open, guideStep: step }));
+    },
+    setGuideStep: (step: number) => {
+      update((s) => ({ ...s, guideStep: step }));
+    },
     setActiveEventModal: (eventId: string | null) => {
       update((s) => ({ ...s, activeEventModalId: eventId }));
     },
@@ -71,6 +93,7 @@ function createUIStore() {
         isDecreeDeskOpen: false,
         isTurnReviewModalOpen: false,
         isRestartModalOpen: false,
+        isGuideModalOpen: false,
       }));
     },
   };
