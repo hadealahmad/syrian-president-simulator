@@ -11,11 +11,16 @@ export function hexToWorldPosition(q: number, r: number, radius: number = HEX_RA
 
 export interface HexMeshEntry {
   nodeId: string;
-  mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial>;
+  mesh: THREE.Mesh<THREE.CylinderGeometry, THREE.Material[]>;
   wireframe: THREE.LineSegments;
   labelSprite: THREE.Sprite;
-  powerMesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshStandardMaterial[]>;
-  hazardMesh: THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>;
+  pylonGroup: THREE.Group;
+  pylonCoreMesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+  mineGroup: THREE.Group;
+  mineSignMat: THREE.MeshStandardMaterial;
+  mineTapeMat: THREE.MeshStandardMaterial;
+  beaconGroup: THREE.Group;
+  beaconCoreMesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
   baseY: number;
 }
 
@@ -25,17 +30,37 @@ export function renderLabelCanvas(nameAr: string, canvas: HTMLCanvasElement): vo
   const ctx = canvas.getContext('2d');
   if (ctx) {
     ctx.clearRect(0, 0, 256, 128);
-    // Sharp rectangle, zero rounded borders, deep forest slate background
-    ctx.fillStyle = 'rgba(10, 27, 24, 0.95)'; // Deep Forest #0a1b18
+    // Sharp retro military situation table plaque (deep forest slate, brass border, rivets)
+    ctx.fillStyle = 'rgba(8, 20, 18, 0.95)';
     ctx.beginPath();
-    ctx.rect(16, 24, 224, 80);
+    ctx.rect(14, 22, 228, 84);
     ctx.fill();
+
+    // Double brass border
     ctx.lineWidth = 2;
-    ctx.strokeStyle = '#dfcaa0'; // Golden Wheat Mid
+    ctx.strokeStyle = '#dfcaa0';
     ctx.stroke();
 
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(203, 180, 128, 0.4)';
+    ctx.strokeRect(18, 26, 220, 76);
+
+    // 4 Corner Brass Rivet Pins
+    ctx.fillStyle = '#dfcaa0';
+    const pins = [
+      [20, 28],
+      [236, 28],
+      [20, 96],
+      [236, 96],
+    ];
+    pins.forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
     ctx.font = 'bold 36px "Thmanyah Serif Display", "thmanyah serif display", "Thmanyah Sans", sans-serif';
-    ctx.fillStyle = '#f7f5ed'; // Crisp Light Wheat Alabaster
+    ctx.fillStyle = '#f7f5ed';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.direction = 'rtl';
@@ -64,84 +89,82 @@ export function refreshGovernorateLabel(sprite: THREE.Sprite): void {
 }
 
 /**
- * Procedural electrical substation grid canvas texture reflecting provincial power supply.
+ * Procedural retro topographical military cartography texture for top face.
  */
-export function createPowerCoreTexture(powerHours: number): THREE.CanvasTexture {
+export function createRetroTopographyTexture(node: GovernorateNode): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = 256;
-  canvas.height = 256;
+  canvas.width = 512;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    const cx = 128;
-    const cy = 128;
-    ctx.clearRect(0, 0, 256, 256);
+    const cx = 256;
+    const cy = 256;
+    ctx.clearRect(0, 0, 512, 512);
 
-    const isHighPower = powerHours >= 12;
-    const isMediumPower = powerHours >= 6 && powerHours < 12;
-    const isBlackout = powerHours < 6;
+    const isRiot = node.tier === 'RIOT' || node.tier === 'REVOLT';
+    const isTense = node.tier === 'TENSE';
 
-    // Outer dark chassis disc
-    ctx.fillStyle = isBlackout ? '#0d1413' : isMediumPower ? '#14201c' : '#0a2320';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 122, 0, Math.PI * 2);
-    ctx.fill();
+    // Base tactical parchment / bakelite hue
+    ctx.fillStyle = isRiot ? '#240a0e' : isTense ? '#1c180e' : '#0b1b17';
+    ctx.fillRect(0, 0, 512, 512);
 
-    // Concentric electrical circuit rings
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = isBlackout
-      ? '#263431'
-      : isMediumPower
-        ? 'rgba(234, 179, 8, 0.45)'
-        : 'rgba(56, 189, 248, 0.65)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, 96, 0, Math.PI * 2);
-    ctx.stroke();
+    // Fine topographic elevation contour curves
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = isRiot
+      ? 'rgba(239, 68, 68, 0.2)'
+      : isTense
+        ? 'rgba(223, 202, 160, 0.22)'
+        : 'rgba(46, 139, 125, 0.25)';
 
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 62, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Radial electrical bus lines
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3;
+    const contourRadii = [80, 130, 180, 225];
+    contourRadii.forEach((r, idx) => {
       ctx.beginPath();
-      ctx.moveTo(cx + Math.cos(angle) * 28, cy + Math.sin(angle) * 28);
-      ctx.lineTo(cx + Math.cos(angle) * 115, cy + Math.sin(angle) * 115);
+      for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.1) {
+        // Organic topographic perturbation
+        const wobble = Math.sin(a * 4 + idx) * 8 + Math.cos(a * 2) * 5;
+        const x = cx + Math.cos(a) * (r + wobble);
+        const y = cy + Math.sin(a) * (r + wobble);
+        if (a === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
       ctx.stroke();
-    }
+    });
 
-    // Central generator core
-    const grad = ctx.createRadialGradient(cx, cy, 4, cx, cy, 40);
-    if (isHighPower) {
-      grad.addColorStop(0, '#fef08a');
-      grad.addColorStop(0.4, '#38bdf8');
-      grad.addColorStop(1, 'rgba(14, 165, 233, 0.15)');
-    } else if (isMediumPower) {
-      grad.addColorStop(0, '#fef08a');
-      grad.addColorStop(0.4, '#eab308');
-      grad.addColorStop(1, 'rgba(202, 138, 4, 0.15)');
-    } else {
-      grad.addColorStop(0, '#374151');
-      grad.addColorStop(1, '#111827');
-    }
-
-    ctx.fillStyle = grad;
+    // Retro tactical radar / coordinate grid rings
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(203, 180, 128, 0.18)';
     ctx.beginPath();
-    ctx.arc(cx, cy, 38, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(cx, cy, 150, 0, Math.PI * 2);
+    ctx.stroke();
 
-    // High-voltage lightning bolt emblem in center
-    ctx.fillStyle = isBlackout ? '#4b5563' : '#ffffff';
-    ctx.beginPath();
-    ctx.moveTo(cx + 4, cy - 20);
-    ctx.lineTo(cx - 9, cy + 2);
-    ctx.lineTo(cx + 1, cy + 2);
-    ctx.lineTo(cx - 5, cy + 20);
-    ctx.lineTo(cx + 11, cy - 2);
-    ctx.lineTo(cx + 2, cy - 2);
-    ctx.closePath();
-    ctx.fill();
+    // Crosshairs (+) at quadrants
+    const crossPoints = [
+      [cx, cy - 150],
+      [cx, cy + 150],
+      [cx - 150, cy],
+      [cx + 150, cy],
+    ];
+    crossPoints.forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.moveTo(px - 10, py);
+      ctx.lineTo(px + 10, py);
+      ctx.moveTo(px, py - 10);
+      ctx.lineTo(px, py + 10);
+      ctx.stroke();
+    });
+
+    // Stenciled military sector stamp
+    ctx.font = 'bold 18px "Thmanyah Sans", monospace, sans-serif';
+    ctx.fillStyle = 'rgba(223, 202, 160, 0.45)';
+    ctx.textAlign = 'center';
+    ctx.fillText(`SECTOR // ${node.id.slice(0, 3)}`, cx, 64);
+
+    // If severe blackout: Stamped warning indicator
+    if (node.dailyBlackoutHours >= 18) {
+      ctx.fillStyle = 'rgba(220, 38, 38, 0.7)';
+      ctx.font = 'bold 20px "Thmanyah Sans", sans-serif';
+      ctx.fillText('[ عطل شبكة كامل - 0V ]', cx, 440);
+    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -150,7 +173,73 @@ export function createPowerCoreTexture(powerHours: number): THREE.CanvasTexture 
 }
 
 /**
- * Procedural diagonal hazard caution stripes canvas texture for minefield warning bands.
+ * Procedural retro triangular hazard caution sign texture.
+ */
+export function createRetroHazardSignTexture(isExtreme: boolean): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, 128, 128);
+
+    // Equilateral triangle
+    ctx.beginPath();
+    ctx.moveTo(64, 10);
+    ctx.lineTo(122, 114);
+    ctx.lineTo(6, 114);
+    ctx.closePath();
+
+    // Vivid military caution yellow or emergency red
+    ctx.fillStyle = isExtreme ? '#dc2626' : '#eab308';
+    ctx.fill();
+
+    // Bold black industrial border
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#09090b';
+    ctx.stroke();
+
+    // Inner black margin
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#09090b';
+    ctx.beginPath();
+    ctx.moveTo(64, 26);
+    ctx.lineTo(108, 106);
+    ctx.lineTo(20, 106);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Retro Landmine / UXO blast icon in center
+    ctx.fillStyle = '#09090b';
+    ctx.beginPath();
+    ctx.arc(64, 68, 13, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Blast rays / detonator spikes
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = '#09090b';
+    for (let r = 0; r < 8; r++) {
+      const angle = (r * Math.PI) / 4;
+      ctx.beginPath();
+      ctx.moveTo(64 + Math.cos(angle) * 13, 68 + Math.sin(angle) * 13);
+      ctx.lineTo(64 + Math.cos(angle) * 22, 68 + Math.sin(angle) * 22);
+      ctx.stroke();
+    }
+
+    // Stenciled text "ألغام"
+    ctx.font = 'bold 15px "Thmanyah Sans", sans-serif';
+    ctx.fillStyle = '#09090b';
+    ctx.textAlign = 'center';
+    ctx.fillText('ألغام', 64, 98);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.minFilter = THREE.LinearFilter;
+  return texture;
+}
+
+/**
+ * Procedural diagonal hazard caution stripes canvas texture.
  */
 export function createHazardStripesTexture(isExtreme: boolean): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
@@ -159,8 +248,8 @@ export function createHazardStripesTexture(isExtreme: boolean): THREE.CanvasText
   const ctx = canvas.getContext('2d');
   if (ctx) {
     const stripeWidth = 24;
-    const color1 = isExtreme ? '#dc2626' : '#eab308'; // Red for >14%, Amber-Yellow for 8-14%
-    const color2 = '#111827'; // Dark charcoal black
+    const color1 = isExtreme ? '#dc2626' : '#eab308';
+    const color2 = '#09090b';
 
     ctx.fillStyle = color2;
     ctx.fillRect(0, 0, 512, 64);
@@ -176,7 +265,6 @@ export function createHazardStripesTexture(isExtreme: boolean): THREE.CanvasText
       ctx.fill();
     }
 
-    // Border edge lines
     ctx.strokeStyle = color1;
     ctx.lineWidth = 4;
     ctx.strokeRect(0, 0, 512, 64);
@@ -236,39 +324,260 @@ export function createHexagonalBandGeometry(innerR: number, outerR: number): THR
   return geometry;
 }
 
+/**
+ * Creates a miniature 3D retro high-voltage transmission tower pylon.
+ */
+export function createRetroTransmissionPylon(powerHours: number): {
+  group: THREE.Group;
+  coreMesh: THREE.Mesh<THREE.SphereGeometry, THREE.MeshStandardMaterial>;
+} {
+  const group = new THREE.Group();
+
+  const steelMat = new THREE.MeshStandardMaterial({
+    color: 0x272d2a,
+    roughness: 0.5,
+    metalness: 0.6,
+  });
+
+  // Base circular substation mounting plate
+  const basePlateGeo = new THREE.CylinderGeometry(0.55, 0.62, 0.05, 8);
+  const basePlate = new THREE.Mesh(basePlateGeo, steelMat);
+  basePlate.position.y = 0.025;
+  group.add(basePlate);
+
+  // 4 Tapered Lattice Corner Struts
+  const legHeight = 1.35;
+  const legGeo = new THREE.CylinderGeometry(0.025, 0.028, legHeight, 6);
+  const spreadBase = 0.34;
+  const spreadTop = 0.12;
+
+  const legPositions = [
+    { x0: -spreadBase, z0: -spreadBase, x1: -spreadTop, z1: -spreadTop },
+    { x0: spreadBase, z0: -spreadBase, x1: spreadTop, z1: -spreadTop },
+    { x0: spreadBase, z0: spreadBase, x1: spreadTop, z1: spreadTop },
+    { x0: -spreadBase, z0: spreadBase, x1: -spreadTop, z1: spreadTop },
+  ];
+
+  legPositions.forEach((pos) => {
+    const leg = new THREE.Mesh(legGeo, steelMat);
+    const midX = (pos.x0 + pos.x1) / 2;
+    const midZ = (pos.z0 + pos.z1) / 2;
+    leg.position.set(midX, legHeight / 2, midZ);
+    const dx = pos.x1 - pos.x0;
+    const dz = pos.z1 - pos.z0;
+    leg.rotation.z = -dx / legHeight;
+    leg.rotation.x = dz / legHeight;
+    group.add(leg);
+  });
+
+  // Mid-level horizontal cross braces collar
+  const midCollarGeo = new THREE.BoxGeometry(0.46, 0.03, 0.46);
+  const midCollar = new THREE.Mesh(midCollarGeo, steelMat);
+  midCollar.position.y = 0.62;
+  group.add(midCollar);
+
+  // Top horizontal cross-arm beam
+  const armGeo = new THREE.BoxGeometry(1.28, 0.04, 0.05);
+  const crossArm = new THREE.Mesh(armGeo, steelMat);
+  crossArm.position.y = 1.15;
+  group.add(crossArm);
+
+  // Apex tower cap
+  const capGeo = new THREE.ConeGeometry(0.14, 0.24, 4);
+  const cap = new THREE.Mesh(capGeo, steelMat);
+  cap.position.y = 1.28;
+  cap.rotation.y = Math.PI / 4;
+  group.add(cap);
+
+  // Ceramic insulator discs hanging from the cross-arm tips
+  const insGeo = new THREE.CylinderGeometry(0.04, 0.05, 0.18, 6);
+  const insMat = new THREE.MeshStandardMaterial({
+    color: 0xd4d4d8,
+    roughness: 0.3,
+    metalness: 0.2,
+  });
+  [-0.56, 0.56].forEach((x) => {
+    const ins = new THREE.Mesh(insGeo, insMat);
+    ins.position.set(x, 1.05, 0);
+    group.add(ins);
+  });
+
+  // Tungsten Power Filament / Substation Transformer Core in center of pylon
+  const coreGeo = new THREE.SphereGeometry(0.2, 16, 16);
+  const isHighPower = powerHours >= 12;
+  const isMediumPower = powerHours >= 6 && powerHours < 12;
+
+  const coreMat = new THREE.MeshStandardMaterial({
+    color: isHighPower ? 0xffea79 : isMediumPower ? 0xd97706 : 0x1f2937,
+    roughness: 0.2,
+    metalness: 0.1,
+    emissive: isHighPower ? new THREE.Color(0xf59e0b) : isMediumPower ? new THREE.Color(0xb45309) : new THREE.Color(0x000000),
+    emissiveIntensity: isHighPower ? 0.95 : isMediumPower ? 0.45 : 0.0,
+  });
+
+  const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  coreMesh.position.y = 0.62;
+  group.add(coreMesh);
+
+  return { group, coreMesh };
+}
+
+/**
+ * Creates 3D tactical minefield warning stakes and hazard border tape.
+ */
+export function createRetroMinefieldMarkers(
+  minePct: number
+): {
+  group: THREE.Group;
+  signMat: THREE.MeshStandardMaterial;
+  tapeMat: THREE.MeshStandardMaterial;
+} {
+  const group = new THREE.Group();
+  const isExtreme = minePct > 14;
+
+  const signTex = createRetroHazardSignTexture(isExtreme);
+  const signGeo = new THREE.PlaneGeometry(0.55, 0.55);
+  const signMat = new THREE.MeshStandardMaterial({
+    map: signTex,
+    transparent: true,
+    roughness: 0.4,
+    metalness: 0.2,
+    side: THREE.DoubleSide,
+  });
+
+  const stakeGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.45, 6);
+  const stakeMat = new THREE.MeshStandardMaterial({
+    color: 0x18181b,
+    roughness: 0.8,
+    metalness: 0.4,
+  });
+
+  // 3 Stakes placed facing the camera
+  const markerAngles = [Math.PI * 0.25, Math.PI * 0.58, Math.PI * 0.92];
+  const radius = HEX_RADIUS * 0.84;
+
+  markerAngles.forEach((angle) => {
+    const post = new THREE.Group();
+    const x = radius * Math.cos(angle);
+    const z = radius * Math.sin(angle);
+    post.position.set(x, 0, z);
+
+    const stake = new THREE.Mesh(stakeGeo, stakeMat);
+    stake.position.y = 0.22;
+    post.add(stake);
+
+    const sign = new THREE.Mesh(signGeo, signMat);
+    sign.position.y = 0.46;
+    sign.rotation.x = -Math.PI * 0.18; // Angled backward so clearly readable from RTS camera
+    post.add(sign);
+
+    group.add(post);
+  });
+
+  // Perimeter caution tape along hexagon rim
+  const tapeGeo = createHexagonalBandGeometry(HEX_RADIUS * 0.74, HEX_RADIUS * 0.92);
+  const tapeTex = createHazardStripesTexture(isExtreme);
+  const tapeMat = new THREE.MeshStandardMaterial({
+    map: tapeTex,
+    roughness: 0.5,
+    metalness: 0.1,
+    transparent: true,
+    opacity: isExtreme ? 0.95 : 0.85,
+    side: THREE.DoubleSide,
+  });
+  const tapeMesh = new THREE.Mesh(tapeGeo, tapeMat);
+  tapeMesh.position.set(0, 0.02, 0);
+  group.add(tapeMesh);
+
+  group.visible = minePct > 8;
+  return { group, signMat, tapeMat };
+}
+
+/**
+ * Creates a vintage military incandescent alarm siren beacon for RIOT/REVOLT.
+ */
+export function createRetroAlarmBeacon(tier: string): {
+  group: THREE.Group;
+  coreMesh: THREE.Mesh<THREE.CylinderGeometry, THREE.MeshBasicMaterial>;
+} {
+  const group = new THREE.Group();
+
+  const mountGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.1, 8);
+  const mountMat = new THREE.MeshStandardMaterial({
+    color: 0x18181b,
+    roughness: 0.8,
+    metalness: 0.6,
+  });
+  const mount = new THREE.Mesh(mountGeo, mountMat);
+  mount.position.y = 0.05;
+  group.add(mount);
+
+  const glassGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.26, 8);
+  const glassMat = new THREE.MeshStandardMaterial({
+    color: 0x991b1b,
+    transparent: true,
+    opacity: 0.65,
+    roughness: 0.1,
+    metalness: 0.2,
+  });
+  const glass = new THREE.Mesh(glassGeo, glassMat);
+  glass.position.y = 0.23;
+  group.add(glass);
+
+  const bulbGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.16, 6);
+  const bulbMat = new THREE.MeshBasicMaterial({
+    color: 0xff1111,
+  });
+  const coreMesh = new THREE.Mesh(bulbGeo, bulbMat);
+  coreMesh.position.y = 0.23;
+  group.add(coreMesh);
+
+  // Position beacon at an offset corner of the tile
+  group.position.set(-1.1, 0, -0.85);
+  group.visible = tier === 'RIOT' || tier === 'REVOLT';
+
+  return { group, coreMesh };
+}
+
 export function getTierColor(node: GovernorateNode): number {
-  if (node.tier === 'CALM') return 0x21695f;   // Deep Forest Slate Teal
-  if (node.tier === 'TENSE') return 0xc5a359;  // Golden Wheat Amber
-  if (node.tier === 'RIOT') return 0x851c2a;   // Deep Umber Garnet Crimson
-  return 0xd92638;                             // Radiant Vermilion Alert
+  if (node.tier === 'CALM') return 0x184a42;   // Rich Soviet Military Forest Green
+  if (node.tier === 'TENSE') return 0x8a6f27;  // Burnished Tactical Brass / Amber
+  if (node.tier === 'RIOT') return 0x6e1622;   // Deep Blood-Garnet Bakelite
+  return 0xa81c2b;                             // Intense Cold War Alert Vermilion
 }
 
 export function getWireframeColor(node: GovernorateNode): number {
-  if (node.tier === 'CALM') return 0x2e8b7d;   // Slate-Pine Border
-  if (node.tier === 'TENSE') return 0xdfcaa0;  // Golden Wheat Edge
-  if (node.tier === 'RIOT') return 0xb91c1c;   // Garnet Edge
-  return 0xef4444;                             // Radiant Red Edge
+  if (node.tier === 'CALM') return 0x2e8b7d;   // Slate Pine
+  if (node.tier === 'TENSE') return 0xdfcaa0;  // Golden Wheat
+  if (node.tier === 'RIOT') return 0xb91c1c;   // Warning Garnet
+  return 0xef4444;                             // Emergency Vermilion
 }
 
 export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
   const pos = hexToWorldPosition(node.hexQ, node.hexR);
-  const height = 0.7 + node.reconstructionScore * 2.3;
+  const height = 0.75 + node.reconstructionScore * 2.2;
 
-  // Base Hexagonal Pillar
+  // Base Hexagonal Column
   const geometry = new THREE.CylinderGeometry(HEX_RADIUS * 0.95, HEX_RADIUS * 0.95, height, 6);
-  const material = new THREE.MeshStandardMaterial({
+  const sideMaterial = new THREE.MeshStandardMaterial({
     color: getTierColor(node),
+    roughness: 0.45,
+    metalness: 0.25,
+  });
+  const topMaterial = new THREE.MeshStandardMaterial({
+    map: createRetroTopographyTexture(node),
     roughness: 0.4,
     metalness: 0.15,
   });
+  const bottomMaterial = new THREE.MeshStandardMaterial({ visible: false });
 
-  const mesh = new THREE.Mesh(geometry, material);
+  const mesh = new THREE.Mesh(geometry, [sideMaterial, topMaterial, bottomMaterial]);
   mesh.position.set(pos.x, height / 2, pos.z);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.userData = { nodeId: node.id };
 
-  // Wireframe with unrest-reactive coloring
+  // Tactical Wireframe Border
   const edgesGeometry = new THREE.EdgesGeometry(geometry);
   const wireframeMaterial = new THREE.LineBasicMaterial({
     color: getWireframeColor(node),
@@ -277,47 +586,32 @@ export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
   const wireframe = new THREE.LineSegments(edgesGeometry, wireframeMaterial);
   mesh.add(wireframe);
 
-  // Electrical Power Substation Disc (Concentric Core on top face)
+  // 3D Miniature Retro Transmission Pylon (Power Grid)
   const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
-  const powerGeo = new THREE.CylinderGeometry(HEX_RADIUS * 0.54, HEX_RADIUS * 0.54, 0.08, 6);
-  const powerSideMat = new THREE.MeshStandardMaterial({
-    color: 0x141f1c,
-    roughness: 0.7,
-    metalness: 0.4,
-  });
-  const powerTopMat = new THREE.MeshStandardMaterial({
-    map: createPowerCoreTexture(powerHours),
-    roughness: 0.3,
-    metalness: 0.2,
-    emissive: powerHours >= 12 ? new THREE.Color(0x0284c7) : powerHours >= 6 ? new THREE.Color(0x854d0e) : new THREE.Color(0x000000),
-    emissiveIntensity: powerHours >= 12 ? 0.65 : powerHours >= 6 ? 0.35 : 0.0,
-  });
-  const powerBottomMat = new THREE.MeshStandardMaterial({ visible: false });
-  const powerMesh = new THREE.Mesh(powerGeo, [powerSideMat, powerTopMat, powerBottomMat]);
-  powerMesh.position.set(0, height / 2 + 0.04, 0);
-  powerMesh.userData = { nodeId: node.id };
-  mesh.add(powerMesh);
+  const { group: pylonGroup, coreMesh: pylonCoreMesh } = createRetroTransmissionPylon(powerHours);
+  pylonGroup.position.set(0, height / 2, 0);
+  pylonGroup.userData = { nodeId: node.id };
+  mesh.add(pylonGroup);
 
-  // Minefield Hazard Warning Band (6-sided diagonal stripes ring)
-  const hazardGeo = createHexagonalBandGeometry(HEX_RADIUS * 0.72, HEX_RADIUS * 0.92);
-  const isExtremeMines = node.mineSaturationPct > 14;
-  const hazardMat = new THREE.MeshStandardMaterial({
-    map: createHazardStripesTexture(isExtremeMines),
-    roughness: 0.5,
-    metalness: 0.1,
-    transparent: true,
-    opacity: isExtremeMines ? 0.95 : 0.85,
-    side: THREE.DoubleSide,
-  });
-  const hazardMesh = new THREE.Mesh(hazardGeo, hazardMat);
-  hazardMesh.position.set(0, height / 2 + 0.045, 0);
-  hazardMesh.visible = node.mineSaturationPct > 8;
-  hazardMesh.userData = { nodeId: node.id };
-  mesh.add(hazardMesh);
+  // 3D Retro Minefield Warning Stakes & Hazard Tape
+  const {
+    group: mineGroup,
+    signMat: mineSignMat,
+    tapeMat: mineTapeMat,
+  } = createRetroMinefieldMarkers(node.mineSaturationPct);
+  mineGroup.position.set(0, height / 2, 0);
+  mineGroup.userData = { nodeId: node.id };
+  mesh.add(mineGroup);
 
-  // Floating label sprite with Thmanyah font
+  // 3D Vintage Incandescent Alarm Siren Beacon (RIOT/REVOLT)
+  const { group: beaconGroup, coreMesh: beaconCoreMesh } = createRetroAlarmBeacon(node.tier);
+  beaconGroup.position.set(-1.1, height / 2, -0.85);
+  beaconGroup.userData = { nodeId: node.id };
+  mesh.add(beaconGroup);
+
+  // Floating Stamped Brass Placard Label
   const labelSprite = createGovernorateLabel(node.nameAr);
-  labelSprite.position.set(0, height / 2 + 0.95, 0);
+  labelSprite.position.set(0, height / 2 + 1.8, 0); // Elevated to gracefully crown the pylon
   mesh.add(labelSprite);
 
   return {
@@ -325,43 +619,61 @@ export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
     mesh,
     wireframe,
     labelSprite,
-    powerMesh,
-    hazardMesh,
+    pylonGroup,
+    pylonCoreMesh,
+    mineGroup,
+    mineSignMat,
+    mineTapeMat,
+    beaconGroup,
+    beaconCoreMesh,
     baseY: height / 2,
   };
 }
 
 export function updateGovernorateHex(entry: HexMeshEntry, node: GovernorateNode): void {
-  // 1. Unrest Updates (Color, Wireframe)
-  const baseMat = entry.mesh.material as THREE.MeshStandardMaterial;
-  baseMat.color.setHex(getTierColor(node));
+  // 1. Civil Unrest Updates
+  const sideMat = entry.mesh.material[0] as THREE.MeshStandardMaterial;
+  sideMat.color.setHex(getTierColor(node));
 
   const wireMat = entry.wireframe.material as THREE.LineBasicMaterial;
   wireMat.color.setHex(getWireframeColor(node));
 
-  // 2. Power Grid Updates
+  // Update Top Face Topography texture
+  const topMat = entry.mesh.material[1] as THREE.MeshStandardMaterial;
+  if (topMat.map) topMat.map.dispose();
+  topMat.map = createRetroTopographyTexture(node);
+  topMat.map.needsUpdate = true;
+
+  // Unrest Alarm Beacon Visibility
+  entry.beaconGroup.visible = node.tier === 'RIOT' || node.tier === 'REVOLT';
+
+  // 2. Power Grid (Pylon Tungsten Core)
   const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
-  const powerTopMat = entry.powerMesh.material[1] as THREE.MeshStandardMaterial;
-  if (powerTopMat.map) powerTopMat.map.dispose();
-  powerTopMat.map = createPowerCoreTexture(powerHours);
-  powerTopMat.map.needsUpdate = true;
-  if (powerHours >= 12) {
-    powerTopMat.emissive.setHex(0x0284c7);
-    powerTopMat.emissiveIntensity = 0.65;
-  } else if (powerHours >= 6) {
-    powerTopMat.emissive.setHex(0x854d0e);
-    powerTopMat.emissiveIntensity = 0.35;
+  const isHighPower = powerHours >= 12;
+  const isMediumPower = powerHours >= 6 && powerHours < 12;
+
+  entry.pylonCoreMesh.material.color.setHex(isHighPower ? 0xffea79 : isMediumPower ? 0xd97706 : 0x1f2937);
+  if (isHighPower) {
+    entry.pylonCoreMesh.material.emissive.setHex(0xf59e0b);
+    entry.pylonCoreMesh.material.emissiveIntensity = 0.95;
+  } else if (isMediumPower) {
+    entry.pylonCoreMesh.material.emissive.setHex(0xb45309);
+    entry.pylonCoreMesh.material.emissiveIntensity = 0.45;
   } else {
-    powerTopMat.emissive.setHex(0x000000);
-    powerTopMat.emissiveIntensity = 0.0;
+    entry.pylonCoreMesh.material.emissive.setHex(0x000000);
+    entry.pylonCoreMesh.material.emissiveIntensity = 0.0;
   }
 
   // 3. Minefield Hazard Updates
-  const isExtremeMines = node.mineSaturationPct > 14;
-  entry.hazardMesh.visible = node.mineSaturationPct > 8;
-  const hazardMat = entry.hazardMesh.material as THREE.MeshStandardMaterial;
-  if (hazardMat.map) hazardMat.map.dispose();
-  hazardMat.map = createHazardStripesTexture(isExtremeMines);
-  hazardMat.map.needsUpdate = true;
-  hazardMat.opacity = isExtremeMines ? 0.95 : 0.85;
+  const isExtreme = node.mineSaturationPct > 14;
+  entry.mineGroup.visible = node.mineSaturationPct > 8;
+
+  if (entry.mineSignMat.map) entry.mineSignMat.map.dispose();
+  entry.mineSignMat.map = createRetroHazardSignTexture(isExtreme);
+  entry.mineSignMat.map.needsUpdate = true;
+
+  if (entry.mineTapeMat.map) entry.mineTapeMat.map.dispose();
+  entry.mineTapeMat.map = createHazardStripesTexture(isExtreme);
+  entry.mineTapeMat.map.needsUpdate = true;
+  entry.mineTapeMat.opacity = isExtreme ? 0.95 : 0.85;
 }

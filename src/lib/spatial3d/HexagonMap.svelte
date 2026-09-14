@@ -146,7 +146,7 @@
         const node = $gameStore.governorates[id];
 
         if (node && entry.mesh.material) {
-          const mat = entry.mesh.material as THREE.MeshStandardMaterial;
+          const sideMat = (entry.mesh.material as THREE.Material[])[0] as THREE.MeshStandardMaterial;
           const baseColor = getTierColor(node);
 
           // Dynamic Unrest Alert Pulsing for RIOT and REVOLT
@@ -154,35 +154,42 @@
           let defaultEmissiveIntensity = 1.0;
 
           if (node.tier === 'RIOT') {
-            defaultEmissive = new THREE.Color(0x5c0e18);
+            defaultEmissive = new THREE.Color(0x4a0e16);
             defaultEmissiveIntensity = 0.25 + 0.2 * Math.sin(time * 0.003);
+            if (entry.beaconCoreMesh) {
+              const r = 0.65 + 0.35 * Math.sin(time * 0.003);
+              entry.beaconCoreMesh.material.color.setRGB(r, 0.05, 0.05);
+            }
           } else if (node.tier === 'REVOLT') {
-            defaultEmissive = new THREE.Color(0x991b1b);
+            defaultEmissive = new THREE.Color(0x8a1522);
             defaultEmissiveIntensity = 0.4 + 0.35 * Math.sin(time * 0.008);
+            if (entry.beaconCoreMesh) {
+              const flash = Math.sin(time * 0.01) > 0 ? 1.0 : 0.15;
+              entry.beaconCoreMesh.material.color.setRGB(flash, 0.0, 0.0);
+            }
           }
 
           if (isSelected) {
-            mat.emissive = new THREE.Color(0x5a481c);
-            mat.emissiveIntensity = 1.0;
-            mat.color = new THREE.Color(0xf2cf77);
+            sideMat.emissive = new THREE.Color(0x5a481c);
+            sideMat.emissiveIntensity = 1.0;
+            sideMat.color = new THREE.Color(0xf2cf77);
             entry.mesh.position.y = entry.baseY + 0.35;
           } else if (isHovered) {
-            mat.emissive = new THREE.Color(0x1a453e);
-            mat.emissiveIntensity = 1.0;
-            mat.color = new THREE.Color(baseColor);
+            sideMat.emissive = new THREE.Color(0x1a453e);
+            sideMat.emissiveIntensity = 1.0;
+            sideMat.color = new THREE.Color(baseColor);
             entry.mesh.position.y = entry.baseY + 0.15;
           } else {
-            mat.emissive = defaultEmissive;
-            mat.emissiveIntensity = defaultEmissiveIntensity;
-            mat.color = new THREE.Color(baseColor);
+            sideMat.emissive = defaultEmissive;
+            sideMat.emissiveIntensity = defaultEmissiveIntensity;
+            sideMat.color = new THREE.Color(baseColor);
             entry.mesh.position.y = entry.baseY;
           }
 
-          // Subtle electrical substation hum on power core
+          // Subtle tungsten filament oscillation on transmission pylon
           const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
-          if (powerHours >= 12 && entry.powerMesh.material[1]) {
-            const powerTopMat = entry.powerMesh.material[1] as THREE.MeshStandardMaterial;
-            powerTopMat.emissiveIntensity = 0.65 * (0.94 + 0.08 * Math.sin(time * 0.004));
+          if (powerHours >= 12 && entry.pylonCoreMesh) {
+            entry.pylonCoreMesh.material.emissiveIntensity = 0.95 * (0.94 + 0.08 * Math.sin(time * 0.005));
           }
         }
       });
