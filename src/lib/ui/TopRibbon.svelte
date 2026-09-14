@@ -41,42 +41,38 @@
 </script>
 
 <header
-  class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
+  class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <!-- ========================================================================= -->
-  <!-- ROW 1: CALENDAR, POLITICAL CAPITAL, TREASURY, RESERVES, WAGES & FX    -->
+  <!-- ROW 1: CALENDAR, POLITICAL CAPITAL, TREASURY, RESERVES, WAGES & FX        -->
   <!-- ========================================================================= -->
-  <div class="h-[41px] px-3 flex items-center justify-between gap-2 border-b border-charcoal-mid/60 overflow-x-auto scrollbar-none flex-nowrap">
-    <!-- Item 1: Turn & Calendar -->
-    <div class="flex items-center gap-2 shrink-0 min-w-[125px]">
-      <div class="flex flex-col">
-        <div class="flex items-center gap-1">
-          <span class="text-xs text-wheat-gold font-bold font-mono font-heading">الدور {String($gameStore.turnNumber).padStart(2, '0')}/40</span>
-          <span class="text-[10px] text-wheat-mid font-mono">({$gameStore.calendarYear})</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <span class="text-[10px] text-wheat-dark font-heading leading-tight">{seasonText}</span>
-          {#if p.hasSelections}
-            <span class="px-1 py-0 rounded-full bg-forest-mid border border-forest-accent text-forest-accent text-[8px] font-bold">
-              تخطيط
-            </span>
-          {/if}
-        </div>
+  <div class="h-[41px] w-full min-w-[660px] grid grid-cols-7 border-b border-charcoal-mid/60">
+    <!-- Item 1: Turn & Calendar (Distinct Background) -->
+    <div class="h-full px-1 flex flex-col justify-center items-center text-center bg-forest-surface/50 transition-colors min-w-0">
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-xs text-wheat-gold font-bold font-mono font-heading whitespace-nowrap">الدور {String($gameStore.turnNumber).padStart(2, '0')}/40</span>
+        <span class="text-[10px] text-wheat-mid font-mono whitespace-nowrap">({$gameStore.calendarYear})</span>
+      </div>
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[10px] text-wheat-dark font-heading leading-tight whitespace-nowrap">{seasonText}</span>
+        {#if p.hasSelections}
+          <span class="px-1 py-0 rounded-full bg-forest-mid border border-forest-accent text-forest-accent text-[8px] font-bold whitespace-nowrap">
+            تخطيط
+          </span>
+        {/if}
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item: Political Capital (الرصيد السياسي - moved to the left of الدور) -->
+    <!-- Item 2: Political Capital -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
     >
-      <div class="flex items-center justify-between gap-1">
+      <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
         {#if p.politicalCapital.isChanged}
           <span
@@ -86,7 +82,7 @@
           </span>
         {/if}
       </div>
-      <div class="flex items-baseline gap-1 font-mono">
+      <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
         {#if p.politicalCapital.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
@@ -97,18 +93,16 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 2: Public Treasury SYP -->
+    <!-- Item 3: Public Treasury SYP -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('treasurySYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('treasurySYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الخزينة العامة: الحالي {formatTrillion(p.treasurySYP.current)}T ل.س {p.treasurySYP.current < 0 ? '(عجز)' : ''} | المتوقع للدور القادم {formatTrillion(p.treasurySYP.projected)}T ل.س {p.treasurySYP.projected < 0 ? '(عجز)' : ''} ({p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%)"
     >
-      <div class="flex items-center gap-1">
+      <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الخزينة</span>
         {#if p.treasurySYP.isChanged}
           <span
@@ -122,7 +116,7 @@
           </span>
         {/if}
       </div>
-      <div class="flex items-baseline gap-1 font-mono">
+      <div class="flex items-baseline justify-center gap-1 font-mono">
         <span dir="ltr" class="text-xs font-bold {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-light'}">{formatTrillion(p.treasurySYP.current)}T</span>
         {#if p.treasurySYP.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
@@ -135,18 +129,16 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 3: FX Reserves USD -->
+    <!-- Item 4: FX Reserves USD -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('reservesUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="احتياطي النقد الأجنبي: الحالي ${formatMillionUSD(p.reservesUSD.current)}M | المتوقع للدور القادم ${formatMillionUSD(p.reservesUSD.projected)}M ({p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%) | كفاية الاحتياطي: {runwayMonths} شهراً"
     >
-      <div class="flex items-center gap-1">
+      <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتياطي ($)</span>
         {#if p.reservesUSD.isChanged}
           <span
@@ -164,7 +156,7 @@
           </span>
         {/if}
       </div>
-      <div class="flex items-baseline gap-1 font-mono">
+      <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">${formatMillionUSD(p.reservesUSD.current)}M</span>
         {#if p.reservesUSD.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
@@ -175,17 +167,13 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-
-
-    <!-- Item: Cost of Wages (فاتورة الرواتب) -->
+    <!-- Item 5: Wage Bill -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -211,15 +199,13 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item: Real Civil Service Wage USD (أجر الموظف) -->
+    <!-- Item 6: Real Wage USD -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -245,15 +231,13 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 6: Parallel Rate -->
+    <!-- Item 7: Parallel Rate -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('parallelRate'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="سعر صرف الليرة بالسوق الموازي: الحالي 1$ = {formatNumber(p.parallelRateSYP.current)} | المتوقع 1$ = {formatNumber(p.parallelRateSYP.projected)} ({p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -276,26 +260,22 @@
         {/if}
       </div>
     </div>
-
-
-
-
   </div>
 
   <!-- ========================================================================= -->
-  <!-- ROW 2: WORKFORCE, DEBT, TAX, CORRUPTION, TRUST, LEVERAGE & UNREST       -->
+  <!-- ROW 2: WORKFORCE, DEBT, TAX, CORRUPTION, TRUST, LEVERAGE & UNREST         -->
   <!-- ========================================================================= -->
-  <div class="h-[42px] px-3 flex items-center justify-between gap-2 bg-[#091210]/95 overflow-x-auto scrollbar-none flex-nowrap">
-    <!-- Item 8: Civil Service Headcount -->
+  <div class="h-[42px] w-full min-w-[660px] grid grid-cols-7 bg-[#091210]/95">
+    <!-- Item 1: Civil Service Headcount -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceHeadcount')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceHeadcount'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'civilServiceHeadcount' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none min-w-0 {selectedStat === 'civilServiceHeadcount' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الجهاز الوظيفي العام: الحالي {formatMillionPeople(p.civilServiceHeadcount.current)}M موظف ({formatNumber(p.civilServiceHeadcount.current)}) | المتوقع {formatMillionPeople(p.civilServiceHeadcount.projected)}M ({p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%)"
     >
-      <div class="flex items-center gap-1">
+      <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الموظفون</span>
         {#if p.civilServiceHeadcount.isChanged}
           <span
@@ -305,7 +285,7 @@
           </span>
         {/if}
       </div>
-      <div class="flex items-baseline gap-1 font-mono">
+      <div class="flex items-baseline justify-center gap-1 font-mono">
         <span class="text-xs font-bold text-wheat-light">{formatMillionPeople(p.civilServiceHeadcount.current)}M</span>
         {#if p.civilServiceHeadcount.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
@@ -316,15 +296,13 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item: External Sovereign Debt USD (الدين الخارجي - moved to bottom row) -->
+    <!-- Item 2: External Sovereign Debt USD -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -348,15 +326,13 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 11: Tax Compliance Rate -->
+    <!-- Item 3: Tax Compliance Rate -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('taxCompliancePct')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('taxCompliancePct'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="معدل الامتثال والتحصيل الضريبي: الحالي {p.taxCompliancePct.current}% | المتوقع {p.taxCompliancePct.projected}% ({p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -380,15 +356,13 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 12: Systemic Corruption -->
+    <!-- Item 4: Systemic Corruption -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('systemicCorruption')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('systemicCorruption'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الفساد المؤسسي والتسرب: الحالي {p.systemicCorruption.current}/100 | المتوقع {p.systemicCorruption.projected}/100 ({p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -414,15 +388,13 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 13: Civic Trust -->
+    <!-- Item 5: Civic Trust -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civicTrust')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civicTrust'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الثقة الشعبية بالحكومة: الحالي {p.civicTrust.current}% | المتوقع {p.civicTrust.projected}% ({p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -446,15 +418,13 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 14: Sovereign Leverage -->
+    <!-- Item 6: Sovereign Leverage -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignLeverage')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignLeverage'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'sovereignLeverage' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignLeverage' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر السيادة والاستقلال الاستراتيجي: الحالي {p.sovereignLeverage.current}% | المتوقع {p.sovereignLeverage.projected}% ({p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -478,19 +448,17 @@
       </div>
     </div>
 
-    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
-
-    <!-- Item 15: National Unrest / RRI -->
+    <!-- Item 7: National Unrest / RRI -->
     <div
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('unrestIndex'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الاحتقان الوطني: الحالي {p.nationalRRI.current}/100 | المتوقع للدور القادم {p.nationalRRI.projected}/100 ({p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
-        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">مؤشر الاحتقان</span>
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتقان الوطني</span>
         {#if p.nationalRRI.isChanged}
           <span
             class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.nationalRRI.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
@@ -500,7 +468,9 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold {p.nationalRRI.current < 40 ? 'text-forest-accent' : p.nationalRRI.current < 65 ? 'text-wheat-gold' : 'text-umber-crimson'}">
+        <span
+          class="text-xs font-bold {p.nationalRRI.current > 70 ? 'text-umber-crimson animate-pulse' : p.nationalRRI.current > 50 ? 'text-wheat-gold' : 'text-forest-accent'}"
+        >
           {p.nationalRRI.current}
         </span>
         {#if p.nationalRRI.isChanged}
@@ -509,7 +479,7 @@
             {p.nationalRRI.projected}
           </span>
         {:else}
-          <span class="text-[8.5px] text-wheat-dark">/100</span>
+          <span class="text-[8.5px] text-wheat-dark font-normal">/100</span>
         {/if}
       </div>
     </div>
