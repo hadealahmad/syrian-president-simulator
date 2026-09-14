@@ -394,7 +394,7 @@
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
             <button
-              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'AUSTERE' ? null : 'AUSTERE')}
+              onclick={() => draftStore.setField('foodSubsidyLevel', 'AUSTERE')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'AUSTERE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">تقشف</span>
@@ -405,7 +405,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'STANDARD' ? null : 'STANDARD')}
+              onclick={() => draftStore.setField('foodSubsidyLevel', 'STANDARD')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">اعتيادي</span>
@@ -416,7 +416,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'GENEROUS' ? null : 'GENEROUS')}
+              onclick={() => draftStore.setField('foodSubsidyLevel', 'GENEROUS')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'GENEROUS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">موسع</span>
@@ -450,7 +450,7 @@
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
             <button
-              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'MAINTAIN' ? null : 'MAINTAIN')}
+              onclick={() => draftStore.setField('workforceStrategy', 'MAINTAIN')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'MAINTAIN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">تثبيت الملاك</span>
@@ -461,7 +461,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE' ? null : 'PRUNE_CIVIL_SERVICE')}
+              onclick={() => draftStore.setField('workforceStrategy', 'PRUNE_CIVIL_SERVICE')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">شطب الوهمي</span>
@@ -473,7 +473,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'ABSORB_MILITIAS' ? null : 'ABSORB_MILITIAS')}
+              onclick={() => draftStore.setField('workforceStrategy', 'ABSORB_MILITIAS')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'ABSORB_MILITIAS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">استيعاب المسلحين</span>
@@ -508,7 +508,7 @@
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
             <button
-              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'SUBSIDIZED_LOW' ? null : 'SUBSIDIZED_LOW')}
+              onclick={() => draftStore.setField('wheatProcurement', 'SUBSIDIZED_LOW')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'SUBSIDIZED_LOW' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">سعر إلزامي</span>
@@ -519,7 +519,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'MARKET_PARITY' ? null : 'MARKET_PARITY')}
+              onclick={() => draftStore.setField('wheatProcurement', 'MARKET_PARITY')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'MARKET_PARITY' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">سعر عادل</span>
@@ -530,7 +530,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? null : 'PREMIUM_INCENTIVE')}
+              onclick={() => draftStore.setField('wheatProcurement', 'PREMIUM_INCENTIVE')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">علاوة تحفيز</span>
@@ -564,7 +564,7 @@
           </div>
           <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
             <button
-              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'CRACKDOWN' ? null : 'CRACKDOWN')}
+              onclick={() => draftStore.setField('dieselSmuggling', 'CRACKDOWN')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'CRACKDOWN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">حملة صارمة</span>
@@ -575,7 +575,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'STANDARD' ? null : 'STANDARD')}
+              onclick={() => draftStore.setField('dieselSmuggling', 'STANDARD')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">رقابة اعتيادية</span>
@@ -586,7 +586,7 @@
             </button>
 
             <button
-              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'PERMISSIVE' ? null : 'PERMISSIVE')}
+              onclick={() => draftStore.setField('dieselSmuggling', 'PERMISSIVE')}
               class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'PERMISSIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
             >
               <span class="font-bold text-[10.5px]">غض الطرف</span>
