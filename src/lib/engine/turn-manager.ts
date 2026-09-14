@@ -48,10 +48,10 @@ export function hasDraftSelections(directives: TurnDirectives): boolean {
   const def = getDefaultTurnDirectives();
   return (
     directives.wageBumpPercent !== def.wageBumpPercent ||
-    directives.foodSubsidyLevel !== def.foodSubsidyLevel ||
-    directives.workforceStrategy !== def.workforceStrategy ||
-    directives.wheatProcurement !== def.wheatProcurement ||
-    directives.dieselSmuggling !== def.dieselSmuggling ||
+    (directives.foodSubsidyLevel != null && directives.foodSubsidyLevel !== def.foodSubsidyLevel) ||
+    (directives.workforceStrategy != null && directives.workforceStrategy !== def.workforceStrategy) ||
+    (directives.wheatProcurement != null && directives.wheatProcurement !== def.wheatProcurement) ||
+    (directives.dieselSmuggling != null && directives.dieselSmuggling !== def.dieselSmuggling) ||
     directives.remittanceCaptureSpread !== def.remittanceCaptureSpread ||
     directives.corporateTaxRate !== def.corporateTaxRate ||
     directives.telecomExciseRate !== def.telecomExciseRate ||

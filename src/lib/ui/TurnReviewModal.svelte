@@ -84,7 +84,7 @@
   function handleConfirmEndTurn(): void {
     if (isOverBudget) return;
     gameStore.commitTurn($draftStore);
-    draftStore.reset();
+    draftStore.advanceToNextTurn();
     uiStore.setTurnReviewModal(false);
   }
 

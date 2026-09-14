@@ -122,8 +122,41 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
   };
 }
 
+const DRAFT_STORAGE_KEY = 'syria_president_draft_v1';
+
+function loadStoredDraft(): TurnDirectives {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Failed to parse saved draft:', e);
+      }
+    }
+  }
+  return getDefaultTurnDirectives();
+}
+
+function persistDraft(draft: TurnDirectives): void {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch (e) {
+      console.error('Failed to save draft:', e);
+    }
+  }
+}
+
 function createDraftStore() {
-  const { subscribe, set, update } = writable<TurnDirectives>(getDefaultTurnDirectives());
+  const initial = loadStoredDraft();
+  const { subscribe, set, update } = writable<TurnDirectives>(initial);
+
+  if (typeof window !== 'undefined') {
+    subscribe((draft) => {
+      persistDraft(draft);
+    });
+  }
 
   return {
     subscribe,
@@ -132,6 +165,17 @@ function createDraftStore() {
     },
     reset: () => {
       set(getDefaultTurnDirectives());
+    },
+    advanceToNextTurn: () => {
+      update((d) => ({
+        ...d,
+        // Reset one-time executed financial asset transactions that already modified GameState:
+        signedLoanIds: [],
+        executedMortgageIds: [],
+        oligarchDecisions: {},
+        provincialProjects: [],
+        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, decrees, demining) are preserved!
+      }));
     },
     togglePoliticalAction: (action: string) => {
       update((d) => {
@@ -160,6 +204,16 @@ function createDraftStore() {
           [assetId]: action,
         },
       }));
+    },
+    removeOligarchDecision: (assetId: string) => {
+      update((d) => {
+        const nextDecisions = { ...d.oligarchDecisions };
+        delete nextDecisions[assetId];
+        return {
+          ...d,
+          oligarchDecisions: nextDecisions,
+        };
+      });
     },
     toggleLoan: (loanId: string) => {
       update((d) => {

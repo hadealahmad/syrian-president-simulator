@@ -11,6 +11,7 @@
   import CenturyReport from './lib/ui/CenturyReport.svelte';
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
   import PresidentGuideModal from './lib/ui/PresidentGuideModal.svelte';
+  import StatRelatedOptionsModal from './lib/ui/StatRelatedOptionsModal.svelte';
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
@@ -37,4 +38,5 @@
   <CenturyReport />
   <RestartConfirmModal />
   <PresidentGuideModal />
+  <StatRelatedOptionsModal />
 </main>

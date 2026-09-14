@@ -65,7 +65,11 @@
 
     <!-- Item 2: Public Treasury SYP -->
     <div
-      class="flex flex-col shrink-0 min-w-[80px]"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('treasurySYP')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('treasurySYP'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
       title="الخزينة العامة: الحالي {formatTrillion(p.treasurySYP.current)}T ل.س {p.treasurySYP.current < 0 ? '(عجز)' : ''} | المتوقع للدور القادم {formatTrillion(p.treasurySYP.projected)}T ل.س {p.treasurySYP.projected < 0 ? '(عجز)' : ''} ({p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -99,7 +103,11 @@
 
     <!-- Item 3: FX Reserves USD -->
     <div
-      class="flex flex-col shrink-0 min-w-[80px]"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('reservesUSD'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
       title="احتياطي النقد الأجنبي: الحالي ${formatMillionUSD(p.reservesUSD.current)}M | المتوقع للدور القادم ${formatMillionUSD(p.reservesUSD.projected)}M ({p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%) | كفاية الاحتياطي: {runwayMonths} شهراً"
     >
       <div class="flex items-center gap-1">
@@ -135,7 +143,11 @@
 
     <!-- Item 4: External Sovereign Debt USD -->
     <div
-      class="flex flex-col shrink-0 min-w-[78px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] text-center"
       title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -163,7 +175,11 @@
 
     <!-- Item 5: M2 Money Supply -->
     <div
-      class="flex flex-col shrink-0 min-w-[78px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('m2MoneySupplySYP')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('m2MoneySupplySYP'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] text-center"
       title="الكتلة النقدية الإجمالية (M2): الحالي {formatTrillion(p.m2MoneySupplySYP.current)}T ل.س | المتوقع {formatTrillion(p.m2MoneySupplySYP.projected)}T ل.س ({p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -193,7 +209,11 @@
 
     <!-- Item 6: Parallel Rate -->
     <div
-      class="flex flex-col shrink-0 min-w-[80px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('parallelRate'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] text-center"
       title="سعر صرف الليرة بالسوق الموازي: الحالي 1$ = {formatNumber(p.parallelRateSYP.current)} | المتوقع 1$ = {formatNumber(p.parallelRateSYP.projected)} ({p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -221,7 +241,11 @@
 
     <!-- Item 7: Political Capital -->
     <div
-      class="flex flex-col shrink-0 min-w-[75px]"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px]"
       title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-between gap-1">
@@ -245,35 +269,7 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Meta Utility Buttons -->
-    <div class="flex items-center gap-1.5 shrink-0">
-      <!-- Guidebook Button -->
-      <button
-        onclick={() => uiStore.setGuideModal(true, 0)}
-        class="p-1 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none"
-        title="دليل البروتوكول الرئاسي (إرشادات إدارة الدولة وطريقة اللعب)"
-      >
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-          <line x1="12" y1="17" x2="12.01" y2="17" />
-        </svg>
-      </button>
-
-      <!-- Restart Simulation Button -->
-      <button
-        onclick={() => uiStore.setRestartModal(true)}
-        class="p-1 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/50 transition-colors cursor-pointer rounded-none"
-        title="إعادة تشغيل المحاكاة (بدء ولاية جديدة)"
-      >
-        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-          <path d="M3 3v5h5" />
-        </svg>
-      </button>
-    </div>
   </div>
 
   <!-- ========================================================================= -->
@@ -282,7 +278,11 @@
   <div class="h-[42px] px-3 flex items-center justify-between gap-2 bg-[#091210]/95 overflow-x-auto scrollbar-none flex-nowrap">
     <!-- Item 8: Civil Service Headcount -->
     <div
-      class="flex flex-col shrink-0 min-w-[75px]"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('civilServiceHeadcount')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceHeadcount'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px]"
       title="الجهاز الوظيفي العام: الحالي {formatMillionPeople(p.civilServiceHeadcount.current)}M موظف ({formatNumber(p.civilServiceHeadcount.current)}) | المتوقع {formatMillionPeople(p.civilServiceHeadcount.projected)}M ({p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -310,7 +310,11 @@
 
     <!-- Item 9: Cost of Wages (Wage Bill for the turn) -->
     <div
-      class="flex flex-col shrink-0 min-w-[80px]"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
       title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -340,7 +344,11 @@
 
     <!-- Item 10: Real Civil Service Wage USD -->
     <div
-      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
       title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -370,7 +378,11 @@
 
     <!-- Item 11: Tax Compliance Rate -->
     <div
-      class="flex flex-col shrink-0 min-w-[75px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('taxCompliancePct')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('taxCompliancePct'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
       title="معدل الامتثال والتحصيل الضريبي: الحالي {p.taxCompliancePct.current}% | المتوقع {p.taxCompliancePct.projected}% ({p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -398,7 +410,11 @@
 
     <!-- Item 12: Systemic Corruption -->
     <div
-      class="flex flex-col shrink-0 min-w-[75px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('systemicCorruption')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('systemicCorruption'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
       title="مؤشر الفساد المؤسسي والتسرب: الحالي {p.systemicCorruption.current}/100 | المتوقع {p.systemicCorruption.projected}/100 ({p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -428,7 +444,11 @@
 
     <!-- Item 13: Civic Trust -->
     <div
-      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('civicTrust')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civicTrust'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
       title="مؤشر الثقة الشعبية بالحكومة: الحالي {p.civicTrust.current}% | المتوقع {p.civicTrust.projected}% ({p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -456,7 +476,11 @@
 
     <!-- Item 14: Sovereign Leverage -->
     <div
-      class="flex flex-col shrink-0 min-w-[70px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('sovereignLeverage')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignLeverage'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
       title="مؤشر السيادة والاستقلال الاستراتيجي: الحالي {p.sovereignLeverage.current}% | المتوقع {p.sovereignLeverage.projected}% ({p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -484,7 +508,11 @@
 
     <!-- Item 15: National Unrest / RRI -->
     <div
-      class="flex flex-col shrink-0 min-w-[75px] text-center"
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('unrestIndex'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
       title="مؤشر الاحتقان الوطني: الحالي {p.nationalRRI.current}/100 | المتوقع للدور القادم {p.nationalRRI.projected}/100 ({p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">

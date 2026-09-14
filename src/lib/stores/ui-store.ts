@@ -14,6 +14,7 @@ export interface UIState {
   guideStep: number;
   activeEventModalId: string | null;
   ministryTab: MinistryTab;
+  selectedStatForOptions: string | null;
 }
 
 const GUIDE_STORAGE_KEY = 'president_has_seen_guide_v1';
@@ -38,6 +39,7 @@ function createUIStore() {
     guideStep: 0,
     activeEventModalId: null,
     ministryTab: 'macro',
+    selectedStatForOptions: null,
   });
 
   return {
@@ -87,6 +89,12 @@ function createUIStore() {
     setActiveEventModal: (eventId: string | null) => {
       update((s) => ({ ...s, activeEventModalId: eventId }));
     },
+    openStatRelatedOptions: (statId: string) => {
+      update((s) => ({ ...s, selectedStatForOptions: statId }));
+    },
+    closeStatRelatedOptions: () => {
+      update((s) => ({ ...s, selectedStatForOptions: null }));
+    },
     closeAllDrawers: () => {
       update((s) => ({
         ...s,
@@ -94,6 +102,7 @@ function createUIStore() {
         isTurnReviewModalOpen: false,
         isRestartModalOpen: false,
         isGuideModalOpen: false,
+        selectedStatForOptions: null,
       }));
     },
   };

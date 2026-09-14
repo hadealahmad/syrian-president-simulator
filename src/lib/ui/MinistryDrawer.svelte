@@ -188,7 +188,7 @@
               { id: 'GENEROUS', label: 'موسع' }
             ] as opt}
               <button
-                onclick={() => draftStore.setField('foodSubsidyLevel', opt.id as any)}
+                onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === opt.id ? null : (opt.id as any))}
                 class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.foodSubsidyLevel === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
               >
                 {opt.label}
@@ -216,7 +216,7 @@
               { id: 'ABSORB_MILITIAS', label: 'استيعاب المسلحين' }
             ] as opt}
               <button
-                onclick={() => draftStore.setField('workforceStrategy', opt.id as any)}
+                onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === opt.id ? null : (opt.id as any))}
                 class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.workforceStrategy === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
               >
                 {opt.label}
@@ -244,7 +244,7 @@
               { id: 'PREMIUM_INCENTIVE', label: 'علاوة تحفيز مجزية' }
             ] as opt}
               <button
-                onclick={() => draftStore.setField('wheatProcurement', opt.id as any)}
+                onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === opt.id ? null : (opt.id as any))}
                 class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.wheatProcurement === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
               >
                 {opt.label}
@@ -272,7 +272,7 @@
               { id: 'PERMISSIVE', label: 'غض الطرف' }
             ] as opt}
               <button
-                onclick={() => draftStore.setField('dieselSmuggling', opt.id as any)}
+                onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === opt.id ? null : (opt.id as any))}
                 class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.dieselSmuggling === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
               >
                 {opt.label}
@@ -469,9 +469,13 @@
                 {#if asset.status === 'PENDING'}
                   <div class="grid grid-cols-3 gap-1 text-[10px] pt-1">
                     <button
-                      disabled={!canAffordSettlement}
+                      disabled={decision !== 'SETTLEMENT_80_20' && !canAffordSettlement}
                       onclick={() => {
-                        if (canAffordSettlement) draftStore.setOligarchDecision(asset.id, 'SETTLEMENT_80_20');
+                        if (decision === 'SETTLEMENT_80_20') {
+                          draftStore.removeOligarchDecision(asset.id);
+                        } else if (canAffordSettlement) {
+                          draftStore.setOligarchDecision(asset.id, 'SETTLEMENT_80_20');
+                        }
                       }}
                       class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
                       title="تسوية 80/20: تحصيل 80% كاش (+${formatM(asset.valuationUSD * 0.8)}M$)، +2 ثقة، كلفة 8 رصيد سياسي"
@@ -482,7 +486,13 @@
                       </span>
                     </button>
                     <button
-                      onclick={() => draftStore.setOligarchDecision(asset.id, 'NATIONALIZE_SOE')}
+                      onclick={() => {
+                        if (decision === 'NATIONALIZE_SOE') {
+                          draftStore.removeOligarchDecision(asset.id);
+                        } else {
+                          draftStore.setOligarchDecision(asset.id, 'NATIONALIZE_SOE');
+                        }
+                      }}
                       class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
                       title="تأميم حكومي: ضم الأصل لشركات الدولة، +8000 وظيفة، +5 رصيد سياسي، +5 فساد"
                     >
@@ -492,9 +502,13 @@
                       </span>
                     </button>
                     <button
-                      disabled={!canAffordLiquidation}
+                      disabled={decision !== 'FOREIGN_LIQUIDATION' && !canAffordLiquidation}
                       onclick={() => {
-                        if (canAffordLiquidation) draftStore.setOligarchDecision(asset.id, 'FOREIGN_LIQUIDATION');
+                        if (decision === 'FOREIGN_LIQUIDATION') {
+                          draftStore.removeOligarchDecision(asset.id);
+                        } else if (canAffordLiquidation) {
+                          draftStore.setOligarchDecision(asset.id, 'FOREIGN_LIQUIDATION');
+                        }
                       }}
                       class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center gap-0.5 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
                       title="تصفية خارجية: بيع سريع بالدولار بخصم 40% لجلب +${formatM(asset.valuationUSD * 0.6)}M$ كاش، -4 ثقة، كلفة 10 رصيد سياسي"

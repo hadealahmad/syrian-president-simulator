@@ -189,7 +189,7 @@ export interface CommissionState {
 
 export interface TurnDirectives {
   wageBumpPercent: number;
-  foodSubsidyLevel: 'AUSTERE' | 'STANDARD' | 'GENEROUS';
+  foodSubsidyLevel: 'AUSTERE' | 'STANDARD' | 'GENEROUS' | null;
   officialRateAdjustment: number;
   dollarAuctionUSD: number;
   antiSpeculationRaids: boolean;
@@ -202,9 +202,9 @@ export interface TurnDirectives {
   activePoliticalActions: string[];
   provincialProjects: string[];
   // Deep Systems Levers
-  workforceStrategy: WorkforceStrategy;
-  wheatProcurement: WheatProcurementStrategy;
-  dieselSmuggling: DieselSmugglingStrategy;
+  workforceStrategy: WorkforceStrategy | null;
+  wheatProcurement: WheatProcurementStrategy | null;
+  dieselSmuggling: DieselSmugglingStrategy | null;
   remittanceCaptureSpread: number; // 0% to 25%
   corporateTaxRate: number; // 15% to 30%
   telecomExciseRate: number; // 10% to 25%
