@@ -394,6 +394,34 @@ export function simulateTurnTransitions(
           gov.prri = Math.max(0, gov.prri + gov.strategicProject.prriDelta);
           gov.dailyBlackoutHours = Math.max(2, gov.dailyBlackoutHours + gov.strategicProject.blackoutHoursDelta);
 
+          if (gov.strategicProject.mineClearancePct) {
+            gov.mineSaturationPct = Math.max(0, gov.mineSaturationPct - gov.strategicProject.mineClearancePct);
+          }
+          if (gov.strategicProject.golanTensionDelta) {
+            if (gov.golanTensionIndex !== undefined) {
+              gov.golanTensionIndex = Math.max(0, Math.min(100, gov.golanTensionIndex + gov.strategicProject.golanTensionDelta));
+            }
+            if (next.governorates['daraa']?.golanTensionIndex !== undefined) {
+              next.governorates['daraa'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['daraa'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
+            }
+            if (next.governorates['quneitra']?.golanTensionIndex !== undefined) {
+              next.governorates['quneitra'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['quneitra'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
+            }
+          }
+          if (gov.strategicProject.suwaydaIntegrationBonus) {
+            if (gov.suwaydaIntegrationIndex !== undefined) {
+              gov.suwaydaIntegrationIndex = Math.min(100, gov.suwaydaIntegrationIndex + gov.strategicProject.suwaydaIntegrationBonus);
+            }
+            if (gov.suwaydaSecessionProb !== undefined) {
+              gov.suwaydaSecessionProb = Math.max(0, Math.min(100, gov.suwaydaSecessionProb - 20));
+            }
+          }
+          if (gov.strategicProject.tribalRageDelta) {
+            if (gov.tribalRageIndex !== undefined) {
+              gov.tribalRageIndex = Math.max(0, gov.tribalRageIndex + gov.strategicProject.tribalRageDelta);
+            }
+          }
+
           if (gov.id === 'latakia' || gov.id === 'tartus') {
             next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 3);
           }

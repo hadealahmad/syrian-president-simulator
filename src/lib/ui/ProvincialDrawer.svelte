@@ -7,6 +7,27 @@
     return new Intl.NumberFormat('en-US').format(Math.round(num));
   }
 
+  function parseEffectPills(effectStr: string): { text: string; isNegative: boolean }[] {
+    if (!effectStr) return [];
+    return effectStr
+      .split(/[،,]/)
+      .map((s) => s.trim().replace(/\.$/, ''))
+      .filter(Boolean)
+      .map((text) => {
+        const isNegative =
+          text.startsWith('-') ||
+          text.includes('زيادة التوتر') ||
+          text.includes('زيادة الاحتقان') ||
+          text.includes('زيادة الشغب') ||
+          text.includes('ارتفاع الفساد') ||
+          text.includes('خسارة') ||
+          text.includes('كلفة') ||
+          text.includes('عجز') ||
+          text.includes('استنزاف');
+        return { text, isNegative };
+      });
+  }
+
   const TIER_NAMES_AR: Record<string, string> = {
     CALM: 'مستقرة',
     TENSE: 'متوترة',
@@ -123,7 +144,7 @@
             onclick={() => (activeProvincialTab = 'field')}
             class="py-1.5 px-3 text-xs font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'field' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
           >
-            الموقف الميداني والسكان
+            نظرة عامة والموقف الميداني
           </button>
         </div>
       </div>
@@ -132,42 +153,29 @@
       {#if activeProvincialTab === 'directives'}
         <div class="space-y-4">
           <!-- Sovereign Strategic Project Card -->
-          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-3 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-            <div class="flex justify-between items-start gap-2">
-              <div class="space-y-0.5">
-                <span class="text-[10px] text-wheat-gold font-bold font-mono tracking-wider">مشروع سيادي معتمد</span>
-                <h3 class="text-xs font-bold text-wheat-light font-heading leading-tight">
-                  {node.strategicProject.titleAr}
-                </h3>
-              </div>
-              <span
-                class="px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 {node.strategicProject.isExecuted ? 'bg-forest-mid border border-forest-accent text-forest-accent' : isProjectCommitted ? 'bg-forest-surface border border-wheat-mid text-wheat-gold' : 'bg-charcoal-surface border border-charcoal-light text-wheat-dark'}"
-              >
-                {node.strategicProject.isExecuted ? 'مُنفّذ' : isProjectCommitted ? 'قيد التنفيذ' : 'متاح للتمويل'}
-              </span>
+          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-2.5 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+            <!-- Title & Field Challenge (content moved outside card under title) -->
+            <div class="space-y-1">
+              <h3 class="text-xs font-bold text-wheat-light font-heading leading-tight">
+                {node.strategicProject.titleAr}
+              </h3>
+              <p class="text-wheat-dark leading-relaxed text-[10.5px]">
+                {node.strategicProject.issueDescriptionAr}
+              </p>
             </div>
 
-            <!-- Problem vs Solution Comparison -->
-            <div class="grid grid-cols-1 gap-2 text-[11px]">
-              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-0.5">
-                <span class="text-wheat-dark font-semibold block font-heading">التحدي الميداني القائم:</span>
-                <p class="text-wheat-light leading-relaxed text-[10px]">
-                  {node.strategicProject.issueDescriptionAr}
-                </p>
-              </div>
-
-              <div class="p-2 bg-forest-deep border border-charcoal-mid space-y-0.5">
-                <span class="text-wheat-dark font-semibold block font-heading">القرار الرئاسي المقترح:</span>
-                <p class="text-wheat-light leading-relaxed text-[10px]">
-                  {node.strategicProject.solutionDescriptionAr}
-                </p>
-              </div>
+            <!-- Presidential Solution Card (Empty challenge card removed) -->
+            <div class="p-2 bg-forest-deep border border-charcoal-mid space-y-0.5">
+              <span class="text-wheat-dark font-semibold block font-heading text-[10px]">القرار الرئاسي المقترح:</span>
+              <p class="text-wheat-light leading-relaxed text-[10px]">
+                {node.strategicProject.solutionDescriptionAr}
+              </p>
             </div>
 
             <!-- Cost & Impact Breakdown with Red/Green Pills -->
-            <div class="p-2 bg-forest-mid border border-charcoal-mid text-[11px] space-y-1.5">
+            <div class="p-2 bg-forest-mid border border-charcoal-mid text-[11px] space-y-2">
               <div class="flex justify-between items-center flex-wrap gap-1">
-                <span class="text-wheat-dark font-heading">الكلفة المطلوبة:</span>
+                <span class="text-wheat-dark font-heading text-[10px]">الكلفة المطلوبة:</span>
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
                     -${node.strategicProject.costUSD / 1_000_000}M
@@ -187,11 +195,17 @@
                   {/if}
                 </div>
               </div>
-              <div class="flex justify-between items-center">
-                <span class="text-wheat-dark font-heading">الأثر المباشر:</span>
-                <span class="text-forest-accent font-semibold text-[10px]">
-                  {node.strategicProject.effectDescriptionAr}
-                </span>
+
+              <!-- Direct Effects as color-coded Pills -->
+              <div class="space-y-1 pt-1.5 border-t border-charcoal-mid/60">
+                <span class="text-wheat-dark font-heading text-[10px] block">الأثر المباشر:</span>
+                <div class="flex flex-wrap gap-1">
+                  {#each parseEffectPills(node.strategicProject.effectDescriptionAr) as effect}
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-medium border {effect.isNegative ? 'bg-umber-deep border-umber-border text-umber-crimson' : 'bg-forest-surface border-forest-accent/60 text-forest-accent'}">
+                      {effect.text}
+                    </span>
+                  {/each}
+                </div>
               </div>
             </div>
 
@@ -345,6 +359,143 @@
       <!-- SUB-TAB 2: FIELD SITUATION & DEMOGRAPHICS DOSSIER -->
       {:else if activeProvincialTab === 'field'}
         <div class="space-y-3 text-xs">
+          <!-- Special Dossier: Golan Foreign Interference (Golan / Quneitra) -->
+          {#if node.id === 'quneitra'}
+            {@const golanTension = node.golanTensionIndex ?? $gameStore.governorates['quneitra']?.golanTensionIndex ?? $gameStore.governorates['daraa']?.golanTensionIndex ?? 45}
+            <div class="p-3 bg-charcoal-surface border-2 border-amber-600/60 rounded-none space-y-2.5">
+              <div class="flex justify-between items-start gap-2">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full {golanTension > 60 ? 'bg-umber-crimson animate-ping' : golanTension > 30 ? 'bg-amber-400' : 'bg-forest-accent'}"></span>
+                    <h4 class="text-xs font-bold text-wheat-light font-heading">
+                      ملف الجولان والتدخل الخارجي على خط الهدنة
+                    </h4>
+                  </div>
+                  <span class="text-[10px] text-wheat-dark block mt-0.5">
+                    مراقبة شريط فك الاشتباك وقوات الأندوف (UNDOF) وتفادي الاستنزاف الإقليمي
+                  </span>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 {golanTension > 60 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : golanTension > 30 ? 'bg-forest-surface border border-amber-500/50 text-amber-300' : 'bg-forest-mid border border-forest-accent text-forest-accent'}">
+                  {golanTension > 60 ? 'توغل واحتكاك حرج' : golanTension > 30 ? 'توتر وتجريف أمني' : 'هدوء رقابي نسبي'}
+                </span>
+              </div>
+
+              <!-- Tension Gauge / Meter -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] font-mono">
+                  <span class="text-wheat-dark">مؤشر التوغل والتدخل الخارجي:</span>
+                  <span class="font-bold {golanTension > 60 ? 'text-umber-crimson' : golanTension > 30 ? 'text-amber-300' : 'text-forest-accent'}">
+                    {golanTension} / 100
+                  </span>
+                </div>
+                <div class="w-full bg-forest-mid h-2 border border-charcoal-mid overflow-hidden">
+                  <div
+                    class="h-full transition-all duration-500 {golanTension > 60 ? 'bg-umber-crimson' : golanTension > 30 ? 'bg-amber-400' : 'bg-forest-accent'}"
+                    style="width: {Math.min(100, Math.max(5, golanTension))}%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Ending Impact & Relations -->
+              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-1.5 text-[10px] text-wheat-dark leading-relaxed">
+                <div class="flex items-start gap-1">
+                  <span class="text-wheat-gold font-bold shrink-0 font-heading">الأثر على نهاية اللعبة:</span>
+                  <span class="text-wheat-light">
+                    تثبيت شريط الهدنة وخفض التوغل يمنع انزلاق سوريا إلى حرب استنزاف دفاعية ويشكل ركيزة حاسمة لنهاية <strong class="text-wheat-gold">"العنقاء السيادية"</strong> بدلاً من التفكك أو عسكرة الاقتصاد الدائمة.
+                  </span>
+                </div>
+                <div class="flex items-start gap-1 pt-1 border-t border-charcoal-mid/60">
+                  <span class="text-forest-accent font-bold shrink-0 font-heading">القرارات المؤثرة:</span>
+                  <span class="text-wheat-light">
+                    مشروع تطهير حزام الجولان الرئاسي (-20 توتر)، مع الموازنة بين خياري ضبط النفس ونشر الوحدات في التوجيهات السيادية.
+                  </span>
+                </div>
+              </div>
+            </div>
+          {/if}
+
+          <!-- Special Dossier: As-Suwayda Secession Risk & National Accord -->
+          {#if node.id === 'as_suwayda'}
+            {@const secessionProb = node.suwaydaSecessionProb ?? 24}
+            {@const integrationIndex = node.suwaydaIntegrationIndex ?? 8}
+            {@const tribalRage = node.tribalRageIndex ?? 74}
+            <div class="p-3 bg-charcoal-surface border-2 border-amber-600/60 rounded-none space-y-2.5">
+              <div class="flex justify-between items-start gap-2">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full {secessionProb >= 60 ? 'bg-umber-crimson animate-ping' : secessionProb >= 25 ? 'bg-amber-400' : 'bg-forest-accent'}"></span>
+                    <h4 class="text-xs font-bold text-wheat-light font-heading">
+                      ملف السويداء: مخاطر الانفصال والاندماج الوطني
+                    </h4>
+                  </div>
+                  <span class="text-[10px] text-wheat-dark block mt-0.5">
+                    احتمال انفصال جبل العرب وقطع شريان الجنوب، والوفاق مع عشائر اللجاة
+                  </span>
+                </div>
+                <span class="px-2 py-0.5 text-[10px] font-mono font-bold shrink-0 {secessionProb >= 60 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : secessionProb >= 25 ? 'bg-forest-surface border border-amber-500/50 text-amber-300' : 'bg-forest-mid border border-forest-accent text-forest-accent'}">
+                  {secessionProb >= 85 ? 'سقوط وانفصال وشيك' : secessionProb >= 60 ? 'خطر انفصال حرج' : secessionProb >= 25 ? 'قلق وتوتر محلي' : 'اندماج وطني مستقر'}
+                </span>
+              </div>
+
+              <!-- Secession Prob Meter -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-[10px] font-mono">
+                  <span class="text-wheat-dark">احتمال الانفصال عن الجمهورية:</span>
+                  <span class="font-bold {secessionProb >= 60 ? 'text-umber-crimson' : secessionProb >= 25 ? 'text-amber-300' : 'text-forest-accent'}">
+                    {secessionProb}% {secessionProb >= 85 ? '(عتبة السقوط الحتمي: 85%)' : ''}
+                  </span>
+                </div>
+                <div class="w-full bg-forest-mid h-2 border border-charcoal-mid overflow-hidden">
+                  <div
+                    class="h-full transition-all duration-500 {secessionProb >= 60 ? 'bg-umber-crimson' : secessionProb >= 25 ? 'bg-amber-400' : 'bg-forest-accent'}"
+                    style="width: {Math.min(100, Math.max(4, secessionProb))}%"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Integration vs Tribal Rage Subgrid -->
+              <div class="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                <div class="p-1.5 bg-forest-mid border border-charcoal-mid space-y-0.5">
+                  <div class="flex justify-between text-wheat-dark">
+                    <span>مؤشر الاندماج:</span>
+                    <span class="font-bold {integrationIndex >= 80 ? 'text-forest-accent' : 'text-wheat-gold'}">{integrationIndex}%</span>
+                  </div>
+                  <div class="w-full bg-charcoal-surface h-1.5 overflow-hidden">
+                    <div class="h-full bg-forest-accent" style="width: {Math.min(100, integrationIndex)}%"></div>
+                  </div>
+                  <span class="text-[8.5px] text-wheat-dark block">مستهدف النهاية الكبرى: 80%+</span>
+                </div>
+
+                <div class="p-1.5 bg-forest-mid border border-charcoal-mid space-y-0.5">
+                  <div class="flex justify-between text-wheat-dark">
+                    <span>احتقان اللجاة:</span>
+                    <span class="font-bold {tribalRage > 60 ? 'text-umber-crimson' : 'text-amber-300'}">{tribalRage}%</span>
+                  </div>
+                  <div class="w-full bg-charcoal-surface h-1.5 overflow-hidden">
+                    <div class="h-full {tribalRage > 60 ? 'bg-umber-crimson' : 'bg-amber-400'}" style="width: {Math.min(100, tribalRage)}%"></div>
+                  </div>
+                  <span class="text-[8.5px] text-wheat-dark block">توتر خطوط الإمداد والطرق</span>
+                </div>
+              </div>
+
+              <!-- Ending Impact & Relations -->
+              <div class="p-2 bg-forest-mid border border-charcoal-mid space-y-1.5 text-[10px] text-wheat-dark leading-relaxed">
+                <div class="flex items-start gap-1">
+                  <span class="text-wheat-gold font-bold shrink-0 font-heading">الأثر على نهاية اللعبة:</span>
+                  <span class="text-wheat-light">
+                    رفع الاندماج الوطني إلى <strong>80%+</strong> يحقق النهاية الإقليمية الكبرى <strong class="text-wheat-gold">"وفاق السهل والجبل"</strong>. في المقابل، بلوغ الانفصال <strong>85%</strong> بالتزامن مع ثورات الأطراف يطلق الانهيار الفوري للدولة <strong class="text-umber-crimson">(التفكك المناطقي الشامل)</strong>.
+                  </span>
+                </div>
+                <div class="flex items-start gap-1 pt-1 border-t border-charcoal-mid/60">
+                  <span class="text-forest-accent font-bold shrink-0 font-heading">القرارات المؤثرة:</span>
+                  <span class="text-wheat-light">
+                    مشروع محطة كهرباء الجبل (+40% اندماج، وخفض الانفصال لـ 4%)، وسياسة الجبهة الجنوبية "الوفاق التاريخي" في التوجيهات السيادية.
+                  </span>
+                </div>
+              </div>
+            </div>
+          {/if}
+
           <!-- Demographic Census Ledger -->
           <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-2 rounded-none">
             <div class="flex justify-between items-center">
