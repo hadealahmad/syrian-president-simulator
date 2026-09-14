@@ -1,0 +1,209 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/thmanyah/thmanyah-sans-light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/thmanyah/thmanyah-sans-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/thmanyah/thmanyah-sans-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/thmanyah/thmanyah-sans-bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/thmanyah/thmanyah-sans-black.woff2') format('woff2');
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Thmanyah Serif Display - The Official Headings & Section Title Font */
+@font-face {
+  font-family: 'Thmanyah Serif Display';
+  src: url('/fonts/thmanyah/thmanyah-serif-display-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Serif Display';
+  src: url('/fonts/thmanyah/thmanyah-serif-display-medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Serif Display';
+  src: url('/fonts/thmanyah/thmanyah-serif-display-bold.woff2') format('woff2');
+  font-weight: 600 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Thmanyah Serif Display';
+  src: url('/fonts/thmanyah/thmanyah-serif-display-black.woff2') format('woff2');
+  font-weight: 800 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@theme {
+  /* ==========================================================================
+     FOREST & SLATE PINE PALETTE (Primary Institutional State Matrix)
+     ========================================================================== */
+  /* Main dark viewport, drawers & ribbon background: Deep Nordic Pine */
+  --color-forest-deep: #0a1b18;
+  
+  /* Elevated card, dossier & section panel surface */
+  --color-forest-mid: #133832;
+  
+  /* Interactive hover, selected tab, and active card surface */
+  --color-forest-surface: #1a453e;
+
+  /* Luminous mint-teal text & indicator highlight (11:1 contrast on dark base, 7.5:1 on cards) */
+  --color-forest-accent: #4ec7b4;
+
+  /* Deep pine-teal for solid badge/button fills */
+  --color-forest-accent-muted: #247568;
+
+  /* ==========================================================================
+     WHEAT, GOLD & PARCHMENT PALETTE (Typographic Hierarchy & Legitimacy)
+     ========================================================================== */
+  /* Primary title & body text: Crisp alabaster parchment (18:1 contrast on dark) */
+  --color-wheat-light: #f7f5ed;
+
+  /* Secondary text, values, currency numbers, active labels: Warm wheat gold (10:1 contrast) */
+  --color-wheat-mid: #dfcaa0;
+
+  /* Tertiary text, field descriptions, footnotes, metadata: Soft sand parchment (6.5:1 contrast) */
+  --color-wheat-dark: #c2b698;
+
+  /* Radiant antique gold for sovereign political capital, reserves & prestige */
+  --color-wheat-gold: #f2cf77;
+
+  /* ==========================================================================
+     UMBER, GARNET & CRIMSON PALETTE (Rivalry, Disintegration & Crisis)
+     ========================================================================== */
+  /* Deep burgundy wine background for critical crisis cards */
+  --color-umber-deep: #240c11;
+
+  /* Elevated wine panel surface */
+  --color-umber-mid: #4a141d;
+
+  /* Alert border for dangerous conditions */
+  --color-umber-border: #8b2333;
+
+  /* Radiant vermilion crimson for critical alert text, revolt indicators & badges (8:1 contrast) */
+  --color-umber-crimson: #f87171;
+
+  /* ==========================================================================
+     CHARCOAL & STRUCTURAL SLATE PALETTE (Foundational Canvas & Delineation)
+     ========================================================================== */
+  /* Deepest recessed background / 3D Canvas base */
+  --color-charcoal-deep: #071210;
+
+  /* Recessed inner container background */
+  --color-charcoal-surface: #0e2420;
+
+  /* Clean slate-pine structural borders separating panels, inputs & cards */
+  --color-charcoal-mid: #254b42;
+
+  /* Highlight / hover border */
+  --color-charcoal-light: #3b6b60;
+
+  /* Pure white */
+  --color-charcoal-white: #ffffff;
+
+  /* Typography families */
+  --font-arabic: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
+  --font-heading: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
+  --font-display: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
+  --font-mono: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    --font-arabic: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
+    --font-heading: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
+    --font-display: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #071210;
+    color: #f7f5ed;
+    font-family: var(--font-arabic);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Section and Component Headings use Thmanyah Serif Display */
+  h1, h2, h3, h4, h5, h6,
+  .font-heading,
+  .font-display,
+  .heading-display,
+  .section-title {
+    font-family: var(--font-display) !important;
+    letter-spacing: -0.015em;
+  }
+
+  /* Ensure all numbers and mono text use Thmanyah font with tabular English digits */
+  .font-mono, [class*="font-mono"] {
+    font-family: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif !important;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Strict zero-radius reset for crisp Nordic-RTS angular UI */
+  *, *::before, *::after {
+    border-radius: 0px !important;
+  }
+}
+
+/* Custom Scrollbar in Dark Forest Slate Style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a1b18;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a453e;
+  border: 1px solid #254b42;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4ec7b4;
+}
