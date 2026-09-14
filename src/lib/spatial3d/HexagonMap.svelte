@@ -22,9 +22,9 @@
   const pointer = new THREE.Vector2();
 
   let hoveredNodeId = $state<string | null>(null);
-  // Camera static framing: entire Syrian territory (all 14 governorates) clearly in viewport
-  const targetCameraPos = new THREE.Vector3(0.0, 37.0, 27.0);
-  const targetLookAt = new THREE.Vector3(0.0, 0, 1.8);
+  // Camera static framing: entire Syrian territory (all 14 governorates) edge-to-edge in viewport
+  const targetCameraPos = new THREE.Vector3(0.0, 35.5, 25.8);
+  const targetLookAt = new THREE.Vector3(0.0, 0, 1.7);
 
   const TIER_NAMES_AR: Record<string, string> = {
     CALM: 'مستقرة',
@@ -244,7 +244,7 @@
   {#if hoveredNodeId && hoveredNodeId !== $uiStore.selectedGovernorateId && $gameStore.governorates[hoveredNodeId]}
     {@const node = $gameStore.governorates[hoveredNodeId]}
     <div
-      class="absolute top-20 left-6 z-20 pointer-events-none p-3.5 bg-forest-deep/95 border border-wheat-mid/70 backdrop-blur-md rounded-none shadow-2xl font-arabic text-wheat-light space-y-1.5 text-xs min-w-[210px]"
+      class="absolute top-4 left-6 z-20 pointer-events-none p-3.5 bg-forest-deep/95 border border-wheat-mid/70 backdrop-blur-md rounded-none shadow-2xl font-arabic text-wheat-light space-y-1.5 text-xs min-w-[210px]"
     >
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">

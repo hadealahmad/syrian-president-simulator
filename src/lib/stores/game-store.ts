@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import type { GameState, TurnDirectives } from '../engine/types';
 import { createInitialGameState } from '../engine/baseline';
+import { BASELINE_GOVERNORATES } from '../engine/constants';
 import { executeTurnLifecycle } from '../engine/turn-manager';
 import { resolveEventOption, applyUnresolvedCrisisPenalty } from '../engine/events';
 import { checkFailStates } from '../engine/fail-states';
@@ -20,6 +21,13 @@ function loadStoredGameState(): GameState {
           parsed.governorates &&
           typeof parsed.isGameOver === 'boolean'
         ) {
+          // Always ensure hex coordinates match the current baseline layout
+          Object.keys(parsed.governorates).forEach((id) => {
+            if (BASELINE_GOVERNORATES[id]) {
+              parsed.governorates[id].hexQ = BASELINE_GOVERNORATES[id].hexQ;
+              parsed.governorates[id].hexR = BASELINE_GOVERNORATES[id].hexR;
+            }
+          });
           return parsed as GameState;
         }
       }

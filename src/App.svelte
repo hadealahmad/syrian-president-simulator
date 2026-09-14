@@ -13,8 +13,8 @@
 </script>
 
 <main class="relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
-  <!-- 3D Spatial Hexagonal Map Canvas Viewport (in between the two sidebars) -->
-  <div class="fixed top-0 bottom-0 left-[390px] right-[390px] overflow-hidden z-10">
+  <!-- 3D Spatial Hexagonal Map Canvas Viewport (Edge-to-edge between sidebars and below Top Ribbon) -->
+  <div class="fixed top-16 bottom-0 left-[390px] right-[390px] overflow-hidden z-10">
     <HexagonMap />
   </div>
 
