@@ -490,7 +490,7 @@
                 </span>
                 {#if item.project.costPoliticalCapital > 0}
                   <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
-                    -{item.project.costPoliticalCapital} رصيد
+                    -{item.project.costPoliticalCapital} رصيد سياسي
                   </span>
                 {/if}
                 <span class="text-[11px] text-forest-accent mr-2">| {item.project.effectDescriptionAr}</span>
@@ -525,12 +525,12 @@
                       +${formatMillionUSD(settlementIncomeUSD)}M
                     </span>
                     <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-                      -{settlementPCCost} رصيد
+                      -{settlementPCCost} رصيد سياسي
                     </span>
                     <span class="text-[11px] text-forest-accent mr-2">| الأثر: استرداد أصول كاش بنسبة 80% وتثبيت الثقة السيادية</span>
                   {:else if action === 'NATIONALIZE_SOE'}
                     <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
-                      +{nationalizePCEarned} رصيد
+                      +{nationalizePCEarned} رصيد سياسي
                     </span>
                     <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[10px]">
                       +{(asset.soeVenueSYPPerTurn / 1_000_000_000_000).toFixed(2)}T ل.س/دور
@@ -541,7 +541,7 @@
                       +${formatMillionUSD(liquidationIncomeUSD)}M
                     </span>
                     <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-                      -{liquidationPCCost} رصيد
+                      -{liquidationPCCost} رصيد سياسي
                     </span>
                     <span class="text-[11px] text-umber-crimson mr-2">| الأثر: بيع عاجل بخصم 40% وضخ سيولة أجنبية فورية</span>
                   {/if}
