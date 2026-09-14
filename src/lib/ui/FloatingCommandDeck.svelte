@@ -1,6 +1,7 @@
 <script lang="ts">
   import { draftStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
+  import { versionStore } from '../stores/version-store';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
@@ -48,8 +49,22 @@
     </button>
   </div>
 
-  <!-- Right Side (Opposite) Command Deck: Presidential Guide Wizard & Game Reset (Anchored at right-[406px]) -->
+  <!-- Right Side (Opposite) Command Deck: Presidential Guide Wizard, Game Reset, & Version Badge (Anchored at right-[406px]) -->
   <div class="pointer-events-auto absolute bottom-6 flex items-center gap-2 transition-all duration-300 ease-in-out {isRightOpen ? 'right-[406px]' : 'right-6'}">
+    <!-- Version & Cache Busting Button -->
+    <button
+      onclick={() => versionStore.forceHardReload()}
+      class="flex items-center gap-1.5 px-3 py-3 bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid/80 hover:text-wheat-gold font-mono text-[11px] border border-charcoal-mid hover:border-wheat-mid/60 shadow-2xl transition-all active:translate-y-0.5 cursor-pointer rounded-none group"
+      title="إصدار النظام الحالي - انقر لإفراغ الذاكرة المؤقتة وإعادة التحميل القسري للنسخة الأحدث"
+    >
+      <span class="w-2 h-2 rounded-full {$versionStore.hasUpdate ? 'bg-amber-400 animate-ping' : 'bg-forest-accent'}"></span>
+      <span class="tracking-tight">v{$versionStore.currentVersion}</span>
+      <svg class="w-3 h-3 text-wheat-dark group-hover:text-wheat-gold transition-colors {$versionStore.isChecking ? 'animate-spin' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.85.83 6.72 2.24L21 8" />
+        <polyline points="21 3 21 8 16 8" />
+      </svg>
+    </button>
+
     <!-- Presidential Guidebook Wizard Button -->
     <button
       onclick={() => uiStore.setGuideModal(true, 0)}
