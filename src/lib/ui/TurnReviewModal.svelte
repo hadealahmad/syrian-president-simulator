@@ -486,7 +486,7 @@
                   -${item.project.costUSD / 1_000_000}M
                 </span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-                  -${(item.project.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
+                  -{(item.project.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
                 </span>
                 {#if item.project.costPoliticalCapital > 0}
                   <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
