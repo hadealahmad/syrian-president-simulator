@@ -332,13 +332,13 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">الأثر المباشر:</span>
             <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-              +${Math.round(($draftStore.wageBumpPercent * 0.4))} $/شهر
+              +{Math.round(($draftStore.wageBumpPercent * 0.4))} $/شهر
             </span>
             <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
-              -${Math.round($draftStore.wageBumpPercent * 0.8)} احتقان
+              -{Math.round($draftStore.wageBumpPercent * 0.8)} احتقان
             </span>
             <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
-              -${((850_000 * 250_000 * ($draftStore.wageBumpPercent / 100) * 6) / 1_000_000_000_000).toFixed(2)}T ل.س
+              -{((850_000 * 250_000 * ($draftStore.wageBumpPercent / 100) * 6) / 1_000_000_000_000).toFixed(2)}T ل.س
             </span>
           </div>
 
