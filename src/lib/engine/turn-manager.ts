@@ -145,7 +145,21 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 0: SPECIAL DECREES & POLITICAL ACTIONS
   // =========================================================================
+  next.enactedDecrees = next.enactedDecrees ? [...next.enactedDecrees] : [];
+  const ONE_TIME_DECREES = [
+    'ANTI_CORRUPTION_COMMISSION',
+    'PROPERTY_RESTITUTION_PORTAL',
+    'TRIBAL_CUSTOMS_COUNCIL',
+    'UNITY_SPEECH',
+    'OPPOSITION_SEATS',
+  ];
+
   for (const actId of directives.activePoliticalActions || []) {
+    // If it is a one-time decree and already enacted, skip it
+    if (ONE_TIME_DECREES.includes(actId) && next.enactedDecrees.includes(actId)) {
+      continue;
+    }
+
     if (actId === 'ANTI_CORRUPTION_COMMISSION') {
       if (next.macro.politicalCapital >= 15) {
         next.macro.systemicCorruption = Math.max(0, next.macro.systemicCorruption - 8);
@@ -154,6 +168,7 @@ export function simulateTurnTransitions(
         Object.values(next.governorates).forEach((g) => {
           g.prri = Math.max(0, g.prri - 3);
         });
+        next.enactedDecrees.push('ANTI_CORRUPTION_COMMISSION');
       }
     } else if (actId === 'PROPERTY_RESTITUTION_PORTAL') {
       if (next.macro.politicalCapital >= 10) {
@@ -161,6 +176,7 @@ export function simulateTurnTransitions(
         next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 4);
         if (next.governorates['homs']) next.governorates['homs'].prri = Math.max(0, next.governorates['homs'].prri - 8);
         if (next.governorates['rif_dimashq']) next.governorates['rif_dimashq'].prri = Math.max(0, next.governorates['rif_dimashq'].prri - 6);
+        next.enactedDecrees.push('PROPERTY_RESTITUTION_PORTAL');
       }
     } else if (actId === 'SMUGGLING_BORDER_SWEEP') {
       if (next.macro.politicalCapital >= 12) {
@@ -175,6 +191,7 @@ export function simulateTurnTransitions(
           next.governorates['deir_ez_zor'].tribalRageIndex = Math.max(0, (next.governorates['deir_ez_zor'].tribalRageIndex || 50) - 25);
           next.governorates['deir_ez_zor'].prri = Math.max(0, next.governorates['deir_ez_zor'].prri - 10);
         }
+        next.enactedDecrees.push('TRIBAL_CUSTOMS_COUNCIL');
       }
     } else if (actId === 'CABINET_HEARING') {
       next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 8);
@@ -191,6 +208,7 @@ export function simulateTurnTransitions(
       Object.values(next.governorates).forEach((g) => {
         g.prri = Math.max(0, g.prri - 4);
       });
+      next.enactedDecrees.push('UNITY_SPEECH');
     } else if (actId === 'OPPOSITION_SEATS') {
       next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 18);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 4);
@@ -198,13 +216,31 @@ export function simulateTurnTransitions(
       if (minKeys.length > 0) {
         next.ministries[minKeys[0]].isOpposition = true;
       }
+      next.enactedDecrees.push('OPPOSITION_SEATS');
     } else if (actId === 'MARTIAL_LAW') {
-      next.macro.nationalRRI = Math.max(0, next.macro.nationalRRI - 15);
-      next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 12);
-      Object.values(next.governorates).forEach((g) => {
-        g.prri = Math.max(0, g.prri - 12);
-      });
+      const wasActive = currentState.flags?.Martial_Law_Active === 1;
+      if (!wasActive) {
+        next.macro.nationalRRI = Math.max(0, next.macro.nationalRRI - 15);
+        next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 12);
+        Object.values(next.governorates).forEach((g) => {
+          g.prri = Math.max(0, g.prri - 12);
+        });
+      } else {
+        // Continuous martial law debuff: -4% civic trust per turn while suppressing unrest
+        next.macro.nationalRRI = Math.max(0, next.macro.nationalRRI - 8);
+        next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 4);
+        Object.values(next.governorates).forEach((g) => {
+          g.prri = Math.max(0, g.prri - 6);
+        });
+      }
+      next.flags.Martial_Law_Active = 1;
     }
+  }
+
+  // If Martial Law was lifted this turn
+  if (currentState.flags?.Martial_Law_Active === 1 && !directives.activePoliticalActions?.includes('MARTIAL_LAW')) {
+    next.flags.Martial_Law_Active = 0;
+    next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
   }
 
   // =========================================================================

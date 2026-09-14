@@ -22,6 +22,7 @@ function loadStoredGameState(): GameState {
           typeof parsed.isGameOver === 'boolean'
         ) {
           // Always ensure hex coordinates match the current baseline layout
+          parsed.enactedDecrees = parsed.enactedDecrees || [];
           Object.keys(parsed.governorates).forEach((id) => {
             if (BASELINE_GOVERNORATES[id]) {
               parsed.governorates[id].hexQ = BASELINE_GOVERNORATES[id].hexQ;

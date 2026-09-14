@@ -560,16 +560,29 @@
         <!-- 13. Presidential Decrees & Political Actions -->
         {#each $draftStore.activePoliticalActions as actId}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
-            <div>
+            <div class="space-y-0.5">
               <span class="font-bold text-wheat-light block font-heading">
-                مرسوم أو قرار سيادي: {DECREE_TITLES_AR[actId] ?? actId}
+                {DECREE_TITLES_AR[actId] ?? actId}
               </span>
+              {#if actId === 'MARTIAL_LAW'}
+                <span class="text-[10px] text-amber-300 block font-mono">
+                  ● حالة طوارئ مستمرة — تجميد للاحتجاجات وديبَف متواصل (-4% ثقة شعبية كل دور حتى الرفع)
+                </span>
+              {:else if ['ANTI_CORRUPTION_COMMISSION', 'PROPERTY_RESTITUTION_PORTAL', 'TRIBAL_CUSTOMS_COUNCIL', 'UNITY_SPEECH', 'OPPOSITION_SEATS'].includes(actId)}
+                <span class="text-[10px] text-wheat-dark block font-mono">
+                  مرسوم سيادي لمرة واحدة (سيصبح نافذاً دائماً بالقانون)
+                </span>
+              {:else}
+                <span class="text-[10px] text-wheat-dark block font-mono">
+                  إجراء دوري لهذا الدور
+                </span>
+              {/if}
             </div>
             <button
               onclick={() => draftStore.togglePoliticalAction(actId)}
               class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
             >
-              إلغاء
+              {actId === 'MARTIAL_LAW' ? 'إنهاء الطوارئ' : 'إلغاء'}
             </button>
           </div>
         {/each}

@@ -67,6 +67,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
   // 4. Decrees and Political Actions
   for (const actId of draft.activePoliticalActions || []) {
+    if (gameState.enactedDecrees?.includes(actId)) continue;
     if (actId === 'ANTI_CORRUPTION_COMMISSION') committedPC += 15;
     else if (actId === 'PROPERTY_RESTITUTION_PORTAL') committedPC += 10;
     else if (actId === 'SMUGGLING_BORDER_SWEEP') committedPC += 12;
@@ -179,7 +180,9 @@ function createDraftStore() {
         executedMortgageIds: [],
         oligarchDecisions: {},
         provincialProjects: [],
-        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, decrees, demining) are preserved!
+        // Retain continuous states (MARTIAL_LAW) until lifted, reset one-time and periodic decrees:
+        activePoliticalActions: (d.activePoliticalActions || []).filter((a) => a === 'MARTIAL_LAW'),
+        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, demining, brain gain) are preserved!
       }));
     },
     togglePoliticalAction: (action: string) => {

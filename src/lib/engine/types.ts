@@ -341,4 +341,5 @@ export interface GameState {
   foreignLoans: ForeignLoanPackage[];
   sovereignMortgages: SovereignMortgageOption[];
   lastMigrationReport?: MigrationSummary;
+  enactedDecrees?: string[];
 }
