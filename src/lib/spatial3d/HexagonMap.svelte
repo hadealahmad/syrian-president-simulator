@@ -1,30 +1,26 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import * as THREE from 'three';
   import { gameStore } from '../stores/game-store';
   import { uiStore } from '../stores/ui-store';
   import { draftStore } from '../stores/draft-store';
-  import {
-    createGovernorateHex,
-    updateGovernorateHex,
-    refreshGovernorateLabel,
-    type HexMeshEntry,
-  } from './hexagon-grid';
+  import { SYRIA_2D_GOVERNORATES, SYRIA_2D_VIEWBOX } from './syria-2d-paths';
 
-  let container: HTMLDivElement;
-  let scene: THREE.Scene;
-  let camera: THREE.PerspectiveCamera;
-  let renderer: THREE.WebGLRenderer;
-  let animationFrameId: number;
+  let hoveredGovId = $state<string | null>(null);
 
-  const hexEntries: Map<string, HexMeshEntry> = new Map();
-  const raycaster = new THREE.Raycaster();
-  const pointer = new THREE.Vector2();
-
-  let hoveredNodeId = $state<string | null>(null);
-  // Camera static framing: entire Syrian Republic sovereign territory (all 14 governorates) edge-to-edge in viewport
-  const targetCameraPos = new THREE.Vector3(0, 42.5, 31.0);
-  const targetLookAt = new THREE.Vector3(0, 0, 0.5);
+  // Syrian Visual Identity (SyID) color palette constants from syrian.zone/syid
+  const SYID_COLORS = {
+    forest: '#428177',       // Forest primary (Calm / Sovereign baseline)
+    forestLight: '#52998e',  // Forest hover
+    forestDark: '#054239',   // Forest active / deep
+    wheat: '#988561',        // Golden Wheat deep (Tense status)
+    wheatLight: '#b9a779',   // Golden Wheat mid
+    wheatCream: '#edebe0',   // Golden Wheat highlight
+    umber: '#6b1f2a',        // Deep Umber (Riot / Unrest)
+    umberDark: '#4a151e',    // Deep Umber dark (Armed Revolt)
+    charcoal: '#161616',     // Charcoal background
+    charcoalBorder: '#0D1117', // Sovereign borders
+    hoverStroke: '#E6EDF3',  // SyID hover boundary highlight
+    selectedStroke: '#b9a779', // SyID selected boundary highlight
+  };
 
   const TIER_NAMES_AR: Record<string, string> = {
     CALM: 'مستقرة',
@@ -33,207 +29,159 @@
     REVOLT: 'تمرد مسلح',
   };
 
-  function buildGovernorateMeshes(): void {
-    hexEntries.forEach((entry) => {
-      scene.remove(entry.mesh);
-    });
-    hexEntries.clear();
-
-    const governorates = $gameStore.governorates;
-    for (const node of Object.values(governorates)) {
-      const entry = createGovernorateHex(node);
-      hexEntries.set(node.id, entry);
-      scene.add(entry.mesh);
+  function getGovFillColor(tier: string, isHovered: boolean, isSelected: boolean): string {
+    if (isSelected) {
+      if (tier === 'CALM') return '#4ea093';
+      if (tier === 'TENSE') return '#b09c73';
+      if (tier === 'RIOT') return '#822633';
+      return '#5e1b26';
     }
+    if (isHovered) {
+      if (tier === 'CALM') return SYID_COLORS.forestLight;
+      if (tier === 'TENSE') return SYID_COLORS.wheatLight;
+      if (tier === 'RIOT') return '#7e2432';
+      return '#571823';
+    }
+    if (tier === 'CALM') return SYID_COLORS.forest;
+    if (tier === 'TENSE') return SYID_COLORS.wheat;
+    if (tier === 'RIOT') return SYID_COLORS.umber;
+    return SYID_COLORS.umberDark;
   }
 
-  function handleResize(): void {
-    if (!container || !renderer || !camera) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    renderer.setSize(width, height);
+  function handleGovClick(govId: string): void {
+    uiStore.selectGovernorate(govId);
   }
 
-  function handlePointerMove(event: PointerEvent): void {
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-    raycaster.setFromCamera(pointer, camera);
-    const meshes = Array.from(hexEntries.values()).map((e) => e.mesh);
-    const intersects = raycaster.intersectObjects(meshes, true);
-
-    if (intersects.length > 0) {
-      let hitObj: THREE.Object3D | null = intersects[0].object;
-      while (hitObj && !hitObj.userData?.nodeId) {
-        hitObj = hitObj.parent;
-      }
-      hoveredNodeId = hitObj?.userData?.nodeId ?? null;
-    } else {
-      hoveredNodeId = null;
-    }
+  function handleGovMouseEnter(govId: string): void {
+    hoveredGovId = govId;
   }
 
-  function handleClick(): void {
-    if (hoveredNodeId) {
-      uiStore.selectGovernorate(hoveredNodeId);
-    }
+  function handleGovMouseLeave(): void {
+    hoveredGovId = null;
   }
-
-  function initThree(): void {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0e1715); // Rich obsidian forest bg
-
-    const width = container.clientWidth || window.innerWidth;
-    const height = container.clientHeight || window.innerHeight;
-
-    camera = new THREE.PerspectiveCamera(41.5, width / height, 0.1, 1000);
-    camera.position.copy(targetCameraPos);
-    camera.lookAt(targetLookAt);
-
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    container.appendChild(renderer.domElement);
-
-    // Warm presidential cinematic lighting
-    const ambientLight = new THREE.AmbientLight(0xf7f5eb, 1.25);
-    scene.add(ambientLight);
-
-    const dirLight = new THREE.DirectionalLight(0xf2cf77, 1.45); // Wheat-gold highlight
-    dirLight.position.set(15, 30, 20);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    scene.add(dirLight);
-
-    const fillLight = new THREE.DirectionalLight(0x2e8b7d, 0.65); // Forest-teal cool fill
-    fillLight.position.set(-20, 15, -10);
-    scene.add(fillLight);
-
-    // Subtle national map base plane
-    const baseGeo = new THREE.PlaneGeometry(46, 40);
-    const baseMat = new THREE.MeshBasicMaterial({
-      color: 0x0a110f,
-      side: THREE.DoubleSide,
-    });
-    const baseMesh = new THREE.Mesh(baseGeo, baseMat);
-    baseMesh.rotation.x = -Math.PI / 2;
-    baseMesh.position.set(0, -0.05, 0);
-    scene.add(baseMesh);
-
-    buildGovernorateMeshes();
-
-    window.addEventListener('resize', handleResize);
-    renderer.domElement.addEventListener('pointermove', handlePointerMove);
-    renderer.domElement.addEventListener('click', handleClick);
-
-    const animate = (time: number = 0) => {
-      animationFrameId = requestAnimationFrame(animate);
-
-      // Update mesh states based on selection/hover/tier
-      const selectedId = $uiStore.selectedGovernorateId;
-      const elapsedSec = time * 0.001;
-
-      hexEntries.forEach((entry, id) => {
-        const isSelected = selectedId === id;
-        const isHovered = hoveredNodeId === id;
-        const node = $gameStore.governorates[id];
-
-        if (node) {
-          updateGovernorateHex(entry, node, isSelected, isHovered, elapsedSec);
-
-          // Subtle elevation lift when selected or hovered
-          if (isSelected) {
-            entry.mesh.position.y = 0.35;
-          } else if (isHovered) {
-            entry.mesh.position.y = 0.15;
-          } else {
-            entry.mesh.position.y = 0.0;
-          }
-        }
-      });
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-  }
-
-  $effect(() => {
-    // Dynamic updates when governorates change
-    const governorates = $gameStore.governorates;
-    const selectedId = $uiStore.selectedGovernorateId;
-    hexEntries.forEach((entry, id) => {
-      const node = governorates[id];
-      if (node) {
-        updateGovernorateHex(entry, node, selectedId === id, hoveredNodeId === id, 0);
-      }
-    });
-
-    // Refresh labels when fonts are loaded or state updates
-    if (document.fonts) {
-      document.fonts.ready.then(() => {
-        hexEntries.forEach((entry) => {
-          refreshGovernorateLabel(entry.labelSprite);
-        });
-      });
-    }
-  });
-
-  onMount(() => {
-    initThree();
-  });
-
-  onDestroy(() => {
-    if (animationFrameId) {
-      cancelAnimationFrame(animationFrameId);
-    }
-    window.removeEventListener('resize', handleResize);
-    if (renderer) {
-      renderer.domElement.removeEventListener('pointermove', handlePointerMove);
-      renderer.domElement.removeEventListener('click', handleClick);
-      renderer.dispose();
-    }
-  });
 </script>
 
 <div
-  class="relative w-full h-full overflow-hidden select-none bg-forest-deep"
-  style="cursor: {hoveredNodeId ? 'pointer' : 'default'};"
+  class="relative w-full h-full overflow-hidden select-none bg-[#0e1715] flex items-center justify-center"
+  role="region"
+  aria-label="الخارطة الاستراتيجية للجمهورية العربية السورية"
 >
-  <div bind:this={container} class="w-full h-full"></div>
+  <!-- Faint Tactical Coordinate Grid Background -->
+  <div class="absolute inset-0 opacity-[0.04] pointer-events-none bg-[radial-gradient(#edebe0_1px,transparent_1px)] [background-size:24px_24px]"></div>
+
+  <!-- 2D Sovereign Vector Map (SVG) -->
+  <svg
+    viewBox={SYRIA_2D_VIEWBOX}
+    preserveAspectRatio="xMidYMid meet"
+    class="w-full h-full max-h-full max-w-full p-4 drop-shadow-[0_12px_36px_rgba(0,0,0,0.6)]"
+  >
+    <defs>
+      <!-- SyID Glow Filters for Hover & Selection -->
+      <filter id="syid-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#edebe0" flood-opacity="0.6" />
+      </filter>
+      <filter id="syid-selected-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#b9a779" flood-opacity="0.8" />
+      </filter>
+    </defs>
+
+    <!-- Base Shadow Silhouette -->
+    <g class="opacity-30 pointer-events-none transform translate-y-1.5 translate-x-0.5">
+      {#each SYRIA_2D_GOVERNORATES as gov (gov.id)}
+        <path d={gov.path} fill="#050a09" />
+      {/each}
+    </g>
+
+    <!-- Governorates Polygons (Clean 2D, strictly without labels) -->
+    <g class="cursor-pointer">
+      {#each SYRIA_2D_GOVERNORATES as gov (gov.id)}
+        {@const govState = $gameStore.governorates[gov.id]}
+        {@const tier = govState?.tier ?? 'CALM'}
+        {@const isHovered = hoveredGovId === gov.id}
+        {@const isSelected = $uiStore.selectedGovernorateId === gov.id}
+        {@const fill = getGovFillColor(tier, isHovered, isSelected)}
+        {@const stroke = isSelected ? SYID_COLORS.selectedStroke : isHovered ? SYID_COLORS.hoverStroke : SYID_COLORS.charcoalBorder}
+        {@const strokeWidth = isSelected ? 3.5 : isHovered ? 2.8 : 1.6}
+
+        <path
+          d={gov.path}
+          {fill}
+          fill-opacity={isSelected ? 0.98 : isHovered ? 0.92 : 0.78}
+          {stroke}
+          stroke-width={strokeWidth}
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          filter={isSelected ? 'url(#syid-selected-glow)' : isHovered ? 'url(#syid-glow)' : undefined}
+          class="transition-all duration-150 ease-out"
+          onclick={() => handleGovClick(gov.id)}
+          onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleGovClick(gov.id)}
+          onmouseenter={() => handleGovMouseEnter(gov.id)}
+          onmouseleave={handleGovMouseLeave}
+          role="button"
+          tabindex="0"
+          aria-label={govState?.nameAr ?? gov.nameAr}
+        />
+      {/each}
+    </g>
+
+    <!-- Tactical Center Indicators: Infrastructure & Mine Markers (Subtle, strictly no text labels) -->
+    <g class="pointer-events-none">
+      {#each SYRIA_2D_GOVERNORATES as gov (gov.id)}
+        {@const govState = $gameStore.governorates[gov.id]}
+        {#if govState}
+          {@const [cx, cy] = gov.center}
+          <!-- Demining Hazard Marker if contaminated -->
+          {#if govState.mineSaturationPct > 12}
+            <circle
+              cx={cx - 7}
+              cy={cy}
+              r="2.5"
+              fill="#ce1126"
+              stroke="#0D1117"
+              stroke-width="0.8"
+            />
+          {/if}
+          <!-- Power Grid Stability Indicator if supplied -->
+          {#if govState.dailyBlackoutHours <= 12}
+            <circle
+              cx={cx + 7}
+              cy={cy}
+              r="2.2"
+              fill="#f5d547"
+              stroke="#0D1117"
+              stroke-width="0.8"
+            />
+          {/if}
+        {/if}
+      {/each}
+    </g>
+  </svg>
 
   <!-- Tabletop Map Title Plate (top right corner) -->
   <div class="absolute top-4 right-4 pointer-events-none z-10 flex flex-col items-end gap-1">
-    <div class="flex items-center gap-2 bg-forest-deep/90 border border-charcoal-mid/80 px-3 py-1.5 rounded-none shadow-md">
-      <span class="w-2 h-2 rounded-full bg-forest-accent animate-pulse"></span>
+    <div class="flex items-center gap-2 bg-[#0e1715]/95 border border-charcoal-mid/80 px-3 py-1.5 rounded-none shadow-md">
+      <span class="w-2 h-2 rounded-full bg-[#428177] animate-pulse"></span>
       <span class="text-xs font-heading font-bold text-wheat-light tracking-wide">الخارطة الاستراتيجية للجمهورية العربية السورية</span>
     </div>
-    <span class="text-[10px] font-mono text-wheat-dark/80 bg-black/40 px-2 py-0.5 border border-charcoal-mid/40">
-      مقياس العمليات: 14 محافظة • قطاع موحد
+    <span class="text-[10px] font-mono text-wheat-dark/80 bg-black/50 px-2 py-0.5 border border-charcoal-mid/40">
+      الهوية البصرية السورية • قطاع سيادي موحد
     </span>
   </div>
 
-  <!-- Floating HUD Panel for Hovered Governorate -->
-  {#if hoveredNodeId && $gameStore.governorates[hoveredNodeId]}
-    {@const gov = $gameStore.governorates[hoveredNodeId]}
+  <!-- Floating HUD Panel for Hovered Governorate (bottom left) -->
+  {#if hoveredGovId && $gameStore.governorates[hoveredGovId]}
+    {@const gov = $gameStore.governorates[hoveredGovId]}
     {@const isProjectActive = Boolean(gov.strategicProject && $draftStore.provincialProjects.includes(gov.strategicProject.id))}
-    {@const isDeminingActive = $draftStore.deminingPriorityId === hoveredNodeId}
-    {@const isPowerBoostActive = $draftStore.powerBoostGovId === hoveredNodeId}
+    {@const isDeminingActive = $draftStore.deminingPriorityId === hoveredGovId}
+    {@const isPowerBoostActive = $draftStore.powerBoostGovId === hoveredGovId}
     {@const activeDirectives = (isProjectActive ? 1 : 0) + (isDeminingActive ? 1 : 0) + (isPowerBoostActive ? 1 : 0)}
     {@const powerHours = Math.max(0, 24 - gov.dailyBlackoutHours)}
     <div
-      class="absolute bottom-6 left-6 pointer-events-none z-10 bg-forest-deep/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic"
+      class="absolute bottom-6 left-6 pointer-events-none z-10 bg-[#0e1715]/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic backdrop-blur-sm"
     >
       <div class="flex items-center justify-between border-b border-charcoal-mid pb-2 mb-2.5">
         <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 {gov.tier === 'CALM' ? 'bg-forest-accent' : gov.tier === 'TENSE' ? 'bg-wheat-gold' : 'bg-umber-crimson'} rounded-none"></span>
+          <span class="w-2.5 h-2.5 {gov.tier === 'CALM' ? 'bg-[#428177]' : gov.tier === 'TENSE' ? 'bg-[#b9a779]' : 'bg-[#6b1f2a]'} rounded-none"></span>
           <h3 class="font-heading font-bold text-sm text-wheat-light">{gov.nameAr}</h3>
         </div>
         <span class="text-[10px] px-2 py-0.5 font-bold font-mono border rounded-none {gov.tier === 'CALM' ? 'bg-forest-mid border-forest-accent text-forest-light' : gov.tier === 'TENSE' ? 'bg-wheat-mid/20 border-wheat-mid text-wheat-gold' : 'bg-umber-deep border-umber-border text-umber-crimson'}">
@@ -247,7 +195,7 @@
           <span class="text-wheat-gold font-bold">{(gov.reconstructionScore * 100).toFixed(0)}%</span>
         </div>
         <div class="w-full bg-charcoal-deep h-1.5 border border-charcoal-mid overflow-hidden rounded-none">
-          <div class="bg-forest-accent h-full transition-all" style="width: {gov.reconstructionScore * 100}%"></div>
+          <div class="bg-[#428177] h-full transition-all" style="width: {gov.reconstructionScore * 100}%"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-charcoal-mid/60 text-[11px]">
@@ -257,7 +205,7 @@
           </div>
           <div>
             <span class="text-wheat-dark font-arabic block text-[10px]">تلوث الألغام:</span>
-            <span class="{gov.mineSaturationPct > 10 ? 'text-umber-crimson' : 'text-wheat-light'} font-bold">
+            <span class="{gov.mineSaturationPct > 10 ? 'text-[#ce1126]' : 'text-wheat-light'} font-bold">
               {Math.round(gov.mineSaturationPct * 120).toLocaleString()} هـ
             </span>
           </div>
@@ -277,31 +225,31 @@
     </div>
   {/if}
 
-  <!-- Interactive Tabletop Map Legend (bottom right) -->
-  <div class="absolute bottom-6 right-6 pointer-events-none z-10 bg-forest-deep/90 border border-charcoal-mid p-3 shadow-lg rounded-none text-wheat-light font-arabic">
+  <!-- Interactive SyID Map Legend (bottom right) -->
+  <div class="absolute bottom-6 right-6 pointer-events-none z-10 bg-[#0e1715]/90 border border-charcoal-mid p-3 shadow-lg rounded-none text-wheat-light font-arabic">
     <div class="text-[10px] font-bold text-wheat-gold mb-1.5 border-b border-charcoal-mid pb-1 font-heading">
-      دليل الرموز التكتيكية
+      دليل الهوية البصرية (SyID)
     </div>
     <div class="space-y-1.5 text-[10px] text-wheat-mid font-mono">
       <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-forest-accent/70 border border-forest-accent"></span>
-        <span class="font-arabic">مستقرة (Calm)</span>
+        <span class="w-3 h-2 bg-[#428177] border border-[#0D1117]"></span>
+        <span class="font-arabic">مستقرة (أخضر الغاب)</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-wheat-gold/70 border border-wheat-mid"></span>
-        <span class="font-arabic">متوترة (Tense)</span>
+        <span class="w-3 h-2 bg-[#988561] border border-[#0D1117]"></span>
+        <span class="font-arabic">متوترة (قمح بردى)</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-umber-crimson/70 border border-umber-border"></span>
-        <span class="font-arabic">اضطرابات / تمرد</span>
+        <span class="w-3 h-2 bg-[#6b1f2a] border border-[#0D1117]"></span>
+        <span class="font-arabic">اضطرابات / تمرد (عنابي)</span>
       </div>
       <div class="flex items-center gap-2 pt-1 border-t border-charcoal-mid/60">
-        <span class="w-2.5 h-2.5 bg-yellow-400 rounded-full inline-block"></span>
-        <span class="font-arabic">أبراج الربط الكهربائي</span>
+        <span class="w-2 h-2 rounded-full bg-[#f5d547] inline-block"></span>
+        <span class="font-arabic">استقرار التغذية الكهربائية</span>
       </div>
       <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 bg-red-600 rounded-none inline-block"></span>
-        <span class="font-arabic">حقول الألغام والذخائر</span>
+        <span class="w-2 h-2 rounded-full bg-[#ce1126] inline-block"></span>
+        <span class="font-arabic">حقول الألغام ومخلفات الحرب</span>
       </div>
     </div>
   </div>
