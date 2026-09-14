@@ -23,8 +23,8 @@
 
   let hoveredNodeId = $state<string | null>(null);
   // Camera static framing: entire Syrian territory (all 14 governorates) edge-to-edge in viewport
-  const targetCameraPos = new THREE.Vector3(0.0, 35.5, 25.8);
-  const targetLookAt = new THREE.Vector3(0.0, 0, 1.7);
+  const targetCameraPos = new THREE.Vector3(-1.75, 38.5, 27.8);
+  const targetLookAt = new THREE.Vector3(-1.75, 0, 1.8);
 
   const TIER_NAMES_AR: Record<string, string> = {
     CALM: 'مستقرة',
@@ -90,7 +90,7 @@
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(41.5, width / height, 0.1, 1000);
     camera.position.copy(targetCameraPos);
     camera.lookAt(targetLookAt);
 
