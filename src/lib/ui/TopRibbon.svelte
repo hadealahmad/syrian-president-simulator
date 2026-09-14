@@ -44,7 +44,7 @@
   class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <!-- ========================================================================= -->
-  <!-- ROW 1: CALENDAR, PUBLIC TREASURY, RESERVES, DEBT, M2 & PARALLEL FX        -->
+  <!-- ROW 1: CALENDAR, POLITICAL CAPITAL, TREASURY, RESERVES, WAGES & FX    -->
   <!-- ========================================================================= -->
   <div class="h-[41px] px-3 flex items-center justify-between gap-2 border-b border-charcoal-mid/60 overflow-x-auto scrollbar-none flex-nowrap">
     <!-- Item 1: Turn & Calendar -->
@@ -62,6 +62,38 @@
             </span>
           {/if}
         </div>
+      </div>
+    </div>
+
+    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
+
+    <!-- Item: Political Capital (الرصيد السياسي - moved to the left of الدور) -->
+    <div
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-between gap-1">
+        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
+        {#if p.politicalCapital.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.politicalCapital.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
+        {#if p.politicalCapital.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">←</span>
+          <span class="text-xs font-bold {p.politicalCapital.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            {p.politicalCapital.projected}%
+          </span>
+        {/if}
       </div>
     </div>
 
@@ -145,37 +177,7 @@
 
     <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 4: External Sovereign Debt USD -->
-    <div
-      role="button"
-      tabindex="0"
-      onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
-      title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
-    >
-      <div class="flex items-center justify-center gap-1">
-        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الدين الخارجي</span>
-        {#if p.sovereignDebtUSD.isChanged}
-          <span
-            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.sovereignDebtUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
-          >
-            {p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%
-          </span>
-        {/if}
-      </div>
-      <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-mid">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
-        {#if p.sovereignDebtUSD.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">←</span>
-          <span class="text-xs font-bold {p.sovereignDebtUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            ${formatBillionUSD(p.sovereignDebtUSD.projected)}B
-          </span>
-        {/if}
-      </div>
-    </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
     <!-- Item: Cost of Wages (فاتورة الرواتب) -->
     <div
@@ -275,43 +277,13 @@
       </div>
     </div>
 
-    <div class="h-6 w-[1px] bg-charcoal-mid shrink-0"></div>
 
-    <!-- Item 7: Political Capital -->
-    <div
-      role="button"
-      tabindex="0"
-      onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
-      title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
-    >
-      <div class="flex items-center justify-between gap-1">
-        <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
-        {#if p.politicalCapital.isChanged}
-          <span
-            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.politicalCapital.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
-          >
-            {p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%
-          </span>
-        {/if}
-      </div>
-      <div class="flex items-baseline gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
-        {#if p.politicalCapital.isChanged}
-          <span class="text-[8.5px] text-wheat-dark">←</span>
-          <span class="text-xs font-bold {p.politicalCapital.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            {p.politicalCapital.projected}%
-          </span>
-        {/if}
-      </div>
-    </div>
 
 
   </div>
 
   <!-- ========================================================================= -->
-  <!-- ROW 2: WORKFORCE, WAGE BILL, TAX, CORRUPTION, TRUST, LEVERAGE & UNREST   -->
+  <!-- ROW 2: WORKFORCE, DEBT, TAX, CORRUPTION, TRUST, LEVERAGE & UNREST       -->
   <!-- ========================================================================= -->
   <div class="h-[42px] px-3 flex items-center justify-between gap-2 bg-[#091210]/95 overflow-x-auto scrollbar-none flex-nowrap">
     <!-- Item 8: Civil Service Headcount -->
@@ -344,7 +316,37 @@
       </div>
     </div>
 
+    <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
 
+    <!-- Item: External Sovereign Debt USD (الدين الخارجي - moved to bottom row) -->
+    <div
+      role="button"
+      tabindex="0"
+      onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
+      title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
+    >
+      <div class="flex items-center justify-center gap-1">
+        <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الدين الخارجي</span>
+        {#if p.sovereignDebtUSD.isChanged}
+          <span
+            class="px-1 py-0.2 rounded-full text-[8px] font-mono font-bold {p.sovereignDebtUSD.isBeneficial ? 'bg-forest-mid border border-forest-accent text-forest-accent' : 'bg-umber-deep border border-umber-border text-umber-crimson'}"
+          >
+            {p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%
+          </span>
+        {/if}
+      </div>
+      <div class="flex items-baseline justify-center gap-1 font-mono">
+        <span class="text-xs font-bold text-wheat-mid">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
+        {#if p.sovereignDebtUSD.isChanged}
+          <span class="text-[8.5px] text-wheat-dark">←</span>
+          <span class="text-xs font-bold {p.sovereignDebtUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
+            ${formatBillionUSD(p.sovereignDebtUSD.projected)}B
+          </span>
+        {/if}
+      </div>
+    </div>
 
     <div class="h-5 w-[1px] bg-charcoal-mid shrink-0"></div>
 
