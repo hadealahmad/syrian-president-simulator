@@ -739,7 +739,7 @@
                           +${formatM(settlementIncomeUSD)}M
                         </span>
                         <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
-                          -{settlementPCCost} رصيد
+                          -{settlementPCCost} رصيد سياسي
                         </span>
                       </div>
                     </button>
@@ -759,7 +759,7 @@
                       <span class="font-bold text-[10px]">تأميم حكومي</span>
                       <div class="flex items-center gap-1 flex-wrap justify-center">
                         <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
-                          +{nationalizePCEarned} رصيد
+                          +{nationalizePCEarned} رصيد سياسي
                         </span>
                         <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">
                           +{formatTrillion(asset.soeVenueSYPPerTurn)}T/دور
@@ -786,7 +786,7 @@
                           +${formatM(liquidationIncomeUSD)}M
                         </span>
                         <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
-                          -{liquidationPCCost} رصيد
+                          -{liquidationPCCost} رصيد سياسي
                         </span>
                       </div>
                     </button>
@@ -830,7 +830,7 @@
                     }}
                     class="px-2.5 py-1 text-[10px] border transition-colors rounded-none {loan.isSigned ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed' : isSelected ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold cursor-pointer' : canAffordLoan ? 'bg-forest-mid border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed opacity-60'}"
                   >
-                    {loan.isSigned ? 'تم التوقيع مسبقاً' : isSelected ? 'معتمد للتوقيع' : !canAffordLoan ? 'رصيد غير كافٍ' : 'طلب وتوقيع القرض'}
+                    {loan.isSigned ? 'تم التوقيع مسبقاً' : isSelected ? 'معتمد للتوقيع' : !canAffordLoan ? 'رصيد سياسي غير كافٍ' : 'طلب وتوقيع القرض'}
                   </button>
                 </div>
               </div>
@@ -901,7 +901,7 @@
                     {#if isActive}
                       [مُفعّل]
                     {:else if !canAfford}
-                      رصيد غير كافٍ ({costPC})
+                      رصيد سياسي غير كافٍ ({costPC})
                     {:else}
                       تفعيل
                     {/if}
