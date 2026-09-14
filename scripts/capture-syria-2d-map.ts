@@ -5,15 +5,15 @@ async function run() {
   const chrome = spawn('chromium', [
     '--headless=new',
     '--disable-gpu',
-    '--remote-debugging-port=9538',
-    '--user-data-dir=/tmp/test-chrome-2d-map',
+    '--remote-debugging-port=9542',
+    '--user-data-dir=/tmp/test-chrome-rect3',
     '--window-size=1440,900',
     'http://localhost:5173',
   ]);
 
   try {
     await new Promise((r) => setTimeout(r, 2000));
-    const listRes = await fetch('http://localhost:9538/json');
+    const listRes = await fetch('http://localhost:9542/json');
     const tabs = await listRes.json();
     const pageTab = tabs.find((t: any) => t.type === 'page' && t.url.includes('5173'));
 
@@ -48,60 +48,52 @@ async function run() {
     await sendCommand('Runtime.enable');
     await new Promise((r) => setTimeout(r, 2500));
 
-    // Close guide modal if open
+    // Close guide modal
     await sendCommand('Runtime.evaluate', {
       expression: `
         (window as any).__uiStore?.setGuideModal(false);
       `,
     });
-    await new Promise((r) => setTimeout(r, 800));
-
-    // 1. Capture clean 2D map view
-    const shot1 = await sendCommand('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(
-      '/home/hadi/.gemini/antigravity-acp/brain/ab070556-fee9-4891-9387-d5159a5e82b2/syria_2d_syid_main.png',
-      Buffer.from(shot1.result.data, 'base64')
-    );
-    console.log('Saved syria_2d_syid_main.png');
-
-    // 2. Hover over Damascus / Rif Dimashq area
-    // Damascus is at SVG center (467.4, 691.0)
-    // On screen: SVG is inside left: 390px, right: 390px (width: 660px, height: 834px)
-    // Let's dispatch mouse move directly or trigger hover state
-    await sendCommand('Runtime.evaluate', {
-      expression: `
-        const pathDamascus = document.querySelector('path[aria-label="دمشق"]');
-        if (pathDamascus) {
-          pathDamascus.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        }
-      `,
-    });
-    await new Promise((r) => setTimeout(r, 500));
-
-    const shot2 = await sendCommand('Page.captureScreenshot', { format: 'png' });
-    fs.writeFileSync(
-      '/home/hadi/.gemini/antigravity-acp/brain/ab070556-fee9-4891-9387-d5159a5e82b2/syria_2d_syid_damascus_hover.png',
-      Buffer.from(shot2.result.data, 'base64')
-    );
-    console.log('Saved syria_2d_syid_damascus_hover.png');
-
-    // 3. Click Damascus to open drawer
-    await sendCommand('Runtime.evaluate', {
-      expression: `
-        const pathDamascus = document.querySelector('path[aria-label="دمشق"]');
-        if (pathDamascus) {
-          pathDamascus.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-        }
-      `,
-    });
     await new Promise((r) => setTimeout(r, 600));
 
-    const shot3 = await sendCommand('Page.captureScreenshot', { format: 'png' });
+    // Trigger hover on Damascus via DOM events
+    const triggerRes = await sendCommand('Runtime.evaluate', {
+      expression: `
+        (() => {
+          const pathDamascus = document.querySelector('path[aria-label="مدينة دمشق"]');
+          if (!pathDamascus) return { success: false, error: 'not found' };
+          
+          pathDamascus.dispatchEvent(new PointerEvent('pointerenter', { bubbles: true }));
+          pathDamascus.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+          
+          // Also verify if the HUD element appeared
+          return { success: true };
+        })()
+      `,
+      returnByValue: true,
+    });
+    console.log('Trigger result:', triggerRes.result.result ? triggerRes.result.result.value : triggerRes.result.value);
+
+    await new Promise((r) => setTimeout(r, 500));
+
+    const verifyRes = await sendCommand('Runtime.evaluate', {
+      expression: `
+        (() => {
+          const hud = document.querySelector('.w-72');
+          if (!hud) return null;
+          return { text: hud.textContent, className: hud.className };
+        })()
+      `,
+      returnByValue: true,
+    });
+    console.log('HUD in DOM:', verifyRes.result.result ? verifyRes.result.result.value : verifyRes.result.value);
+
+    const shotHover = await sendCommand('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(
-      '/home/hadi/.gemini/antigravity-acp/brain/ab070556-fee9-4891-9387-d5159a5e82b2/syria_2d_syid_damascus_selected.png',
-      Buffer.from(shot3.result.data, 'base64')
+      '/home/hadi/.gemini/antigravity-acp/brain/ab070556-fee9-4891-9387-d5159a5e82b2/syria_2d_syid_damascus_hover.png',
+      Buffer.from(shotHover.result.data, 'base64')
     );
-    console.log('Saved syria_2d_syid_damascus_selected.png');
+    console.log('Saved syria_2d_syid_damascus_hover.png successfully!');
 
     ws.close();
   } finally {

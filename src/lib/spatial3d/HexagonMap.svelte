@@ -116,7 +116,9 @@
           onclick={() => handleGovClick(gov.id)}
           onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleGovClick(gov.id)}
           onmouseenter={() => handleGovMouseEnter(gov.id)}
+          onpointerenter={() => handleGovMouseEnter(gov.id)}
           onmouseleave={handleGovMouseLeave}
+          onpointerleave={handleGovMouseLeave}
           role="button"
           tabindex="0"
           aria-label={govState?.nameAr ?? gov.nameAr}
@@ -168,7 +170,7 @@
     </span>
   </div>
 
-  <!-- Floating HUD Panel for Hovered Governorate (bottom left) -->
+  <!-- Floating HUD Panel for Hovered Governorate (bottom right in place of the old guide) -->
   {#if hoveredGovId && $gameStore.governorates[hoveredGovId]}
     {@const gov = $gameStore.governorates[hoveredGovId]}
     {@const isProjectActive = Boolean(gov.strategicProject && $draftStore.provincialProjects.includes(gov.strategicProject.id))}
@@ -177,7 +179,7 @@
     {@const activeDirectives = (isProjectActive ? 1 : 0) + (isDeminingActive ? 1 : 0) + (isPowerBoostActive ? 1 : 0)}
     {@const powerHours = Math.max(0, 24 - gov.dailyBlackoutHours)}
     <div
-      class="absolute bottom-6 left-6 pointer-events-none z-10 bg-[#0e1715]/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic backdrop-blur-sm"
+      class="absolute bottom-6 right-6 pointer-events-none z-10 bg-[#0e1715]/95 border-2 border-wheat-mid/80 p-4 shadow-2xl rounded-none w-72 text-wheat-light font-arabic backdrop-blur-sm transition-all duration-150"
     >
       <div class="flex items-center justify-between border-b border-charcoal-mid pb-2 mb-2.5">
         <div class="flex items-center gap-2">
@@ -224,33 +226,4 @@
       </div>
     </div>
   {/if}
-
-  <!-- Interactive SyID Map Legend (bottom right) -->
-  <div class="absolute bottom-6 right-6 pointer-events-none z-10 bg-[#0e1715]/90 border border-charcoal-mid p-3 shadow-lg rounded-none text-wheat-light font-arabic">
-    <div class="text-[10px] font-bold text-wheat-gold mb-1.5 border-b border-charcoal-mid pb-1 font-heading">
-      دليل الهوية البصرية (SyID)
-    </div>
-    <div class="space-y-1.5 text-[10px] text-wheat-mid font-mono">
-      <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-[#428177] border border-[#0D1117]"></span>
-        <span class="font-arabic">مستقرة (أخضر الغاب)</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-[#988561] border border-[#0D1117]"></span>
-        <span class="font-arabic">متوترة (قمح بردى)</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-3 h-2 bg-[#6b1f2a] border border-[#0D1117]"></span>
-        <span class="font-arabic">اضطرابات / تمرد (عنابي)</span>
-      </div>
-      <div class="flex items-center gap-2 pt-1 border-t border-charcoal-mid/60">
-        <span class="w-2 h-2 rounded-full bg-[#f5d547] inline-block"></span>
-        <span class="font-arabic">استقرار التغذية الكهربائية</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-[#ce1126] inline-block"></span>
-        <span class="font-arabic">حقول الألغام ومخلفات الحرب</span>
-      </div>
-    </div>
-  </div>
 </div>
