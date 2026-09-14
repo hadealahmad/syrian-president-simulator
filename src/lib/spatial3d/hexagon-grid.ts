@@ -24,47 +24,52 @@ export interface HexMeshEntry {
   baseY: number;
 }
 
+/**
+ * Renders a compact, sleek military brass identification nameplate.
+ */
 export function renderLabelCanvas(nameAr: string, canvas: HTMLCanvasElement): void {
   canvas.width = 256;
-  canvas.height = 128;
+  canvas.height = 72;
   const ctx = canvas.getContext('2d');
   if (ctx) {
-    ctx.clearRect(0, 0, 256, 128);
-    // Sharp retro military situation table plaque (deep forest slate, brass border, rivets)
-    ctx.fillStyle = 'rgba(8, 20, 18, 0.95)';
+    ctx.clearRect(0, 0, 256, 72);
+
+    // Sleek compact brass-rimmed plate
+    ctx.fillStyle = 'rgba(7, 18, 16, 0.94)';
     ctx.beginPath();
-    ctx.rect(14, 22, 228, 84);
+    ctx.rect(10, 10, 236, 52);
     ctx.fill();
 
-    // Double brass border
-    ctx.lineWidth = 2;
+    // Double hairline brass borders
+    ctx.lineWidth = 1.5;
     ctx.strokeStyle = '#dfcaa0';
     ctx.stroke();
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(203, 180, 128, 0.4)';
-    ctx.strokeRect(18, 26, 220, 76);
+    ctx.strokeStyle = 'rgba(203, 180, 128, 0.35)';
+    ctx.strokeRect(13, 13, 230, 46);
 
     // 4 Corner Brass Rivet Pins
     ctx.fillStyle = '#dfcaa0';
     const pins = [
-      [20, 28],
-      [236, 28],
-      [20, 96],
-      [236, 96],
+      [15, 15],
+      [241, 15],
+      [15, 57],
+      [241, 57],
     ];
     pins.forEach(([px, py]) => {
       ctx.beginPath();
-      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+      ctx.arc(px, py, 1.8, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    ctx.font = 'bold 36px "Thmanyah Serif Display", "thmanyah serif display", "Thmanyah Sans", sans-serif';
+    // Sleek, refined Thmanyah typography
+    ctx.font = 'bold 24px "Thmanyah Serif Display", "thmanyah serif display", "Thmanyah Sans", sans-serif';
     ctx.fillStyle = '#f7f5ed';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.direction = 'rtl';
-    ctx.fillText(nameAr, 128, 64);
+    ctx.fillText(nameAr, 128, 36);
   }
 }
 
@@ -76,7 +81,8 @@ export function createGovernorateLabel(nameAr: string): THREE.Sprite {
   texture.minFilter = THREE.LinearFilter;
   const material = new THREE.SpriteMaterial({ map: texture, depthTest: false, depthWrite: false });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(3.2, 1.6, 1);
+  // Compact, unobtrusive scale (down from 3.2 x 1.6)
+  sprite.scale.set(1.9, 0.55, 1);
   sprite.userData = { canvas, nameAr, texture };
   return sprite;
 }
@@ -86,6 +92,140 @@ export function refreshGovernorateLabel(sprite: THREE.Sprite): void {
     renderLabelCanvas(sprite.userData.nameAr, sprite.userData.canvas);
     sprite.userData.texture.needsUpdate = true;
   }
+}
+
+/**
+ * Generates an architectural brutalist milled side texture for the hexagonal pillar height.
+ * Features:
+ * - Vertical ambient occlusion gradient
+ * - CNC milled horizontal strata ribs with shadow/highlight bevels
+ * - Architectural inset fluting panels on all 6 faces
+ * - Metric elevation & reconstruction gauge graduation ticks
+ * - Top brass collar & bottom cast-iron base rim
+ */
+export function createRetroMilledSideTexture(node: GovernorateNode, height: number): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 768; // 6 faces * 128px per face
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    ctx.clearRect(0, 0, 768, 256);
+
+    const isRiot = node.tier === 'RIOT' || node.tier === 'REVOLT';
+    const isTense = node.tier === 'TENSE';
+
+    // Base background tone matching the tier enamel
+    const baseGrad = ctx.createLinearGradient(0, 0, 0, 256);
+    if (isRiot) {
+      baseGrad.addColorStop(0, '#5a131c');
+      baseGrad.addColorStop(0.5, '#450b12');
+      baseGrad.addColorStop(1, '#220408'); // Dark AO base
+    } else if (isTense) {
+      baseGrad.addColorStop(0, '#8c7028');
+      baseGrad.addColorStop(0.5, '#69511a');
+      baseGrad.addColorStop(1, '#2b210a');
+    } else {
+      baseGrad.addColorStop(0, '#1c554b');
+      baseGrad.addColorStop(0.5, '#133e37');
+      baseGrad.addColorStop(1, '#081c18');
+    }
+    ctx.fillStyle = baseGrad;
+    ctx.fillRect(0, 0, 768, 256);
+
+    // 6 Architectural Inset Fluting Panels (one for each hexagonal side face)
+    const faceWidth = 128;
+    for (let f = 0; f < 6; f++) {
+      const fx = f * faceWidth;
+
+      // Inset panel background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillRect(fx + 10, 18, faceWidth - 20, 220);
+
+      // Panel bevel highlight & shadow border
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(223, 202, 160, 0.14)';
+      ctx.strokeRect(fx + 10, 18, faceWidth - 20, 220);
+
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.strokeRect(fx + 11, 19, faceWidth - 22, 218);
+
+      // Vertical architectural groove line in panel center
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.beginPath();
+      ctx.moveTo(fx + faceWidth / 2, 22);
+      ctx.lineTo(fx + faceWidth / 2, 234);
+      ctx.stroke();
+
+      // Metric Elevation / Reconstruction Gradation Ticks (Surveyor's leveling marks)
+      for (let y = 28; y <= 228; y += 16) {
+        const isMajor = (y - 28) % 32 === 0;
+        const tickLength = isMajor ? 12 : 6;
+
+        // Left ruler ticks
+        ctx.strokeStyle = isMajor ? 'rgba(223, 202, 160, 0.4)' : 'rgba(223, 202, 160, 0.18)';
+        ctx.lineWidth = isMajor ? 1.5 : 1;
+        ctx.beginPath();
+        ctx.moveTo(fx + 12, y);
+        ctx.lineTo(fx + 12 + tickLength, y);
+        ctx.stroke();
+
+        // Right ruler ticks
+        ctx.beginPath();
+        ctx.moveTo(fx + faceWidth - 12, y);
+        ctx.lineTo(fx + faceWidth - 12 - tickLength, y);
+        ctx.stroke();
+      }
+
+      // Stenciled capital score badge on front-facing side panels (f=2,3)
+      if (f === 2 || f === 3) {
+        ctx.font = 'bold 11px monospace';
+        ctx.fillStyle = 'rgba(223, 202, 160, 0.4)';
+        ctx.textAlign = 'center';
+        ctx.fillText(`H-${height.toFixed(1)}m`, fx + faceWidth / 2, 220);
+      }
+    }
+
+    // Horizontal Milled Strata Grooves running across the entire width
+    for (let y = 24; y < 240; y += 24) {
+      // Groove shadow
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(768, y);
+      ctx.stroke();
+
+      // Groove highlight bevel
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, y + 1.5);
+      ctx.lineTo(768, y + 1.5);
+      ctx.stroke();
+    }
+
+    // Top Polished Brass Collar Band (rim)
+    const topCollar = ctx.createLinearGradient(0, 0, 0, 14);
+    topCollar.addColorStop(0, 'rgba(223, 202, 160, 0.6)');
+    topCollar.addColorStop(0.6, 'rgba(203, 180, 128, 0.3)');
+    topCollar.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+    ctx.fillStyle = topCollar;
+    ctx.fillRect(0, 0, 768, 14);
+
+    // Bottom Heavy Forged Base Rim (table shadow foot)
+    const botRim = ctx.createLinearGradient(0, 242, 0, 256);
+    botRim.addColorStop(0, 'rgba(0, 0, 0, 0.3)');
+    botRim.addColorStop(1, 'rgba(5, 8, 7, 0.95)');
+    ctx.fillStyle = botRim;
+    ctx.fillRect(0, 242, 768, 14);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  return texture;
 }
 
 /**
@@ -120,7 +260,6 @@ export function createRetroTopographyTexture(node: GovernorateNode): THREE.Canva
     contourRadii.forEach((r, idx) => {
       ctx.beginPath();
       for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.1) {
-        // Organic topographic perturbation
         const wobble = Math.sin(a * 4 + idx) * 8 + Math.cos(a * 2) * 5;
         const x = cx + Math.cos(a) * (r + wobble);
         const y = cy + Math.sin(a) * (r + wobble);
@@ -190,16 +329,13 @@ export function createRetroHazardSignTexture(isExtreme: boolean): THREE.CanvasTe
     ctx.lineTo(6, 114);
     ctx.closePath();
 
-    // Vivid military caution yellow or emergency red
     ctx.fillStyle = isExtreme ? '#dc2626' : '#eab308';
     ctx.fill();
 
-    // Bold black industrial border
     ctx.lineWidth = 8;
     ctx.strokeStyle = '#09090b';
     ctx.stroke();
 
-    // Inner black margin
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#09090b';
     ctx.beginPath();
@@ -215,7 +351,6 @@ export function createRetroHazardSignTexture(isExtreme: boolean): THREE.CanvasTe
     ctx.arc(64, 68, 13, 0, Math.PI * 2);
     ctx.fill();
 
-    // Blast rays / detonator spikes
     ctx.lineWidth = 3.5;
     ctx.strokeStyle = '#09090b';
     for (let r = 0; r < 8; r++) {
@@ -226,7 +361,6 @@ export function createRetroHazardSignTexture(isExtreme: boolean): THREE.CanvasTe
       ctx.stroke();
     }
 
-    // Stenciled text "ألغام"
     ctx.font = 'bold 15px "Thmanyah Sans", sans-serif';
     ctx.fillStyle = '#09090b';
     ctx.textAlign = 'center';
@@ -468,7 +602,7 @@ export function createRetroMinefieldMarkers(
 
     const sign = new THREE.Mesh(signGeo, signMat);
     sign.position.y = 0.46;
-    sign.rotation.x = -Math.PI * 0.18; // Angled backward so clearly readable from RTS camera
+    sign.rotation.x = -Math.PI * 0.18;
     post.add(sign);
 
     group.add(post);
@@ -555,14 +689,14 @@ export function getWireframeColor(node: GovernorateNode): number {
 
 export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
   const pos = hexToWorldPosition(node.hexQ, node.hexR);
-  const height = 0.75 + node.reconstructionScore * 2.2;
+  const height = 0.85 + node.reconstructionScore * 2.3;
 
-  // Base Hexagonal Column
+  // Base Hexagonal Column with Milled Strata Sides & Cartography Top
   const geometry = new THREE.CylinderGeometry(HEX_RADIUS * 0.95, HEX_RADIUS * 0.95, height, 6);
   const sideMaterial = new THREE.MeshStandardMaterial({
-    color: getTierColor(node),
-    roughness: 0.45,
-    metalness: 0.25,
+    map: createRetroMilledSideTexture(node, height),
+    roughness: 0.35,
+    metalness: 0.3,
   });
   const topMaterial = new THREE.MeshStandardMaterial({
     map: createRetroTopographyTexture(node),
@@ -609,9 +743,9 @@ export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
   beaconGroup.userData = { nodeId: node.id };
   mesh.add(beaconGroup);
 
-  // Floating Stamped Brass Placard Label
+  // Floating Stamped Brass Placard Label (Compact, sleek scale)
   const labelSprite = createGovernorateLabel(node.nameAr);
-  labelSprite.position.set(0, height / 2 + 1.8, 0); // Elevated to gracefully crown the pylon
+  labelSprite.position.set(0, height / 2 + 1.48, 0);
   mesh.add(labelSprite);
 
   return {
@@ -631,14 +765,18 @@ export function createGovernorateHex(node: GovernorateNode): HexMeshEntry {
 }
 
 export function updateGovernorateHex(entry: HexMeshEntry, node: GovernorateNode): void {
-  // 1. Civil Unrest Updates
+  const height = 0.85 + node.reconstructionScore * 2.3;
+
+  // 1. Update Milled Side Texture & Wireframe
   const sideMat = entry.mesh.material[0] as THREE.MeshStandardMaterial;
-  sideMat.color.setHex(getTierColor(node));
+  if (sideMat.map) sideMat.map.dispose();
+  sideMat.map = createRetroMilledSideTexture(node, height);
+  sideMat.map.needsUpdate = true;
 
   const wireMat = entry.wireframe.material as THREE.LineBasicMaterial;
   wireMat.color.setHex(getWireframeColor(node));
 
-  // Update Top Face Topography texture
+  // 2. Update Top Face Topography texture
   const topMat = entry.mesh.material[1] as THREE.MeshStandardMaterial;
   if (topMat.map) topMat.map.dispose();
   topMat.map = createRetroTopographyTexture(node);
@@ -647,7 +785,7 @@ export function updateGovernorateHex(entry: HexMeshEntry, node: GovernorateNode)
   // Unrest Alarm Beacon Visibility
   entry.beaconGroup.visible = node.tier === 'RIOT' || node.tier === 'REVOLT';
 
-  // 2. Power Grid (Pylon Tungsten Core)
+  // 3. Power Grid (Pylon Tungsten Core)
   const powerHours = Math.max(0, 24 - node.dailyBlackoutHours);
   const isHighPower = powerHours >= 12;
   const isMediumPower = powerHours >= 6 && powerHours < 12;
@@ -664,7 +802,7 @@ export function updateGovernorateHex(entry: HexMeshEntry, node: GovernorateNode)
     entry.pylonCoreMesh.material.emissiveIntensity = 0.0;
   }
 
-  // 3. Minefield Hazard Updates
+  // 4. Minefield Hazard Updates
   const isExtreme = node.mineSaturationPct > 14;
   entry.mineGroup.visible = node.mineSaturationPct > 8;
 

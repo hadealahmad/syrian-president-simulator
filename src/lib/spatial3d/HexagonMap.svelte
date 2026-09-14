@@ -7,7 +7,6 @@
   import {
     createGovernorateHex,
     updateGovernorateHex,
-    getTierColor,
     refreshGovernorateLabel,
     type HexMeshEntry,
   } from './hexagon-grid';
@@ -103,17 +102,17 @@
     container.appendChild(renderer.domElement);
 
     // Warm presidential cinematic lighting
-    const ambientLight = new THREE.AmbientLight(0xf7f5eb, 1.1);
+    const ambientLight = new THREE.AmbientLight(0xf7f5eb, 1.15);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xf2cf77, 1.4); // Wheat-gold highlight
+    const dirLight = new THREE.DirectionalLight(0xf2cf77, 1.45); // Wheat-gold highlight
     dirLight.position.set(15, 30, 20);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    const fillLight = new THREE.DirectionalLight(0x2e8b7d, 0.6); // Forest-teal cool fill
+    const fillLight = new THREE.DirectionalLight(0x2e8b7d, 0.65); // Forest-teal cool fill
     fillLight.position.set(-20, 15, -10);
     scene.add(fillLight);
 
@@ -147,7 +146,6 @@
 
         if (node && entry.mesh.material) {
           const sideMat = (entry.mesh.material as THREE.Material[])[0] as THREE.MeshStandardMaterial;
-          const baseColor = getTierColor(node);
 
           // Dynamic Unrest Alert Pulsing for RIOT and REVOLT
           let defaultEmissive = new THREE.Color(0x000000);
@@ -172,17 +170,17 @@
           if (isSelected) {
             sideMat.emissive = new THREE.Color(0x5a481c);
             sideMat.emissiveIntensity = 1.0;
-            sideMat.color = new THREE.Color(0xf2cf77);
+            sideMat.color = new THREE.Color(0xfde68a); // Warm gold tint on milled texture
             entry.mesh.position.y = entry.baseY + 0.35;
           } else if (isHovered) {
             sideMat.emissive = new THREE.Color(0x1a453e);
             sideMat.emissiveIntensity = 1.0;
-            sideMat.color = new THREE.Color(baseColor);
+            sideMat.color = new THREE.Color(0xd1fae5); // Cool teal tint on milled texture
             entry.mesh.position.y = entry.baseY + 0.15;
           } else {
             sideMat.emissive = defaultEmissive;
             sideMat.emissiveIntensity = defaultEmissiveIntensity;
-            sideMat.color = new THREE.Color(baseColor);
+            sideMat.color = new THREE.Color(0xffffff); // Full native texture colors
             entry.mesh.position.y = entry.baseY;
           }
 
