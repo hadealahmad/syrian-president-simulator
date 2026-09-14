@@ -26,3 +26,6 @@ dist-ssr
 # Design and planning documents
 plan/
 Syria Post-War Economic Simulation Design.md
+
+# Build-generated public files
+public/version.json
