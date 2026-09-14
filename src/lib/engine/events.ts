@@ -5,12 +5,13 @@ import { PRNG } from './prng';
 
 /**
  * Validates whether the player meets requirements to select an option.
+ * Strictly prevents choosing options when political credit or foreign reserves are insufficient.
  */
 export function validateOptionAvailability(state: GameState, option: EventOption): boolean {
-  if (option.costUSD > 0 && state.macro.reservesUSD < option.costUSD) {
+  if (option.costPC > 0 && state.macro.politicalCapital < option.costPC) {
     return false;
   }
-  if (option.costPC > 0 && state.macro.politicalCapital < option.costPC) {
+  if (option.costUSD > 0 && state.macro.reservesUSD < option.costUSD) {
     return false;
   }
   return true;
@@ -20,37 +21,45 @@ export function validateOptionAvailability(state: GameState, option: EventOption
  * Draws active events for the current turn based on triggers and seeded randomness.
  */
 export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
-  const drawn: EventCard[] = [];
+  const drawnRaw: EventCard[] = [];
   const allEvents = [...MASTER_EVENTS, ...SOUTHERN_EVENTS];
 
   // Specific turn scripted triggers
   if (state.turnNumber === 2) {
     const ev1 = MASTER_EVENTS.find((e) => e.id === 'event_01_grain_corridor');
-    if (ev1) drawn.push(ev1);
+    if (ev1) drawnRaw.push(ev1);
   } else if (state.turnNumber === 4) {
     const ev2 = MASTER_EVENTS.find((e) => e.id === 'event_02_tanker_interdiction');
-    if (ev2) drawn.push(ev2);
+    if (ev2) drawnRaw.push(ev2);
   } else if (state.turnNumber === 5) {
     const ev5 = MASTER_EVENTS.find((e) => e.id === 'event_05_bab_el_mandeb');
-    if (ev5) drawn.push(ev5);
+    if (ev5) drawnRaw.push(ev5);
   } else if (state.turnNumber === 7) {
     const s01 = SOUTHERN_EVENTS.find((e) => e.id === 'event_s01_lajat_siege');
-    if (s01) drawn.push(s01);
+    if (s01) drawnRaw.push(s01);
   } else if (state.turnNumber === 10) {
     const d02 = SOUTHERN_EVENTS.find((e) => e.id === 'event_d02_golan_incursion');
-    if (d02) drawn.push(d02);
+    if (d02) drawnRaw.push(d02);
   } else {
     // Dynamic random draw from unplayed events
     const pool = allEvents.filter(
-      (e) => !state.flags[`event_resolved_${e.id}`] && !drawn.some((d) => d.id === e.id)
+      (e) => !state.flags[`event_resolved_${e.id}`] && !drawnRaw.some((d) => d.id === e.id)
     );
     if (pool.length > 0) {
       const idx = prng.nextInt(0, pool.length - 1);
-      drawn.push(pool[idx]);
+      drawnRaw.push(pool[idx]);
     }
   }
 
-  return drawn;
+  // Deep clone events and evaluate option availability dynamically against current state
+  return drawnRaw.map((card) => {
+    const clonedCard: EventCard = structuredClone(card);
+    clonedCard.options = clonedCard.options.map((opt) => ({
+      ...opt,
+      canChoose: validateOptionAvailability(state, opt),
+    }));
+    return clonedCard;
+  });
 }
 
 /**
@@ -67,6 +76,14 @@ export function resolveEventOption(
 
   const option = card.options.find((o) => o.id === optionId);
   if (!option) return;
+
+  // STRICT ENFORCEMENT: Never allow spending political capital or FX reserves if player does not have enough
+  if (!validateOptionAvailability(state, option)) {
+    console.warn(
+      `Blocked attempt to select event option "${optionId}": requires ${option.costPC} PC (has ${state.macro.politicalCapital} PC) or $${option.costUSD} USD (has $${state.macro.reservesUSD} USD).`
+    );
+    return;
+  }
 
   // Apply hard currency and political costs
   state.macro.reservesUSD = Math.max(0, state.macro.reservesUSD - option.costUSD);
@@ -119,34 +136,16 @@ export function applyUnresolvedCrisisPenalty(state: GameState, eventId: string):
   // 2. Loss of Executive Political Capital (-30 points)
   state.macro.politicalCapital = Math.max(0, state.macro.politicalCapital - 30);
 
-  // 3. Surge in systemic corruption and opportunism (+15 points)
-  state.macro.systemicCorruption = Math.min(100, state.macro.systemicCorruption + 15);
+  // 3. Spreading provincial unrest (+25 national RRI)
+  state.macro.nationalRRI = Math.min(100, state.macro.nationalRRI + 25);
 
-  // 4. Currency confidence crash (+15% parallel street rate depreciation)
-  state.macro.parallelRateSYP = Math.round(state.macro.parallelRateSYP * 1.15);
-
-  // 5. Direct provincial unrest surge across all governorates (+25 PRRI)
-  let totalPRRI = 0;
+  // 4. Increase unrest across all key governorates
   for (const gov of Object.values(state.governorates)) {
-    gov.prri = Math.min(100, gov.prri + 25);
-    if (gov.prri >= 85) {
-      gov.tier = 'REVOLT';
-    } else if (gov.prri >= 65) {
-      gov.tier = 'RIOT';
-    } else if (gov.prri >= 45) {
-      gov.tier = 'TENSE';
-    } else {
-      gov.tier = 'CALM';
-    }
-    totalPRRI += gov.prri;
+    gov.prri = Math.min(100, gov.prri + 15);
   }
 
-  // 6. National RRI reflects provincial surge + crisis default shock (+20)
-  const averageProvPRRI = Math.round(totalPRRI / Object.keys(state.governorates).length);
-  state.macro.nationalRRI = Math.min(100, Math.max(state.macro.nationalRRI + 20, averageProvPRRI + 10));
-
-  // 7. Mark crisis as failed under default penalty
-  state.flags[`event_resolved_${eventId}`] = -1;
-  state.flags['last_crisis_defaulted'] = 1;
+  // Mark event as resolved through sovereign failure
+  state.flags[`event_failed_${eventId}`] = 1;
+  state.flags[`event_resolved_${eventId}`] = 1;
   state.activeEvents = state.activeEvents.filter((e) => e.id !== eventId);
 }

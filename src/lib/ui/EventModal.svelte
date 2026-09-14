@@ -13,12 +13,42 @@
     $gameStore.activeEvents.length > 0 ? $gameStore.activeEvents[0] : null
   );
 
+  // Dynamically evaluate whether each option is affordable with the current political credit and reserves
+  let evaluatedOptions = $derived(
+    currentEvent
+      ? currentEvent.options.map((opt) => {
+          const hasSufficientPC = opt.costPC <= 0 || $gameStore.macro.politicalCapital >= opt.costPC;
+          const hasSufficientUSD = opt.costUSD <= 0 || $gameStore.macro.reservesUSD >= opt.costUSD;
+          const canChoose = hasSufficientPC && hasSufficientUSD;
+
+          let deficitReason: string | null = null;
+          if (!hasSufficientPC && !hasSufficientUSD) {
+            deficitReason = `عجز في الرصيد السياسي (يتطلب ${opt.costPC}% والمتاح ${$gameStore.macro.politicalCapital}%) ونقص في النقد الأجنبي`;
+          } else if (!hasSufficientPC) {
+            deficitReason = `عجز في الرصيد السياسي: يتطلب ${opt.costPC}% رصيد سياسي بينما المتاح لديك فقط ${$gameStore.macro.politicalCapital}%`;
+          } else if (!hasSufficientUSD) {
+            deficitReason = `نقص في احتياطي النقد الأجنبي: يتطلب $${(opt.costUSD / 1_000_000).toFixed(1)}M بينما المتاح $${($gameStore.macro.reservesUSD / 1_000_000).toFixed(1)}M`;
+          }
+
+          return {
+            ...opt,
+            canChoose,
+            deficitReason,
+          };
+        })
+      : []
+  );
+
   let canDoAnyOption = $derived(
-    currentEvent ? currentEvent.options.some((opt) => opt.canChoose) : true
+    evaluatedOptions.some((opt) => opt.canChoose)
   );
 
   function handleSelectOption(optionId: string): void {
     if (currentEvent) {
+      const targetOpt = evaluatedOptions.find((o) => o.id === optionId);
+      if (!targetOpt || !targetOpt.canChoose) {
+        return; // Guard against clicking disabled options
+      }
       gameStore.chooseEventOption(currentEvent.id, optionId);
     }
   }
@@ -32,10 +62,10 @@
 
 {#if currentEvent}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic pointer-events-auto"
   >
     <div
-      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light"
+      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col rounded-none text-wheat-light"
     >
       <!-- Telex Header -->
       <div class="px-6 py-3.5 bg-forest-mid border-b border-charcoal-mid flex items-center justify-between">
@@ -83,20 +113,34 @@
 
         <!-- Options -->
         <div class="space-y-3">
-          <span class="text-xs text-wheat-dark font-semibold block font-heading">خيارات الاستجابة الرئاسية:</span>
-          {#each currentEvent.options as opt}
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-wheat-dark font-semibold block font-heading">خيارات الاستجابة الرئاسية:</span>
+            <div class="flex items-center gap-1.5 text-[11px] font-mono text-wheat-mid">
+              <span>الرصيد السياسي المتاح:</span>
+              <span class="text-wheat-gold font-bold">{$gameStore.macro.politicalCapital}%</span>
+            </div>
+          </div>
+
+          {#each evaluatedOptions as opt}
             <div
-              class="p-4 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-mid border-charcoal-mid hover:border-wheat-mid/60' : 'bg-charcoal-surface opacity-60 border-charcoal-mid'}"
+              class="p-4 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-mid border-charcoal-mid hover:border-wheat-mid/60' : 'bg-charcoal-surface/80 border-charcoal-mid/60'}"
             >
               <div class="flex items-start justify-between gap-4">
-                <div class="space-y-1.5">
-                  <h3 class="text-sm font-bold text-wheat-light font-heading">{opt.labelAr}</h3>
+                <div class="space-y-1.5 flex-1">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-sm font-bold text-wheat-light font-heading">{opt.labelAr}</h3>
+                    {#if !opt.canChoose}
+                      <span class="px-1.5 py-0.2 bg-umber-deep border border-umber-border text-umber-crimson text-[9px] font-bold font-mono">
+                        غير متاح
+                      </span>
+                    {/if}
+                  </div>
                   <p class="text-xs text-wheat-dark">{opt.descriptionAr}</p>
 
                   <!-- Cost & Effect Tags -->
                   <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
                     {#if opt.costUSD > 0}
-                      <span class="px-1.5 py-0.5 bg-umber-deep border border-umber-border text-umber-crimson font-mono rounded-none">
+                      <span class="px-1.5 py-0.5 border font-mono rounded-none {$gameStore.macro.reservesUSD < opt.costUSD ? 'bg-umber-deep/80 border-umber-crimson text-umber-glow' : 'bg-umber-deep border-umber-border text-umber-crimson'}">
                         -${formatMillionUSD(opt.costUSD)}M نقد أجنبي
                       </span>
                     {/if}
@@ -106,7 +150,7 @@
                       </span>
                     {/if}
                     {#if opt.costPC > 0}
-                      <span class="px-1.5 py-0.5 bg-charcoal-surface border border-charcoal-light text-wheat-mid font-mono rounded-none">
+                      <span class="px-1.5 py-0.5 border font-mono rounded-none {$gameStore.macro.politicalCapital < opt.costPC ? 'bg-umber-deep/80 border-umber-crimson text-umber-glow font-bold' : 'bg-charcoal-surface border-charcoal-light text-wheat-mid'}">
                         -{opt.costPC}% رصيد سياسي
                       </span>
                     {/if}
@@ -115,7 +159,16 @@
                     </span>
                   </div>
 
-                  {#if !opt.canChoose && opt.requirementsDescriptionAr}
+                  {#if !opt.canChoose && opt.deficitReason}
+                    <div class="text-[11px] text-umber-glow font-medium pt-1 flex items-center gap-1.5">
+                      <svg class="w-3 h-3 shrink-0 text-umber-crimson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span>{opt.deficitReason}</span>
+                    </div>
+                  {:else if !opt.canChoose && opt.requirementsDescriptionAr}
                     <div class="text-[11px] text-umber-crimson font-semibold pt-1">
                       [متطلبات غير متوفرة]: {opt.requirementsDescriptionAr}
                     </div>
@@ -125,7 +178,8 @@
                 <button
                   disabled={!opt.canChoose}
                   onclick={() => handleSelectOption(opt.id)}
-                  class="px-4 py-2 text-xs font-bold shrink-0 border transition-colors rounded-none {opt.canChoose ? 'bg-wheat-gold hover:bg-wheat-light text-forest-deep border-wheat-gold active:translate-y-0.5 cursor-pointer shadow-md' : 'bg-charcoal-surface text-wheat-dark/40 border-charcoal-mid cursor-not-allowed'}"
+                  class="px-4 py-2 text-xs font-bold shrink-0 border transition-colors rounded-none {opt.canChoose ? 'bg-wheat-gold hover:bg-wheat-light text-forest-deep border-wheat-gold active:translate-y-0.5 cursor-pointer shadow-md' : 'bg-charcoal-surface text-wheat-dark/40 border-charcoal-mid cursor-not-allowed opacity-50'}"
+                  title={!opt.canChoose ? (opt.deficitReason || 'لا تملك الرصيد الكافي لاعتماد هذا التوجيه') : 'اعتماد التوجيه الرئاسي'}
                 >
                   اعتماد التوجيه
                 </button>
