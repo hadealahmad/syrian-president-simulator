@@ -144,6 +144,9 @@ export function simulateTurnTransitions(
         next.macro.systemicCorruption = Math.max(0, next.macro.systemicCorruption - 8);
         next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 15);
         next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 5);
+        Object.values(next.governorates).forEach((g) => {
+          g.prri = Math.max(0, g.prri - 3);
+        });
       }
     } else if (actId === 'PROPERTY_RESTITUTION_PORTAL') {
       if (next.macro.politicalCapital >= 10) {
@@ -172,10 +175,15 @@ export function simulateTurnTransitions(
       Object.values(next.ministries).forEach((m) => {
         m.competence = Math.min(100, m.competence + 2);
       });
+      Object.values(next.governorates).forEach((g) => {
+        g.prri = Math.max(0, g.prri - 2);
+      });
     } else if (actId === 'UNITY_SPEECH') {
       next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 4);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
-      next.macro.nationalRRI = Math.max(0, next.macro.nationalRRI - 3);
+      Object.values(next.governorates).forEach((g) => {
+        g.prri = Math.max(0, g.prri - 4);
+      });
     } else if (actId === 'OPPOSITION_SEATS') {
       next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 18);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 4);
@@ -225,13 +233,12 @@ export function simulateTurnTransitions(
     }
   }
 
-  if (directives.propertyRestitution === 'RESTITUTE_TO_REFUGEES') {
-    next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 5);
-    next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 5);
-  } else if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
+  if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
     next.macro.treasurySYP += 1_200_000_000_000;
     next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 8);
-    next.macro.nationalRRI = Math.min(100, next.macro.nationalRRI + 6);
+    Object.values(next.governorates).forEach((g) => {
+      g.prri = Math.min(100, g.prri + 5);
+    });
   }
 
   // =========================================================================
@@ -286,8 +293,12 @@ export function simulateTurnTransitions(
     next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 6);
   } else if (directives.southernPolicy === 'BLOCKADE') {
     if (next.governorates['as_suwayda']) {
-      next.governorates['as_suwayda'].prri = Math.min(100, next.governorates['as_suwayda'].prri + 25);
+      next.governorates['as_suwayda'].prri = Math.min(100, next.governorates['as_suwayda'].prri + 30);
       next.governorates['as_suwayda'].tier = 'REVOLT';
+    }
+    if (next.governorates['daraa']) {
+      next.governorates['daraa'].prri = Math.min(100, next.governorates['daraa'].prri + 20);
+      next.governorates['daraa'].tier = 'REVOLT';
     }
     next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 10);
   }
@@ -386,6 +397,56 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 6: MIGRATION, POPULATION & LOCAL PRRI DYNAMICS
   // =========================================================================
+  // Socio-economic and policy impacts on provincial living conditions & unrest
+  // 1. Civil service wage bump alleviates household hardship nationwide
+  const wageRelief = Math.round((directives.wageBumpPercent / 25) * 3); // +25% -> -3, +50% -> -6, +75% -> -9, +100% -> -12
+
+  // 2. Food subsidies directly govern bread availability and bakery panic (matching UI descriptors)
+  let foodSubsidyDelta = 0;
+  if (directives.foodSubsidyLevel === 'GENEROUS') foodSubsidyDelta = -12;
+  else if (directives.foodSubsidyLevel === 'AUSTERE') foodSubsidyDelta = +15;
+
+  // 3. Public employment restructuring & militia integration
+  let workforceDelta = 0;
+  if (directives.workforceStrategy === 'ABSORB_MILITIAS') workforceDelta = -4;
+  else if (directives.workforceStrategy === 'PRUNE_CIVIL_SERVICE') workforceDelta = +7;
+
+  // 4. Wheat procurement price for farmers in breadbasket provinces
+  const breadbasketGovs = ['hasakeh', 'raqqa', 'deir_ez_zor', 'hama', 'aleppo', 'daraa'];
+  let wheatDelta = 0;
+  if (directives.wheatProcurement === 'PREMIUM_INCENTIVE') wheatDelta = -4;
+  else if (directives.wheatProcurement === 'SUBSIDIZED_LOW') wheatDelta = +6;
+
+  // 5. Diesel anti-smuggling enforcement clashes along borders
+  const borderCorridorGovs = ['deir_ez_zor', 'homs', 'rif_dimashq', 'daraa'];
+  let dieselDelta = 0;
+  if (directives.dieselSmuggling === 'CRACKDOWN') dieselDelta = +4;
+  else if (directives.dieselSmuggling === 'PERMISSIVE') dieselDelta = -2;
+
+  // 6. Grid CapEx delta compared to baseline $35M
+  const capExDelta = directives.gridCapExUSD - 35_000_000;
+  const powerRelief = Math.round((capExDelta / 35_000_000) * 2);
+
+  // 7. Real purchasing power shock (beyond normal wage relief)
+  const prevRealWage = currentState.macro.civilServiceWageSYP / Math.max(1, currentState.macro.parallelRateSYP);
+  const nextRealWage = next.macro.civilServiceWageSYP / Math.max(1, next.macro.parallelRateSYP);
+  const realWageDiff = nextRealWage - prevRealWage;
+  // If purchasing power drops by more than $5 without wage relief, frustration rises
+  let purchasingPowerDelta = 0;
+  if (realWageDiff < -8) purchasingPowerDelta = +3;
+  else if (realWageDiff > 12) purchasingPowerDelta = -3;
+
+  for (const gov of Object.values(next.governorates)) {
+    let delta = -wageRelief + foodSubsidyDelta + workforceDelta - powerRelief + purchasingPowerDelta;
+    if (breadbasketGovs.includes(gov.id)) {
+      delta += wheatDelta;
+    }
+    if (borderCorridorGovs.includes(gov.id)) {
+      delta += dieselDelta;
+    }
+    gov.prri = Math.max(5, Math.min(100, gov.prri + delta));
+  }
+
   const nationalPRRISum = Object.values(next.governorates).reduce((sum, g) => sum + g.prri, 0);
   next.macro.nationalRRI = Math.round(nationalPRRISum / Object.keys(next.governorates).length);
 
@@ -413,7 +474,7 @@ export function calculateProjectedTurnSummary(
   ): ProjectedStat {
     const delta = nextVal - current;
     const pctChange = current !== 0 ? (delta / Math.abs(current)) * 100 : 0;
-    const isChanged = Math.abs(delta) >= threshold;
+    const isChanged = hasDraftSelections(directives) && Math.abs(delta) >= threshold;
     const isBeneficial = positiveIsBeneficial ? delta > 0 : delta < 0;
     const isHarmful = positiveIsBeneficial ? delta < 0 : delta > 0;
     return {

@@ -18,7 +18,7 @@ export const BASELINE_MACRO = {
   politicalCapital: 50,                 // 0 - 100 (Presidential decree resource)
   civicTrust: 42,                       // 0 - 100 (Public confidence)
   systemicCorruption: 58,               // 0 - 100 (Institutional leakage drag)
-  nationalRRI: 44,                      // 0 - 100 (National Riot Risk Index)
+  nationalRRI: 45,                      // 0 - 100 (National Riot Risk Index)
   gridCapacityMW: 2_250,                // Operational power (demand: 8,500 MW)
   dailyPowerHours: 3.5,                 // Average daily electricity
   taxCompliancePct: 42,                 // 0 - 100 (Dynamic fiscal compliance)
