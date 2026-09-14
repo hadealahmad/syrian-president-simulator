@@ -159,17 +159,6 @@
     </g>
   </svg>
 
-  <!-- Tabletop Map Title Plate (top right corner) -->
-  <div class="absolute top-4 right-4 pointer-events-none z-10 flex flex-col items-end gap-1">
-    <div class="flex items-center gap-2 bg-[#0e1715]/95 border border-charcoal-mid/80 px-3 py-1.5 rounded-none shadow-md">
-      <span class="w-2 h-2 rounded-full bg-[#428177] animate-pulse"></span>
-      <span class="text-xs font-heading font-bold text-wheat-light tracking-wide">الخارطة الاستراتيجية للجمهورية العربية السورية</span>
-    </div>
-    <span class="text-[10px] font-mono text-wheat-dark/80 bg-black/50 px-2 py-0.5 border border-charcoal-mid/40">
-      الهوية البصرية السورية • قطاع سيادي موحد
-    </span>
-  </div>
-
   <!-- Floating HUD Panel for Hovered Governorate (bottom right in place of the old guide) -->
   {#if hoveredGovId && $gameStore.governorates[hoveredGovId]}
     {@const gov = $gameStore.governorates[hoveredGovId]}
