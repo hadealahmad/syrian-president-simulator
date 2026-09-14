@@ -44,6 +44,23 @@
   let isProjectAffordableSYP = $derived(
     Boolean(node?.strategicProject && node.strategicProject.costSYP <= $budgetStore.remainingSYP)
   );
+
+  let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  function isProvincialActionRelated(actionKey: 'project' | 'demining' | 'power'): boolean {
+    if (!selectedStat) return true;
+    switch (actionKey) {
+      case 'project':
+        return ['reservesUSD', 'treasurySYP', 'politicalCapital', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+      case 'demining':
+        return ['reservesUSD', 'treasurySYP', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+      case 'power':
+        return ['reservesUSD', 'treasurySYP', 'dailyPowerHours', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+      default:
+        return false;
+    }
+  }
+
   let canAffordProject = $derived(
     isProjectAffordablePC && isProjectAffordableUSD && isProjectAffordableSYP
   );
@@ -97,7 +114,7 @@
       {#if activeProvincialTab === 'directives'}
         <div class="space-y-4">
           <!-- Sovereign Strategic Project Card -->
-          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-3 rounded-none">
+          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-3 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex justify-between items-start gap-2">
               <div class="space-y-0.5">
                 <span class="text-[10px] text-wheat-gold font-bold font-mono tracking-wider">مشروع سيادي معتمد</span>
@@ -186,7 +203,7 @@
           </div>
 
           <!-- Mine Clearance Directive -->
-          <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 rounded-none">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('demining') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex items-center justify-between">
               <div>
                 <div class="flex items-center gap-1.5">
@@ -236,7 +253,7 @@
           </div>
 
           <!-- Power Supply Boost Priority Directive -->
-          <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 rounded-none">
+          <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('power') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <div class="flex items-center justify-between">
               <div>
                 <div class="flex items-center gap-1.5">

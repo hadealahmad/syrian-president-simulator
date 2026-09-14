@@ -33,6 +33,8 @@
     runwayMonths <= 3.0 ? 'CRITICAL' : runwayMonths <= 6.0 ? 'WARNING' : 'STABLE'
   );
 
+  let selectedStat = $derived($uiStore.selectedStatForOptions);
+
   let seasonText = $derived(
     $gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء'
   );
@@ -71,7 +73,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('treasurySYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('treasurySYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الخزينة العامة: الحالي {formatTrillion(p.treasurySYP.current)}T ل.س {p.treasurySYP.current < 0 ? '(عجز)' : ''} | المتوقع للدور القادم {formatTrillion(p.treasurySYP.projected)}T ل.س {p.treasurySYP.projected < 0 ? '(عجز)' : ''} ({p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -109,7 +111,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('reservesUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="احتياطي النقد الأجنبي: الحالي ${formatMillionUSD(p.reservesUSD.current)}M | المتوقع للدور القادم ${formatMillionUSD(p.reservesUSD.projected)}M ({p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%) | كفاية الاحتياطي: {runwayMonths} شهراً"
     >
       <div class="flex items-center gap-1">
@@ -149,7 +151,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -181,7 +183,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('m2MoneySupplySYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('m2MoneySupplySYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[78px] {selectedStat === 'm2MoneySupplySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="الكتلة النقدية الإجمالية (M2): الحالي {formatTrillion(p.m2MoneySupplySYP.current)}T ل.س | المتوقع {formatTrillion(p.m2MoneySupplySYP.projected)}T ل.س ({p.m2MoneySupplySYP.pctChange > 0 ? '+' : ''}{p.m2MoneySupplySYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -215,7 +217,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('parallelRate'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="سعر صرف الليرة بالسوق الموازي: الحالي 1$ = {formatNumber(p.parallelRateSYP.current)} | المتوقع 1$ = {formatNumber(p.parallelRateSYP.projected)} ({p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -247,7 +249,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px]"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-between gap-1">
@@ -284,7 +286,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceHeadcount')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceHeadcount'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px]"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'civilServiceHeadcount' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الجهاز الوظيفي العام: الحالي {formatMillionPeople(p.civilServiceHeadcount.current)}M موظف ({formatNumber(p.civilServiceHeadcount.current)}) | المتوقع {formatMillionPeople(p.civilServiceHeadcount.projected)}M ({p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -316,7 +318,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px]"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[80px] {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center gap-1">
@@ -350,7 +352,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -384,7 +386,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('taxCompliancePct')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('taxCompliancePct'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="معدل الامتثال والتحصيل الضريبي: الحالي {p.taxCompliancePct.current}% | المتوقع {p.taxCompliancePct.projected}% ({p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -416,7 +418,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('systemicCorruption')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('systemicCorruption'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="مؤشر الفساد المؤسسي والتسرب: الحالي {p.systemicCorruption.current}/100 | المتوقع {p.systemicCorruption.projected}/100 ({p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -450,7 +452,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civicTrust')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civicTrust'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="مؤشر الثقة الشعبية بالحكومة: الحالي {p.civicTrust.current}% | المتوقع {p.civicTrust.projected}% ({p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -482,7 +484,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignLeverage')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignLeverage'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[70px] {selectedStat === 'sovereignLeverage' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="مؤشر السيادة والاستقلال الاستراتيجي: الحالي {p.sovereignLeverage.current}% | المتوقع {p.sovereignLeverage.projected}% ({p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">
@@ -514,7 +516,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('unrestIndex'); }}
-      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] text-center"
+      class="cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none text-right flex flex-col shrink-0 min-w-[75px] {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''} text-center"
       title="مؤشر الاحتقان الوطني: الحالي {p.nationalRRI.current}/100 | المتوقع للدور القادم {p.nationalRRI.projected}/100 ({p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%)"
     >
       <div class="flex items-center justify-center gap-1">

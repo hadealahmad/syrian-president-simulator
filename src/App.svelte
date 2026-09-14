@@ -11,8 +11,7 @@
   import CenturyReport from './lib/ui/CenturyReport.svelte';
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
   import PresidentGuideModal from './lib/ui/PresidentGuideModal.svelte';
-  import StatRelatedOptionsModal from './lib/ui/StatRelatedOptionsModal.svelte';
-  import SidebarToggleLip from './lib/ui/SidebarToggleLip.svelte';
+    import SidebarToggleLip from './lib/ui/SidebarToggleLip.svelte';
   import { uiStore } from './lib/stores/ui-store';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
@@ -46,5 +45,4 @@
   <CenturyReport />
   <RestartConfirmModal />
   <PresidentGuideModal />
-  <StatRelatedOptionsModal />
 </main>
