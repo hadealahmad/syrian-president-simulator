@@ -9,19 +9,24 @@ export function calculateParallelRate(
   m2Delta: number,
   fxDrainUSD: number,
   currentReservesUSD: number,
-  gdpGrowthPct: number = 2.5
+  gdpGrowthPct: number = 2.5,
+  auctionUSD: number = 0
 ): number {
   // Linear depreciation component from money printing (seigniorage)
   const moneyPrintingFactor = m2Current > 0 ? (m2Delta / m2Current) : 0;
   
-  // Linear depreciation component from FX reserve drain
-  const fxDrainFactor = currentReservesUSD > 0 ? Math.max(0, (fxDrainUSD / currentReservesUSD) * 0.50) : 0.8;
+  // Non-auction FX drain (imports, debt) weakens currency
+  const nonAuctionDrain = Math.max(0, fxDrainUSD - auctionUSD);
+  const fxDrainFactor = currentReservesUSD > 0 ? Math.max(0, (nonAuctionDrain / currentReservesUSD) * 0.50) : 0.8;
+  
+  // Direct market stabilization from auction FX hard-currency injection
+  const auctionReliefPct = Math.min(0.25, (auctionUSD / 10_000_000) * 0.015);
   
   // GDP growth dampens depreciation
   const gdpDampener = (gdpGrowthPct / 100) * 0.50;
   
-  const netDepreciationPct = moneyPrintingFactor + fxDrainFactor - gdpDampener;
-  const deltaRate = currentRate * Math.max(-0.15, Math.min(1.20, netDepreciationPct));
+  const netDepreciationPct = moneyPrintingFactor + fxDrainFactor - gdpDampener - auctionReliefPct;
+  const deltaRate = currentRate * Math.max(-0.25, Math.min(1.20, netDepreciationPct));
   
   return Math.round(currentRate + deltaRate);
 }

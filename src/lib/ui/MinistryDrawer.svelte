@@ -137,8 +137,14 @@
   );
 
   let maxAuction = $derived(
-    Math.max(0, Math.min(100, Math.floor(($budgetStore.remainingUSD + $draftStore.dollarAuctionUSD) / 1_000_000)))
+    Math.max(0, Math.floor(($budgetStore.remainingUSD + $draftStore.dollarAuctionUSD) / 1_000_000))
   );
+
+  $effect(() => {
+    if ($draftStore.dollarAuctionUSD > maxAuction * 1_000_000) {
+      draftStore.setField('dollarAuctionUSD', maxAuction * 1_000_000);
+    }
+  });
 
   let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
 
@@ -343,28 +349,28 @@
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">الأثر المباشر:</span>
             <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-              +{Math.round(($draftStore.wageBumpPercent * 0.4))} $/شهر
+              +{Math.round((($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100)) / ($gameStore.macro.parallelRateSYP || 15000))} $/شهر
             </span>
             <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
-              -{Math.round($draftStore.wageBumpPercent * 0.8)} احتقان
+              -{Math.min(45, Math.round(($draftStore.wageBumpPercent / 25) * 2.8))} احتقان
             </span>
             <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
-              -{((850_000 * 250_000 * ($draftStore.wageBumpPercent / 100) * 6) / 1_000_000_000_000).toFixed(2)}T ل.س
+              -{(((($gameStore.macro.civilServiceHeadcount ?? 1_400_000) * ($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100) * 6)) / 1_000_000_000_000).toFixed(2)}T ل.س
             </span>
           </div>
 
           <input
             type="range"
             min="0"
-            max="25"
-            step="1"
+            max="400"
+            step="5"
             value={$draftStore.wageBumpPercent}
             oninput={(e) => draftStore.setField('wageBumpPercent', Number(e.currentTarget.value))}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-            <span>0% (تثبيت النفقات)</span>
-            <span>+25% (امتصاص الاحتقان)</span>
+            <span>0% (تقشف وتثبيت)</span>
+            <span>+400% (امتصاص الاحتقان)</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع متوسط الأجر الحقيقي لموظفي الدولة وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة ومخاطر عجز الموازنة.
@@ -705,18 +711,19 @@
           <input
             type="range"
             min="0"
-            max={maxAuction}
-            step="5"
+            max={Math.max(0, maxAuction)}
+            step="1"
+            disabled={maxAuction === 0}
             value={$draftStore.dollarAuctionUSD / 1_000_000}
             oninput={(e) => draftStore.setField('dollarAuctionUSD', Number(e.currentTarget.value) * 1_000_000)}
-            class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+            class="w-full accent-wheat-gold {maxAuction === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
             <span>$0M</span>
             <span>الحد الأقصى المتاح: ${maxAuction}M</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M$ في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي المتاح.
+            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي المتاح.
           </div>
         </div>
       </div>
