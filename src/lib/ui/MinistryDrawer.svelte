@@ -129,6 +129,8 @@
     Math.max(0, Math.min(100, Math.floor(($budgetStore.remainingUSD + $draftStore.dollarAuctionUSD) / 1_000_000)))
   );
 
+  let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
+
   let canAffordBrainGain = $derived(
     $draftStore.expatriateBrainGainIncentive ||
     ($budgetStore.remainingUSD >= 20_000_000 && $budgetStore.remainingSYP >= 350_000_000_000)
@@ -136,7 +138,7 @@
 </script>
 
 <aside
-  class="fixed top-0 right-0 bottom-0 w-[390px] h-screen z-30 bg-forest-deep border-l border-charcoal-mid shadow-2xl p-4 flex flex-col justify-between overflow-y-auto select-none rounded-none font-arabic text-wheat-light"
+  class="fixed top-0 right-0 bottom-0 w-[390px] h-screen z-30 bg-forest-deep border-l border-charcoal-mid shadow-2xl p-4 flex flex-col justify-between overflow-y-auto select-none rounded-none font-arabic text-wheat-light transition-transform duration-300 ease-in-out {isRightOpen ? 'translate-x-0' : 'translate-x-full'}"
 >
   <div class="space-y-4">
     <!-- Drawer Header & Tabs -->
@@ -168,10 +170,29 @@
       <div class="space-y-3">
         <!-- 1. Civil Service Wages -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-wheat-light font-heading">زيادة أجور العاملين في الدولة</span>
-            <span class="font-mono text-wheat-gold font-bold">+{$draftStore.wageBumpPercent}%</span>
+          <div class="flex justify-between items-start text-xs">
+            <div>
+              <span class="font-bold text-wheat-light font-heading block">زيادة أجور العاملين في الدولة (+{$draftStore.wageBumpPercent}%)</span>
+              <span class="text-[10px] text-forest-accent">يمتص الاحتقان المعيشي ويرفع القدرة الشرائية</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-[10px]">
+              +{$draftStore.wageBumpPercent}%
+            </span>
           </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] text-wheat-dark">الأثر المباشر:</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+              +${Math.round(($draftStore.wageBumpPercent * 0.4))} $/شهر
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
+              -${Math.round($draftStore.wageBumpPercent * 0.8)} احتقان
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
+              -${((850_000 * 250_000 * ($draftStore.wageBumpPercent / 100) * 6) / 1_000_000_000_000).toFixed(2)}T ل.س
+            </span>
+          </div>
+
           <input
             type="range"
             min="0"
@@ -181,34 +202,61 @@
             oninput={(e) => draftStore.setField('wageBumpPercent', Number(e.currentTarget.value))}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
-          <div class="flex justify-between text-[10px] text-wheat-dark">
-            <span>0% (تقشف وتثبيت)</span>
+          <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
+            <span>0% (تثبيت النفقات)</span>
             <span>+25% (امتصاص الاحتقان)</span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            <span class="text-wheat-gold font-medium">الأثر المباشر:</span>
-            زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع أجر الموظف الحقيقي ($) وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة السورية ومخاطر عجز الموازنة والتضخم.
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع متوسط الأجر الحقيقي لموظفي الدولة وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة ومخاطر عجز الموازنة.
           </div>
         </div>
 
         <!-- 2. Food Subsidies Tier -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <span class="font-bold text-wheat-light font-heading text-xs block">مستوى الدعم التمويني والخبز</span>
-          <div class="grid grid-cols-3 gap-1 text-[11px]">
-            {#each [
-              { id: 'AUSTERE', label: 'تقشف' },
-              { id: 'STANDARD', label: 'اعتيادي' },
-              { id: 'GENEROUS', label: 'موسع' }
-            ] as opt}
-              <button
-                onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === opt.id ? null : (opt.id as any))}
-                class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.foodSubsidyLevel === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-              >
-                {opt.label}
-              </button>
-            {/each}
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-xs font-bold text-wheat-light font-heading block">مستوى الدعم التمويني والخبز</span>
+              <span class="text-[10px] text-wheat-dark">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
+              {$draftStore.foodSubsidyLevel || 'STANDARD'}
+            </span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+          <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
+            <button
+              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'AUSTERE' ? null : 'AUSTERE')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'AUSTERE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">تقشف</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+15 احتقان</span>
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.80T توفير</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'STANDARD' ? null : 'STANDARD')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">اعتيادي</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">0 احتقان</span>
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">مستقر</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('foodSubsidyLevel', $draftStore.foodSubsidyLevel === 'GENEROUS' ? null : 'GENEROUS')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'GENEROUS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">موسع</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-12 احتقان</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-1.20T كلفة</span>
+              </div>
+            </button>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             {#if $draftStore.foodSubsidyLevel === 'AUSTERE'}
               <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة الليرة، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
             {:else if $draftStore.foodSubsidyLevel === 'GENEROUS'}
@@ -221,22 +269,52 @@
 
         <!-- 3. State Workforce Policy -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <span class="font-bold text-wheat-light font-heading text-xs block">إعادة هيكلة ملاك الدولة والتوظيف</span>
-          <div class="grid grid-cols-3 gap-1 text-[11px]">
-            {#each [
-              { id: 'MAINTAIN', label: 'تثبيت الملاك' },
-              { id: 'PRUNE_CIVIL_SERVICE', label: 'شطب الوهمي' },
-              { id: 'ABSORB_MILITIAS', label: 'استيعاب المسلحين' }
-            ] as opt}
-              <button
-                onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === opt.id ? null : (opt.id as any))}
-                class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.workforceStrategy === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-              >
-                {opt.label}
-              </button>
-            {/each}
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-bold text-wheat-light font-heading text-xs block">إعادة هيكلة ملاك الدولة والتوظيف</span>
+              <span class="text-[10px] text-wheat-dark">إدارة الوظائف الحكومية والبطالة المقنعة</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
+              {$draftStore.workforceStrategy || 'MAINTAIN'}
+            </span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+          <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
+            <button
+              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'MAINTAIN' ? null : 'MAINTAIN')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'MAINTAIN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">تثبيت الملاك</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">استقرار</span>
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">اعتيادي</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE' ? null : 'PRUNE_CIVIL_SERVICE')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">شطب الوهمي</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.45T توفير</span>
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-5 فساد</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+4 احتقان</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('workforceStrategy', $draftStore.workforceStrategy === 'ABSORB_MILITIAS' ? null : 'ABSORB_MILITIAS')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'ABSORB_MILITIAS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">استيعاب المسلحين</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">+8000 وظيفة</span>
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-6 توتر</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+5 فساد</span>
+              </div>
+            </button>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
               <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
             {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
@@ -249,22 +327,50 @@
 
         <!-- 4. Wheat Pricing -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <span class="font-bold text-wheat-light font-heading text-xs block">تسعير شراء القمح المحلي من المزارعين</span>
-          <div class="grid grid-cols-3 gap-1 text-[11px]">
-            {#each [
-              { id: 'SUBSIDIZED_LOW', label: 'سعر إلزامي مخفض' },
-              { id: 'MARKET_PARITY', label: 'سعر السوق العادل' },
-              { id: 'PREMIUM_INCENTIVE', label: 'علاوة تحفيز مجزية' }
-            ] as opt}
-              <button
-                onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === opt.id ? null : (opt.id as any))}
-                class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.wheatProcurement === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-              >
-                {opt.label}
-              </button>
-            {/each}
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-bold text-wheat-light font-heading text-xs block">تسعير شراء القمح المحلي من المزارعين</span>
+              <span class="text-[10px] text-wheat-dark">ضمان الأمن الغذائي واستلام محصول القمح السوري</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
+              {$draftStore.wheatProcurement || 'MARKET_PARITY'}
+            </span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+          <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
+            <button
+              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'SUBSIDIZED_LOW' ? null : 'SUBSIDIZED_LOW')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'SUBSIDIZED_LOW' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">سعر إلزامي</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.50T توفير</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+8 احتقان</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'MARKET_PARITY' ? null : 'MARKET_PARITY')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'MARKET_PARITY' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">سعر عادل</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">استقرار</span>
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">سوق حر</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('wheatProcurement', $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? null : 'PREMIUM_INCENTIVE')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">علاوة تحفيز</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">توريد 100%</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-0.60T كلفة</span>
+              </div>
+            </button>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
               <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بالليرة، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
             {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
@@ -277,22 +383,50 @@
 
         <!-- 5. Diesel Smuggling Control -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <span class="font-bold text-wheat-light font-heading text-xs block">مكافحة تهريب المشتقات النفطية</span>
-          <div class="grid grid-cols-3 gap-1 text-[11px]">
-            {#each [
-              { id: 'CRACKDOWN', label: 'حملة أمنية صارمة' },
-              { id: 'STANDARD', label: 'رقابة اعتيادية' },
-              { id: 'PERMISSIVE', label: 'غض الطرف' }
-            ] as opt}
-              <button
-                onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === opt.id ? null : (opt.id as any))}
-                class="py-1.5 px-1 text-center border transition-colors rounded-none {$draftStore.dieselSmuggling === opt.id ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-              >
-                {opt.label}
-              </button>
-            {/each}
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="font-bold text-wheat-light font-heading text-xs block">مكافحة تهريب المشتقات النفطية</span>
+              <span class="text-[10px] text-wheat-dark">ضبط المازوت والفيول لدعم محطات التوليد</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
+              {$draftStore.dieselSmuggling || 'STANDARD'}
+            </span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
+          <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
+            <button
+              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'CRACKDOWN' ? null : 'CRACKDOWN')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'CRACKDOWN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">حملة صارمة</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+كهرباء وإنتاج</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+6 توتر</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'STANDARD' ? null : 'STANDARD')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">رقابة اعتيادية</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">متوازن</span>
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">روتيني</span>
+              </div>
+            </button>
+
+            <button
+              onclick={() => draftStore.setField('dieselSmuggling', $draftStore.dieselSmuggling === 'PERMISSIVE' ? null : 'PERMISSIVE')}
+              class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'PERMISSIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+            >
+              <span class="font-bold text-[10.5px]">غض الطرف</span>
+              <div class="flex items-center gap-0.5 flex-wrap justify-center">
+                <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">تفادي الصدام</span>
+                <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-كهرباء</span>
+              </div>
+            </button>
+          </div>
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             {#if $draftStore.dieselSmuggling === 'CRACKDOWN'}
               <span class="text-forest-accent font-medium">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
             {:else if $draftStore.dieselSmuggling === 'PERMISSIVE'}
@@ -305,10 +439,26 @@
 
         <!-- 6. Remittance Spread Margin -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-wheat-light font-heading">هامش اقتطاع الحوالات الخارجية للمصرف المركزي</span>
-            <span class="font-mono text-wheat-gold font-bold">{$draftStore.remittanceCaptureSpread}%</span>
+          <div class="flex justify-between items-start text-xs">
+            <div>
+              <span class="font-bold text-wheat-light font-heading block">هامش اقتطاع الحوالات للمصرف المركزي ({$draftStore.remittanceCaptureSpread}%)</span>
+              <span class="text-[10px] text-wheat-dark">التحكم في تسليم الحوالات الخارجية للمواطنين</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-[10px]">
+              {$draftStore.remittanceCaptureSpread}%
+            </span>
           </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] text-wheat-dark">الأثر المالي:</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+              +${Math.round(($draftStore.remittanceCaptureSpread / 15) * 45)}M دولار/دور
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
+              {$draftStore.remittanceCaptureSpread > 15 ? 'ينعش السوق الموازي' : 'يحفز القنوات الرسمية'}
+            </span>
+          </div>
+
           <input
             type="range"
             min="5"
@@ -318,13 +468,12 @@
             oninput={(e) => draftStore.setField('remittanceCaptureSpread', Number(e.currentTarget.value))}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
-          <div class="flex justify-between text-[10px] text-wheat-dark">
-            <span>5% (جذب التدفقات الرسمية)</span>
-            <span>25% (اقتطاع جائر للمركزي)</span>
+          <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
+            <span>5% (جذب الدولار رسمياً)</span>
+            <span>25% (جباية قصوى للمركزي)</span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            <span class="text-wheat-gold font-medium">الأثر:</span>
-            نسبة اقتطاع المركزي ({$draftStore.remittanceCaptureSpread}%). الهامش المنخفض يحفز التحويل عبر القنوات الرسمية ويعظم تدفق الدولار، ورفعه يجبي سيولة سريعة لكن ينعش السوق الموازي.
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            نسبة اقتطاع المركزي ({$draftStore.remittanceCaptureSpread}%). الهامش المنخفض يحفز التحويل عبر البنوك الرسمية ويعظم تدفق العملة الأجنبية، ورفعه يجبي سيولة فورية لكن ينعش السوق الموازي.
           </div>
         </div>
 
@@ -332,11 +481,27 @@
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
           <div class="flex justify-between items-start text-xs">
             <div>
-              <span class="font-bold text-wheat-light font-heading block">الاستثمار الرأسمالي القومي لشبكة الكهرباء</span>
-              <span class="text-[10px] text-wheat-dark">تأهيل محطات التوليد وشبكات النقل الفائقة (أثر شامل على المحافظات)</span>
+              <span class="font-bold text-wheat-light font-heading block">الاستثمار الرأسمالي لشبكة الكهرباء</span>
+              <span class="text-[10px] text-wheat-dark">تأهيل محطات التوليد والشبكات القومية</span>
             </div>
-            <span class="font-mono text-wheat-gold font-bold text-sm shrink-0">${$draftStore.gridCapExUSD / 1_000_000}M</span>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
+              ${$draftStore.gridCapExUSD / 1_000_000}M
+            </span>
           </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] text-wheat-dark">المردود المتوقع:</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
+              -${$draftStore.gridCapExUSD / 1_000_000}M كاش
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+              +{Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
+              +{(($draftStore.gridCapExUSD / 35_000_000) * 1.5).toFixed(1)} س/يوم
+            </span>
+          </div>
+
           <input
             type="range"
             min="0"
@@ -346,22 +511,37 @@
             oninput={(e) => draftStore.setField('gridCapExUSD', Number(e.currentTarget.value) * 1_000_000)}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
-          <div class="flex justify-between text-[10px] text-wheat-dark">
+          <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
             <span>$0M</span>
             <span>الحد الأقصى المتاح: ${maxCapEx}M</span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            <span class="text-forest-accent font-medium">الأثر:</span>
-            استثمار ${$draftStore.gridCapExUSD / 1_000_000}M$ يضيف نحو {Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط للشبكة القومية، مما يرفع ساعات الكهرباء في كافة المحافظات ويدعم النشاط الصناعي والامتثال الضريبي.
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            استثمار ${$draftStore.gridCapExUSD / 1_000_000}M$ يضيف نحو {Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط للشبكة القومية، مما يرفع ساعات التغذية ويدعم النشاط الصناعي والامتثال الضريبي.
           </div>
         </div>
 
         <!-- 8. Central Bank Dollar Auction -->
         <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-          <div class="flex justify-between items-center text-xs">
-            <span class="font-bold text-wheat-light font-heading">مزاد التدخل الدولاري لمصرف سورية المركزي</span>
-            <span class="font-mono text-wheat-gold font-bold">${$draftStore.dollarAuctionUSD / 1_000_000}M</span>
+          <div class="flex justify-between items-start text-xs">
+            <div>
+              <span class="font-bold text-wheat-light font-heading block">مزاد التدخل الدولاري للمصرف المركزي</span>
+              <span class="text-[10px] text-wheat-dark">ضخ سيولة نقدية لكبح انهيار سعر الليرة</span>
+            </div>
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
+              ${$draftStore.dollarAuctionUSD / 1_000_000}M
+            </span>
           </div>
+
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="text-[10px] text-wheat-dark">الأثر:</span>
+            <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
+              -${$draftStore.dollarAuctionUSD / 1_000_000}M من الاحتياطي
+            </span>
+            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+              كبح تدهور الصرف الموازي
+            </span>
+          </div>
+
           <input
             type="range"
             min="0"
@@ -371,17 +551,15 @@
             oninput={(e) => draftStore.setField('dollarAuctionUSD', Number(e.currentTarget.value) * 1_000_000)}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
-          <div class="flex justify-between text-[10px] text-wheat-dark">
+          <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
             <span>$0M</span>
             <span>الحد الأقصى المتاح: ${maxAuction}M</span>
           </div>
-          <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            <span class="text-amber-300 font-medium">الأثر:</span>
-            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M$ في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي.
+          <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
+            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M$ في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي المتاح.
           </div>
         </div>
       </div>
-
     <!-- PILLAR 2: FINANCE, TAXES & CONFISCATED ASSETS -->
     {:else if activePillar === 'finance'}
       <div class="space-y-4">
@@ -401,10 +579,26 @@
 
           <!-- Corporate Tax Rate -->
           <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-            <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-wheat-light font-heading">ضريبة أرباح الشركات والمنشآت التجارية</span>
-              <span class="font-mono text-wheat-gold font-bold">{$draftStore.corporateTaxRate}%</span>
+            <div class="flex justify-between items-start text-xs">
+              <div>
+                <span class="font-bold text-wheat-light font-heading block">ضريبة أرباح الشركات والمنشآت ({$draftStore.corporateTaxRate}%)</span>
+                <span class="text-[10px] text-wheat-dark">الوعاء الضريبي للقطاع التجاري والصناعي</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
+                {$draftStore.corporateTaxRate}%
+              </span>
             </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] text-wheat-dark">الإيراد المقدر:</span>
+              <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+                +{((($draftStore.corporateTaxRate - 10) * 0.08) + 0.90).toFixed(2)}T ل.س/دور
+              </span>
+              <span class="px-1.5 py-0.2 rounded-full {$draftStore.corporateTaxRate > 25 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
+                {$draftStore.corporateTaxRate > 25 ? 'يقلص الاستثمار' : 'يشجع الامتثال'}
+              </span>
+            </div>
+
             <input
               type="range"
               min="10"
@@ -414,18 +608,37 @@
               oninput={(e) => draftStore.setField('corporateTaxRate', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
-            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-              <span class="text-wheat-gold font-medium">الأثر:</span>
+            <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
+              <span>10% (تشجيع الاستثمار)</span>
+              <span>35% (جباية قصوى)</span>
+            </div>
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
               معدل الضريبة ({$draftStore.corporateTaxRate}%). رفعه يزيد إيرادات الخزينة بالليرة السورية لكن يقلص الاستثمار وقد يحفز التهرب الضريبي.
             </div>
           </div>
 
           <!-- Telecom Excise Tax -->
           <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-            <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-wheat-light font-heading">رسم الإنفاق الاستهلاكي على الاتصالات</span>
-              <span class="font-mono text-wheat-gold font-bold">{$draftStore.telecomExciseRate}%</span>
+            <div class="flex justify-between items-start text-xs">
+              <div>
+                <span class="font-bold text-wheat-light font-heading block">رسم الإنفاق الاستهلاكي على الاتصالات ({$draftStore.telecomExciseRate}%)</span>
+                <span class="text-[10px] text-wheat-dark">ضريبة مباشرة على بطاقات الشحن وباقات الإنترنت</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
+                {$draftStore.telecomExciseRate}%
+              </span>
             </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] text-wheat-dark">المردود:</span>
+              <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+                +{((($draftStore.telecomExciseRate - 5) * 0.05) + 0.40).toFixed(2)}T ل.س/دور
+              </span>
+              <span class="px-1.5 py-0.2 rounded-full {$draftStore.telecomExciseRate > 20 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
+                {$draftStore.telecomExciseRate > 20 ? 'ضغط معيشي متصاعد' : 'عبء معتدل'}
+              </span>
+            </div>
+
             <input
               type="range"
               min="5"
@@ -435,18 +648,37 @@
               oninput={(e) => draftStore.setField('telecomExciseRate', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
-            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-              <span class="text-wheat-gold font-medium">الأثر:</span>
+            <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
+              <span>5% (تخفيف الأعباء)</span>
+              <span>30% (جباية سريعة)</span>
+            </div>
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
               رسم استهلاكي ({$draftStore.telecomExciseRate}%). جباية سريعة ومباشرة بالليرة للخزينة، لكن رفعه يثقل كاهل المواطنين ويزيد الاحتقان المعيشي.
             </div>
           </div>
 
           <!-- All Crossings Transit Fee (formerly Nassib) -->
           <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none space-y-2">
-            <div class="flex justify-between items-center text-xs">
-              <span class="font-bold text-wheat-light font-heading">رسوم الترانزيت البري بكافة المعابر الحدودية</span>
-              <span class="font-mono text-wheat-gold font-bold">${$draftStore.nassibTransitFeeUSD} / شاحنة</span>
+            <div class="flex justify-between items-start text-xs">
+              <div>
+                <span class="font-bold text-wheat-light font-heading block">رسوم الترانزيت بكافة المعابر الحدودية</span>
+                <span class="text-[10px] text-wheat-dark">نصيب، البوكمال، التنف، كسب، باب الهوى</span>
+              </div>
+              <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-xs shrink-0">
+                ${$draftStore.nassibTransitFeeUSD} / شاحنة
+              </span>
             </div>
+
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[10px] text-wheat-dark">العائد المقدر:</span>
+              <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
+                +${Math.round(($draftStore.nassibTransitFeeUSD / 450) * 22)}M دولار/دور
+              </span>
+              <span class="px-1.5 py-0.2 rounded-full {$draftStore.nassibTransitFeeUSD > 600 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
+                {$draftStore.nassibTransitFeeUSD > 600 ? 'قد يخفض تدفق الشاحنات' : 'حركة ترانزيت نشطة'}
+              </span>
+            </div>
+
             <input
               type="range"
               min="200"
@@ -456,13 +688,15 @@
               oninput={(e) => draftStore.setField('nassibTransitFeeUSD', Number(e.currentTarget.value))}
               class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
             />
-            <div class="text-[10px] text-wheat-dark leading-relaxed p-1.5 bg-charcoal-surface/60 border border-charcoal-mid/60">
-              <span class="text-wheat-gold font-medium">الأثر:</span>
-              تعرفة ${$draftStore.nassibTransitFeeUSD} على الشاحنات الأجنبية بكافة المعابر البرية (نصيب، البوكمال، التنف، كسب، باب الهوى) لتعظيم عوائد النقد الأجنبي المباشرة ($) للخزينة.
+            <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
+              <span>$200 (تنشيط العبور)</span>
+              <span>$800 (تعظيم العائد)</span>
+            </div>
+            <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
+              تعرفة ${$draftStore.nassibTransitFeeUSD} على الشاحنات الأجنبية بكافة المنافذ والمعابر الحدودية لتعظيم عوائد النقد الأجنبي المباشرة ($) للخزينة.
             </div>
           </div>
         </div>
-
         <!-- Section: Confiscated Assets & War Wealth -->
         <div class="space-y-2 pt-2 border-t border-charcoal-mid">
           <span class="text-xs text-wheat-mid font-semibold font-heading block">الأصول المصادرة وثروات الحرب</span>
@@ -676,10 +910,13 @@
 
                 <p class="text-[11px] text-wheat-dark leading-relaxed">{dec.descAr}</p>
 
-                <div class="flex items-center gap-2 pt-1.5 border-t border-charcoal-mid/80 text-[11px]">
-                  <span class="text-forest-accent font-medium">{dec.gainAr}</span>
-                  <span class="text-charcoal-light">•</span>
-                  <span class="text-wheat-gold font-medium">{dec.costAr}</span>
+                <div class="flex items-center gap-1.5 flex-wrap pt-1.5 border-t border-charcoal-mid/80 text-[10px]">
+                  <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
+                    {dec.gainAr}
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
+                    {dec.costAr}
+                  </span>
                 </div>
               </div>
             </div>
@@ -687,15 +924,16 @@
         </div>
 
         <!-- Expatriate Brain-Gain Initiative -->
-        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between">
+        <div class="p-3 bg-forest-mid border border-charcoal-mid rounded-none flex items-center justify-between gap-2">
           <div class="space-y-1">
             <span class="text-xs font-bold text-wheat-light block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-[10px] text-wheat-dark">الكلفة:</span>
-              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
-              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.35T ل.س</span>
+              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-$20M</span>
+              <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.35T ل.س</span>
+              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+8% كفاءة</span>
+              <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+4 ثقة</span>
             </div>
-            <span class="text-[10px] text-forest-accent block">الأثر: رفع كفاءة كافة الوزارات التنفيذية (+8%) وزيادة الثقة (+4)</span>
           </div>
           <button
             disabled={!$draftStore.expatriateBrainGainIncentive && !canAffordBrainGain}

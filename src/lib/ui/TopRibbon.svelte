@@ -25,6 +25,8 @@
     return (count / 1_000_000).toFixed(2);
   }
 
+  let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
+  let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
   let p = $derived($projectedTurnStore);
   let runwayMonths = $derived($previewRangesStore.runwayMonthsEstimated);
   let runwayAlertTier = $derived(
@@ -37,7 +39,7 @@
 </script>
 
 <header
-  class="fixed top-0 left-[390px] right-[390px] z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between"
+  class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <!-- ========================================================================= -->
   <!-- ROW 1: CALENDAR, PUBLIC TREASURY, RESERVES, DEBT, M2 & PARALLEL FX        -->

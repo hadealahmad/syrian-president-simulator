@@ -14,6 +14,7 @@
     REVOLT: 'تمرد مسلح',
   };
 
+  let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let selectedId = $derived($uiStore.selectedGovernorateId);
   let node = $derived(selectedId ? $gameStore.governorates[selectedId] : null);
 
@@ -55,7 +56,7 @@
 </script>
 
 <aside
-  class="fixed top-0 left-0 bottom-0 w-[390px] h-screen z-30 bg-forest-deep border-r border-charcoal-mid shadow-2xl p-4 flex flex-col justify-between overflow-y-auto select-none rounded-none font-arabic text-wheat-light"
+  class="fixed top-0 left-0 bottom-0 w-[390px] h-screen z-30 bg-forest-deep border-r border-charcoal-mid shadow-2xl p-4 flex flex-col justify-between overflow-y-auto select-none rounded-none font-arabic text-wheat-light transition-transform duration-300 ease-in-out {isLeftOpen ? 'translate-x-0' : '-translate-x-full'}"
 >
   {#if node}
     <div class="space-y-4">
