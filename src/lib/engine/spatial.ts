@@ -123,6 +123,9 @@ export function updateSouthernFront(
     }
 
     daraa.golanTensionIndex = gti;
+    if (governorates['quneitra']) {
+      governorates['quneitra'].golanTensionIndex = gti;
+    }
     daraa.daraaDefianceIndex = ddi;
     daraa.nassibRevenueCapturePct = nrc;
     daraa.tier = getUnrestTier(daraa.prri);

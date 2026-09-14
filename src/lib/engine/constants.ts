@@ -381,6 +381,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     totalArableHectares: 45_000,
     mineSaturationPct: 55,
     skilledLaborCount: 2_500,
+    golanTensionIndex: 45,
     connectedGovernorateIds: ['rif_dimashq', 'daraa'],
     strategicProject: {
       id: 'proj_quneitra_undof_wells',
