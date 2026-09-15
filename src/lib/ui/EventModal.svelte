@@ -9,6 +9,27 @@
     return (syp / 1_000_000_000_000).toFixed(2);
   }
 
+  const GOV_NAMES: Record<string, string> = {
+    damascus: "دمشق",
+    rif_dimashq: "ريف دمشق",
+    aleppo: "حلب",
+    homs: "حمص",
+    hama: "حماة",
+    latakia: "اللاذقية",
+    tartus: "طرطوس",
+    idlib: "إدلب",
+    deir_ez_zor: "دير الزور",
+    raqqa: "الرقة",
+    hasakeh: "الحسكة",
+    daraa: "درعا",
+    as_suwayda: "السويداء",
+    quneitra: "القنيطرة",
+  };
+
+  function getGovName(id: string): string {
+    return GOV_NAMES[id] || id;
+  }
+
   let currentEvent = $derived(
     $gameStore.activeEvents.length > 0 ? $gameStore.activeEvents[0] : null
   );
@@ -185,6 +206,45 @@
                     <span class="text-forest-accent font-medium">
                       {opt.customEffectAr}
                     </span>
+
+                    {#if opt.governorateEffects && opt.governorateEffects.length > 0}
+                      <div class="flex flex-wrap items-center gap-1.5 pt-1.5 w-full">
+                        {#each opt.governorateEffects as eff}
+                          <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-charcoal-deep/90 border border-wheat-gold/50 text-[10px] text-wheat-light font-mono shadow-sm">
+                            <span class="text-wheat-gold font-bold font-heading">{getGovName(eff.governorateId)}:</span>
+                            {#if eff.customSummaryAr}
+                              <span>{eff.customSummaryAr}</span>
+                            {:else}
+                              {#if eff.prri !== undefined}
+                                <span class={eff.prri > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
+                                  {eff.prri > 0 ? `+${eff.prri}` : eff.prri} احتقان
+                                </span>
+                              {/if}
+                              {#if eff.dailyBlackoutHours !== undefined}
+                                <span class={eff.dailyBlackoutHours > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
+                                  {eff.dailyBlackoutHours > 0 ? `+${eff.dailyBlackoutHours}` : eff.dailyBlackoutHours} سا تقنين
+                                </span>
+                              {/if}
+                              {#if eff.securityEfficacy !== undefined}
+                                <span class={eff.securityEfficacy > 0 ? "text-forest-accent font-bold" : "text-umber-crimson font-bold"}>
+                                  {eff.securityEfficacy > 0 ? `+${eff.securityEfficacy}` : eff.securityEfficacy} أمن
+                                </span>
+                              {/if}
+                              {#if eff.reconstructionScore !== undefined}
+                                <span class={eff.reconstructionScore > 0 ? "text-forest-accent font-bold" : "text-umber-crimson font-bold"}>
+                                  {eff.reconstructionScore > 0 ? `+${eff.reconstructionScore}` : eff.reconstructionScore} إعمار
+                                </span>
+                              {/if}
+                              {#if eff.activeHospitalsPct !== undefined}
+                                <span class={eff.activeHospitalsPct > 0 ? "text-forest-accent font-bold" : "text-umber-crimson font-bold"}>
+                                  {eff.activeHospitalsPct > 0 ? `+${eff.activeHospitalsPct}` : eff.activeHospitalsPct} مشافي
+                                </span>
+                              {/if}
+                            {/if}
+                          </span>
+                        {/each}
+                      </div>
+                    {/if}
                   </div>
 
                   {#if !opt.canChoose && opt.deficitReason}
@@ -277,6 +337,30 @@
                 <span class="text-forest-accent font-medium">
                   {selectedOptionForConfirm.customEffectAr}
                 </span>
+
+                {#if selectedOptionForConfirm.governorateEffects && selectedOptionForConfirm.governorateEffects.length > 0}
+                  <div class="flex flex-wrap items-center gap-1.5 pt-1.5 w-full">
+                    {#each selectedOptionForConfirm.governorateEffects as eff}
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-charcoal-deep border border-wheat-gold/60 text-[10px] text-wheat-light font-mono">
+                        <span class="text-wheat-gold font-bold font-heading">{getGovName(eff.governorateId)}:</span>
+                        {#if eff.customSummaryAr}
+                          <span>{eff.customSummaryAr}</span>
+                        {:else}
+                          {#if eff.prri !== undefined}
+                            <span class={eff.prri > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
+                              {eff.prri > 0 ? `+${eff.prri}` : eff.prri} احتقان
+                            </span>
+                          {/if}
+                          {#if eff.dailyBlackoutHours !== undefined}
+                            <span class={eff.dailyBlackoutHours > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
+                              {eff.dailyBlackoutHours > 0 ? `+${eff.dailyBlackoutHours}` : eff.dailyBlackoutHours} سا تقنين
+                            </span>
+                          {/if}
+                        {/if}
+                      </span>
+                    {/each}
+                  </div>
+                {/if}
               </div>
             </div>
 

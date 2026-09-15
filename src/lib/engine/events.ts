@@ -1,6 +1,5 @@
 import type { GameState, EventCard, EventOption } from './types';
-import { MASTER_EVENTS } from './deck/master-events';
-import { SOUTHERN_EVENTS } from './deck/southern-events';
+import { ALL_EVENTS, MASTER_EVENTS, SOUTHERN_EVENTS } from './deck';
 import { PRNG } from './prng';
 
 /**
@@ -22,28 +21,32 @@ export function validateOptionAvailability(state: GameState, option: EventOption
  */
 export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
   const drawnRaw: EventCard[] = [];
-  const allEvents = [...MASTER_EVENTS, ...SOUTHERN_EVENTS];
 
   // Specific turn scripted triggers
   if (state.turnNumber === 2) {
     const ev1 = MASTER_EVENTS.find((e) => e.id === 'event_01_grain_corridor');
-    if (ev1) drawnRaw.push(ev1);
+    if (ev1 && !state.flags[`event_resolved_${ev1.id}`]) drawnRaw.push(ev1);
   } else if (state.turnNumber === 4) {
     const ev2 = MASTER_EVENTS.find((e) => e.id === 'event_02_tanker_interdiction');
-    if (ev2) drawnRaw.push(ev2);
+    if (ev2 && !state.flags[`event_resolved_${ev2.id}`]) drawnRaw.push(ev2);
   } else if (state.turnNumber === 5) {
     const ev5 = MASTER_EVENTS.find((e) => e.id === 'event_05_bab_el_mandeb');
-    if (ev5) drawnRaw.push(ev5);
+    if (ev5 && !state.flags[`event_resolved_${ev5.id}`]) drawnRaw.push(ev5);
   } else if (state.turnNumber === 7) {
     const s01 = SOUTHERN_EVENTS.find((e) => e.id === 'event_s01_lajat_siege');
-    if (s01) drawnRaw.push(s01);
+    if (s01 && !state.flags[`event_resolved_${s01.id}`]) drawnRaw.push(s01);
   } else if (state.turnNumber === 10) {
     const d02 = SOUTHERN_EVENTS.find((e) => e.id === 'event_d02_golan_incursion');
-    if (d02) drawnRaw.push(d02);
-  } else {
-    // Dynamic random draw from unplayed events
-    const pool = allEvents.filter(
-      (e) => !state.flags[`event_resolved_${e.id}`] && !drawnRaw.some((d) => d.id === e.id)
+    if (d02 && !state.flags[`event_resolved_${d02.id}`]) drawnRaw.push(d02);
+  }
+
+  // Dynamic random draw if no scripted event or pool fallback
+  if (drawnRaw.length === 0) {
+    const pool = ALL_EVENTS.filter(
+      (e) =>
+        !state.flags[`event_resolved_${e.id}`] &&
+        !drawnRaw.some((d) => d.id === e.id) &&
+        (!e.triggerCondition || e.triggerCondition(state))
     );
     if (pool.length > 0) {
       const idx = prng.nextInt(0, pool.length - 1);
@@ -51,14 +54,16 @@ export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
     }
   }
 
-  // Deep clone events and evaluate option availability dynamically against current state
+  // Clone events safely and evaluate option availability dynamically against current state
   return drawnRaw.map((card) => {
-    const clonedCard: EventCard = structuredClone(card);
-    clonedCard.options = clonedCard.options.map((opt) => ({
-      ...opt,
-      canChoose: validateOptionAvailability(state, opt),
-    }));
-    return clonedCard;
+    return {
+      ...card,
+      options: card.options.map((opt) => ({
+        ...opt,
+        canChoose: validateOptionAvailability(state, opt),
+        governorateEffects: opt.governorateEffects ? opt.governorateEffects.map((g) => ({ ...g })) : undefined,
+      })),
+    };
   });
 }
 
@@ -70,8 +75,7 @@ export function resolveEventOption(
   eventId: string,
   optionId: string
 ): void {
-  const allEvents = [...MASTER_EVENTS, ...SOUTHERN_EVENTS];
-  const card = allEvents.find((e) => e.id === eventId);
+  const card = ALL_EVENTS.find((e) => e.id === eventId);
   if (!card) return;
 
   const option = card.options.find((o) => o.id === optionId);
@@ -85,19 +89,75 @@ export function resolveEventOption(
     return;
   }
 
-  // Apply hard currency and political costs
-  state.macro.reservesUSD = Math.max(0, state.macro.reservesUSD - option.costUSD);
+  // Apply hard currency costs / gains
+  if (option.costUSD > 0) {
+    state.macro.reservesUSD = Math.max(0, state.macro.reservesUSD - option.costUSD);
+  } else if (option.costUSD < 0) {
+    state.macro.reservesUSD += -option.costUSD;
+  }
+
+  // Apply political capital
   state.macro.politicalCapital = Math.max(0, Math.min(100, state.macro.politicalCapital - option.costPC));
 
-  // Domestic SYP financing: deduct directly from public treasury balance (allowing sovereign overdraft/deficit)
+  // Domestic SYP financing: deduct or credit treasury balance
   if (option.costSYP > 0) {
     state.macro.treasurySYP -= option.costSYP;
+  } else if (option.costSYP < 0) {
+    state.macro.treasurySYP += -option.costSYP;
   }
 
   // Apply governance deltas
   state.macro.civicTrust = Math.max(0, Math.min(100, state.macro.civicTrust + option.effectTrust));
   state.macro.nationalRRI = Math.max(0, Math.min(100, state.macro.nationalRRI + option.effectRRI));
   state.macro.systemicCorruption = Math.max(0, Math.min(100, state.macro.systemicCorruption + option.effectCorruption));
+
+  // Apply governorate-specific stat effects
+  if (option.governorateEffects && option.governorateEffects.length > 0) {
+    for (const eff of option.governorateEffects) {
+      const gov = state.governorates[eff.governorateId];
+      if (!gov) continue;
+
+      if (eff.prri !== undefined) {
+        gov.prri = Math.max(0, Math.min(100, gov.prri + eff.prri));
+      }
+      if (eff.dailyBlackoutHours !== undefined) {
+        gov.dailyBlackoutHours = Math.max(0, Math.min(24, gov.dailyBlackoutHours + eff.dailyBlackoutHours));
+      }
+      if (eff.sectarianAnxiety !== undefined) {
+        gov.sectarianAnxiety = Math.max(0, Math.min(100, gov.sectarianAnxiety + eff.sectarianAnxiety));
+      }
+      if (eff.securityEfficacy !== undefined) {
+        gov.securityEfficacy = Math.max(0, Math.min(100, gov.securityEfficacy + eff.securityEfficacy));
+      }
+      if (eff.activeHospitalsPct !== undefined) {
+        gov.activeHospitalsPct = Math.max(0, Math.min(100, gov.activeHospitalsPct + eff.activeHospitalsPct));
+      }
+      if (eff.reconstructionScore !== undefined) {
+        gov.reconstructionScore = Math.max(0, Math.min(100, gov.reconstructionScore + eff.reconstructionScore));
+      }
+      if (eff.suwaydaIntegrationIndex !== undefined && gov.suwaydaIntegrationIndex !== undefined) {
+        gov.suwaydaIntegrationIndex = Math.max(0, Math.min(100, gov.suwaydaIntegrationIndex + eff.suwaydaIntegrationIndex));
+      }
+      if (eff.suwaydaSecessionProb !== undefined && gov.suwaydaSecessionProb !== undefined) {
+        gov.suwaydaSecessionProb = Math.max(0, Math.min(100, gov.suwaydaSecessionProb + eff.suwaydaSecessionProb));
+      }
+      if (eff.tribalRageIndex !== undefined && gov.tribalRageIndex !== undefined) {
+        gov.tribalRageIndex = Math.max(0, Math.min(100, gov.tribalRageIndex + eff.tribalRageIndex));
+      }
+      if (eff.golanTensionIndex !== undefined && gov.golanTensionIndex !== undefined) {
+        gov.golanTensionIndex = Math.max(0, Math.min(100, gov.golanTensionIndex + eff.golanTensionIndex));
+      }
+      if (eff.daraaDefianceIndex !== undefined && gov.daraaDefianceIndex !== undefined) {
+        gov.daraaDefianceIndex = Math.max(0, Math.min(100, gov.daraaDefianceIndex + eff.daraaDefianceIndex));
+      }
+      if (eff.nassibRevenueCapturePct !== undefined && gov.nassibRevenueCapturePct !== undefined) {
+        gov.nassibRevenueCapturePct = Math.max(0, Math.min(100, gov.nassibRevenueCapturePct + eff.nassibRevenueCapturePct));
+      }
+      if (eff.skilledLaborCount !== undefined && gov.skilledLaborCount !== undefined) {
+        gov.skilledLaborCount = Math.max(0, gov.skilledLaborCount + eff.skilledLaborCount);
+      }
+    }
+  }
 
   // Handle specific historic flags
   if (optionId === 'opt_historic_accord') {
@@ -138,5 +198,4 @@ export function applyUnresolvedCrisisPenalty(state: GameState, eventId: string):
   // Mark event as resolved through sovereign failure
   state.flags[`event_failed_${eventId}`] = 1;
   state.flags[`event_resolved_${eventId}`] = 1;
-  state.activeEvents = state.activeEvents.filter((e) => e.id !== eventId);
 }

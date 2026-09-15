@@ -272,6 +272,25 @@ export interface ProjectedTurnSummary {
   hasSelections: boolean;
 }
 
+export interface EventGovernorateDelta {
+  governorateId: string;
+  governorateNameAr?: string;
+  prri?: number;
+  dailyBlackoutHours?: number;
+  sectarianAnxiety?: number;
+  securityEfficacy?: number;
+  activeHospitalsPct?: number;
+  reconstructionScore?: number;
+  suwaydaIntegrationIndex?: number;
+  suwaydaSecessionProb?: number;
+  tribalRageIndex?: number;
+  golanTensionIndex?: number;
+  daraaDefianceIndex?: number;
+  nassibRevenueCapturePct?: number;
+  skilledLaborCount?: number;
+  customSummaryAr?: string;
+}
+
 export interface EventOption {
   id: string;
   labelAr: string;
@@ -286,15 +305,34 @@ export interface EventOption {
   customEffectAr: string;
   canChoose?: boolean;
   requirementsDescriptionAr?: string;
+  governorateEffects?: EventGovernorateDelta[];
 }
 
 export interface EventCard {
   id: string;
   titleAr: string;
   sourceAr: string;
-  category: 'EXOGENOUS' | 'ENDOGENOUS' | 'MACRO' | 'SOUTHERN' | 'SECURITY' | 'INFRASTRUCTURE';
+  category:
+    | 'EXOGENOUS'
+    | 'ENDOGENOUS'
+    | 'MACRO'
+    | 'SOUTHERN'
+    | 'SECURITY'
+    | 'INFRASTRUCTURE'
+    | 'AGRICULTURE'
+    | 'ENERGY'
+    | 'INDUSTRY'
+    | 'HEALTH'
+    | 'ENVIRONMENT'
+    | 'TRADE'
+    | 'FOOD'
+    | 'LOGISTICS'
+    | 'SOVEREIGNTY'
+    | 'EDUCATION';
   descriptionAr: string;
   turnTrigger?: number;
+  targetGovernorateId?: string;
+  triggerCondition?: (state: GameState) => boolean;
   options: EventOption[];
 }
 
