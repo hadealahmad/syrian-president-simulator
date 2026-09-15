@@ -112,7 +112,7 @@
           stroke-linejoin="round"
           stroke-linecap="round"
           filter={isSelected ? 'url(#syid-selected-glow)' : isHovered ? 'url(#syid-glow)' : undefined}
-          class="transition-all duration-150 ease-out"
+          class="transition-all duration-150 ease-out focus:outline-none [-webkit-tap-highlight-color:transparent]"
           onclick={() => handleGovClick(gov.id)}
           onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleGovClick(gov.id)}
           onmouseenter={() => handleGovMouseEnter(gov.id)}
