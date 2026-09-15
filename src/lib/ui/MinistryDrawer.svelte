@@ -132,12 +132,12 @@
         : 'macro'
   );
 
-  let maxCapEx = $derived(
-    Math.max(0, Math.min(80, Math.floor(($budgetStore.remainingUSD + $draftStore.gridCapExUSD) / 1_000_000)))
-  );
+  // Grid CapEx has an independent policy envelope of $0M to $80M
+  const maxCapEx = 80;
 
+  // Central Bank Dollar Auction is bounded solely by central bank FX reserves
   let maxAuction = $derived(
-    Math.max(0, Math.floor(($budgetStore.remainingUSD + $draftStore.dollarAuctionUSD) / 1_000_000))
+    Math.max(0, Math.floor(($gameStore.macro.reservesUSD ?? 320_000_000) / 1_000_000))
   );
 
   $effect(() => {
@@ -145,6 +145,33 @@
       draftStore.setField('dollarAuctionUSD', maxAuction * 1_000_000);
     }
   });
+
+  // Reactive calculations for the 3 macro sliders matching plan specs
+  let remittanceCapturedM = $derived(
+    $draftStore.remittanceCaptureSpread <= 15
+      ? Math.round(1000 * ($draftStore.remittanceCaptureSpread / 100))
+      : 20
+  );
+
+  let gridCapExM = $derived($draftStore.gridCapExUSD / 1_000_000);
+  let effectiveGridMW = $derived(
+    gridCapExM === 0
+      ? -120
+      : Math.round(gridCapExM * 11.4)
+  );
+  let effectivePowerHoursDelta = $derived(
+    gridCapExM === 0
+      ? -0.5
+      : Number(((effectiveGridMW / 6000) * 24).toFixed(1))
+  );
+
+  let auctionM = $derived($draftStore.dollarAuctionUSD / 1_000_000);
+  let auctionSypT = $derived(
+    Number(((auctionM * 1_000_000 * ($gameStore.macro.parallelRateSYP * 0.95)) / 1_000_000_000_000).toFixed(2))
+  );
+  let auctionReliefPct = $derived(
+    Math.min(25, Math.round((auctionM / 10) * 1.5))
+  );
 
   let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
 
@@ -621,11 +648,11 @@
 
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">الأثر المالي:</span>
-            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-              +${Math.round(($draftStore.remittanceCaptureSpread / 15) * 45)}M دولار/دور
+            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
+              +${remittanceCapturedM}M دولار/دور
             </span>
-            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
-              {$draftStore.remittanceCaptureSpread > 15 ? 'ينعش السوق الموازي' : 'يحفز القنوات الرسمية'}
+            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : ($draftStore.remittanceCaptureSpread <= 7 ? 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold' : 'bg-forest-surface border border-charcoal-mid text-wheat-light')} font-mono font-bold text-[9px]">
+              {$draftStore.remittanceCaptureSpread > 15 ? 'انهيار التحويلات إلى السوق الموازي (عتبة 15%)' : ($draftStore.remittanceCaptureSpread <= 7 ? 'تحفيز المغتربين والقنوات الرسمية (+ثقة)' : 'اقتطاع اعتيادي مستقر (الحالة المحايدة)')}
             </span>
           </div>
 
@@ -640,10 +667,13 @@
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
             <span>5% (جذب الدولار رسمياً)</span>
+            <span class="text-wheat-gold">10% (محايد)</span>
             <span>25% (جباية قصوى للمركزي)</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            نسبة اقتطاع المركزي ({$draftStore.remittanceCaptureSpread}%). الهامش المنخفض يحفز التحويل عبر البنوك الرسمية ويعظم تدفق العملة الأجنبية، ورفعه يجبي سيولة فورية لكن ينعش السوق الموازي.
+            {$draftStore.remittanceCaptureSpread <= 15
+              ? `نسبة اقتطاع المركزي (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +\$${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية دون إثارة مقاطعة المغتربين.`
+              : `تحذير: تجاوز عتبة الحوالات (15%)! يقاطع المغتربون القنوات الرسمية وتنهار الجباية إلى $20M فقط وتتجه السيولة إلى شبكات الحوالات الموازية مع تراجع الثقة وتدهور الصرف.`}
           </div>
         </div>
 
@@ -655,20 +685,20 @@
               <span class="text-[10px] text-wheat-dark">تأهيل محطات التوليد والشبكات القومية</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
-              ${$draftStore.gridCapExUSD / 1_000_000}M
+              ${gridCapExM}M
             </span>
           </div>
 
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">المردود المتوقع:</span>
-            <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
-              -${$draftStore.gridCapExUSD / 1_000_000}M كاش
+            <span class="px-1.5 py-0.2 rounded-full {gridCapExM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-dark' : 'bg-umber-deep border border-umber-border text-umber-crimson'} font-mono font-bold text-[9px]">
+              {gridCapExM === 0 ? '$0M كاش (تقشف تام)' : `-\$${gridCapExM}M كاش`}
             </span>
-            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-              +{Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط
+            <span class="px-1.5 py-0.2 rounded-full {gridCapExM === 0 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
+              {effectiveGridMW > 0 ? `+${effectiveGridMW}` : effectiveGridMW} ميغاواط
             </span>
-            <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
-              +{(($draftStore.gridCapExUSD / 35_000_000) * 1.5).toFixed(1)} س/يوم
+            <span class="px-1.5 py-0.2 rounded-full {gridCapExM === 0 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
+              {effectivePowerHoursDelta > 0 ? `+${effectivePowerHoursDelta}` : effectivePowerHoursDelta} س/يوم
             </span>
           </div>
 
@@ -677,16 +707,21 @@
             min="0"
             max={maxCapEx}
             step="5"
-            value={$draftStore.gridCapExUSD / 1_000_000}
+            value={gridCapExM}
             oninput={(e) => draftStore.setField('gridCapExUSD', Number(e.currentTarget.value) * 1_000_000)}
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-            <span>$0M</span>
-            <span>الحد الأقصى المتاح: ${maxCapEx}M</span>
+            <span>$0M (تجميد)</span>
+            <span class="text-wheat-gold">$35M (صيانة اعتيادية)</span>
+            <span>$80M (توسيع شامل)</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            استثمار ${$draftStore.gridCapExUSD / 1_000_000}M$ يضيف نحو {Math.round(((Math.max(0, $draftStore.gridCapExUSD) * 0.95) / 1_000_000) * 12)} ميغاواط للشبكة القومية، مما يرفع ساعات التغذية ويدعم النشاط الصناعي والامتثال الضريبي.
+            {gridCapExM === 0
+              ? 'تجميد الاستثمار الرأسمالي يوفر السيولة الدولارية ($0M كاش)، لكنه يسبب تراجع قدرة الشبكة بنحو 120 ميغاواط وتمديد ساعات التقنين في المحافظات (-0.5 سا/يوم) وزيادة الاحتقان.'
+              : gridCapExM === 35
+                ? 'الحالة المحايدة ($35M): صيانة دورية تؤمن +399 ميغاواط وتزيد التغذية بنحو +1.6 ساعة/يوم في كافة المحافظات، مما يدعم النشاط الاقتصادي واستقرار الشبكة.'
+                : `استثمار \$${gridCapExM}M يضيف نحو ${effectiveGridMW} ميغاواط للشبكة القومية (${effectivePowerHoursDelta > 0 ? '+' : ''}${effectivePowerHoursDelta} سا/يوم)، مما يخفض ساعات التقنين بالمحافظات ويدعم النشاط الصناعي والامتثال الضريبي.`}
           </div>
         </div>
 
@@ -698,17 +733,17 @@
               <span class="text-[10px] text-wheat-dark">ضخ سيولة نقدية لكبح انهيار سعر الليرة</span>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
-              ${$draftStore.dollarAuctionUSD / 1_000_000}M
+              ${auctionM}M
             </span>
           </div>
 
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">الأثر:</span>
-            <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
-              -${$draftStore.dollarAuctionUSD / 1_000_000}M من الاحتياطي
+            <span class="px-1.5 py-0.2 rounded-full {auctionM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-dark' : 'bg-umber-deep border border-umber-border text-umber-crimson'} font-mono font-bold text-[9px]">
+              {auctionM === 0 ? '$0M (حماية الاحتياطي)' : `-\$${auctionM}M من الاحتياطي`}
             </span>
-            <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-              كبح تدهور الصرف الموازي
+            <span class="px-1.5 py-0.2 rounded-full {auctionM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-mid' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
+              {auctionM === 0 ? 'سعر صرف حر دون استنزاف للاحتياطي' : `كبح تدهور الصرف بنسبة ~${auctionReliefPct}% (+${auctionSypT}T ل.س ممتصة)`}
             </span>
           </div>
 
@@ -716,22 +751,24 @@
             type="range"
             min="0"
             max={Math.max(0, maxAuction)}
-            step="1"
+            step="5"
             disabled={maxAuction === 0}
-            value={$draftStore.dollarAuctionUSD / 1_000_000}
+            value={auctionM}
             oninput={(e) => draftStore.setField('dollarAuctionUSD', Number(e.currentTarget.value) * 1_000_000)}
             class="w-full accent-wheat-gold {maxAuction === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-            <span>$0M</span>
+            <span>$0M (محايد: حماية الاحتياطي)</span>
             <span>الحد الأقصى المتاح: ${maxAuction}M</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
-            ضخ ${$draftStore.dollarAuctionUSD / 1_000_000}M في السوق الموازي لكبح تدهور سعر صرف الليرة السورية، على حساب استنزاف احتياطي النقد الأجنبي المتاح.
+            {auctionM === 0
+              ? 'الحالة المحايدة ($0M): صون احتياطي النقد الأجنبي بالكامل من الاستنزاف. يترك سعر الصرف الموازي يتحدد وفق قوى العرض والطلب لتجنب هدر الدولارات في معارك تثبيت غير مجدية.'
+              : `ضخ \$${auctionM}M في السوق الموازي لامتصاص نحو ${auctionSypT} تريليون ليرة سورية وتثبيت سعر الصرف وكبح جماح التضخم، على حساب رصيد احتياطي النقد الأجنبي.`}
           </div>
         </div>
       </div>
-    <!-- PILLAR 2: FINANCE, TAXES & CONFISCATED ASSETS -->
+        <!-- PILLAR 2: FINANCE, TAXES & CONFISCATED ASSETS -->
     {:else if activePillar === 'finance'}
       <div class="space-y-4">
         <!-- Section: Tax Compliance & Rates -->

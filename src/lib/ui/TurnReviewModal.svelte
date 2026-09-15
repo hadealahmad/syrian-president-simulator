@@ -70,7 +70,7 @@
     $draftStore.workforceStrategy !== 'MAINTAIN' ||
     $draftStore.wheatProcurement !== 'MARKET_PARITY' ||
     $draftStore.dieselSmuggling !== 'STANDARD' ||
-    $draftStore.remittanceCaptureSpread !== 15 ||
+    $draftStore.remittanceCaptureSpread !== 10 ||
     $draftStore.corporateTaxRate !== 22 ||
     $draftStore.telecomExciseRate !== 15 ||
     $draftStore.nassibTransitFeeUSD !== 450 ||
@@ -318,18 +318,18 @@
         {/if}
 
         <!-- 6. Remittance Spread -->
-        {#if $draftStore.remittanceCaptureSpread !== 15}
+        {#if $draftStore.remittanceCaptureSpread !== 10}
           <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
             <div>
               <span class="font-bold text-wheat-light block font-heading">
                 هامش اقتطاع الحوالات الخارجية: {$draftStore.remittanceCaptureSpread}%
               </span>
               <span class="text-[11px] text-wheat-dark">
-                {$draftStore.remittanceCaptureSpread < 15 ? 'الأثر: تشجيع تحويل أموال المغتربين عبر القنوات الرسمية للمصرف المركزي.' : 'الأثر: زيادة عوائد المركزي الدولارية المباشرة مع تنشيط قنوات الصرافة غير الرسمية.'}
+                {$draftStore.remittanceCaptureSpread <= 8 ? 'الأثر: تشجيع تحويل أموال المغتربين عبر القنوات الرسمية للمصرف المركزي (+ثقة).' : ($draftStore.remittanceCaptureSpread <= 15 ? 'الأثر: جباية دولارية اعتيادية متوازنة للمركزي.' : 'الأثر: تجاوز عتبة الحوالات (15%) ومقاطعة القنوات الرسمية لصالح السوق الموازي.')}
               </span>
             </div>
             <button
-              onclick={() => draftStore.setField('remittanceCaptureSpread', 15)}
+              onclick={() => draftStore.setField('remittanceCaptureSpread', 10)}
               class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
             >
               إلغاء
@@ -384,6 +384,28 @@
             </div>
             <button
               onclick={() => draftStore.setField('nassibTransitFeeUSD', 450)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
+        <!-- Grid CapEx -->
+        {#if $draftStore.gridCapExUSD !== 35_000_000}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div>
+              <span class="font-bold text-wheat-light block font-heading">
+                الاستثمار الرأسمالي لشبكة الكهرباء: ${$draftStore.gridCapExUSD / 1_000_000}M
+              </span>
+              <span class="text-[11px] text-wheat-dark">
+                {$draftStore.gridCapExUSD === 0
+                  ? 'الأثر: تجميد مخصصات الصيانة يوفر السيولة ($0M كاش)، لكنه يسبب تراجع قدرة الشبكة (-120MW) وتمديد التقنين بالمحافظات.'
+                  : 'الأثر: تخصيص ميزانية رأسمالية لتأهيل التوليد والشبكات وتقليص ساعات التقنين بالمحافظات.'}
+              </span>
+            </div>
+            <button
+              onclick={() => draftStore.setField('gridCapExUSD', 35_000_000)}
               class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
             >
               إلغاء

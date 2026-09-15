@@ -454,11 +454,31 @@ export function simulateTurnTransitions(
   }
 
   // Electrical Grid CapEx investment & power hours dynamic conversion
+  // Plan section 3.3 formula: Effective CapEx = Allocated CapEx * (Competence / 100) * (1 - Corruption / 100)
+  const energyMin = next.ministries['energy'];
+  const compFactor = (energyMin?.competence ?? 45) / 100;
+  const corrupFactor = 1 - ((next.macro.systemicCorruption ?? 58) / 100) * 0.40;
+
   if (directives.gridCapExUSD > 0) {
-    const competenceWaste = next.macro.systemicCorruption > 65 ? 0.20 : 0.05;
-    const effectiveGridCapExUSD = directives.gridCapExUSD * (1 - competenceWaste);
-    next.macro.gridCapacityMW = Math.min(6000, next.macro.gridCapacityMW + Math.round((effectiveGridCapExUSD / 1_000_000) * 12));
-    next.macro.dailyPowerHours = Math.min(24, Number(((next.macro.gridCapacityMW / 6000) * 24).toFixed(1)));
+    const effectiveCapExUSD = directives.gridCapExUSD * Math.max(0.6, compFactor * 1.5) * corrupFactor;
+    const mwGained = Math.round((effectiveCapExUSD / 1_000_000) * 15);
+    next.macro.gridCapacityMW = Math.min(6000, next.macro.gridCapacityMW + mwGained);
+    const hoursGained = Number((mwGained / 250).toFixed(1));
+    next.macro.dailyPowerHours = Math.min(24, Number((next.macro.dailyPowerHours + hoursGained).toFixed(1)));
+    if (hoursGained > 0) {
+      for (const gov of Object.values(next.governorates)) {
+        gov.dailyBlackoutHours = Math.max(1, Number((gov.dailyBlackoutHours - hoursGained).toFixed(1)));
+      }
+    }
+  } else {
+    // Zero CapEx: Grid degradation due to lack of maintenance and wear & tear
+    next.macro.gridCapacityMW = Math.max(1000, next.macro.gridCapacityMW - 120);
+    const hoursLost = 0.5;
+    next.macro.dailyPowerHours = Math.max(1, Number((next.macro.dailyPowerHours - hoursLost).toFixed(1)));
+    for (const gov of Object.values(next.governorates)) {
+      gov.dailyBlackoutHours = Math.min(23, Number((gov.dailyBlackoutHours + hoursLost).toFixed(1)));
+      gov.prri = Math.min(100, gov.prri + 2);
+    }
   }
 
   // =========================================================================
@@ -487,6 +507,30 @@ export function simulateTurnTransitions(
     2.5,
     directives.dollarAuctionUSD || 0
   );
+
+  // Central bank dollar auction M2 absorption and market stabilization
+  if (directives.dollarAuctionUSD && directives.dollarAuctionUSD > 0) {
+    const absorbedSYP = Math.round(directives.dollarAuctionUSD * (next.macro.parallelRateSYP * 0.95));
+    next.macro.m2MoneySupplySYP = Math.max(1_000_000_000_000, next.macro.m2MoneySupplySYP - Math.round(absorbedSYP * 0.40));
+  }
+
+  // Remittance Policy side-effects (Plan section 7.2)
+  const skimSpreadVal = directives.remittanceCaptureSpread ?? 10;
+  if (skimSpreadVal > 15) {
+    // Hawala flight & black market penalty
+    next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 3);
+    // Black market diversion drives parallel rate up
+    next.macro.parallelRateSYP = Math.round(next.macro.parallelRateSYP * 1.03);
+    // Provincial unrest rises in remittance-dependent urban centres
+    for (const govId of ['damascus', 'rif_dimashq', 'homs', 'latakia', 'tartus', 'as_suwayda']) {
+      if (next.governorates[govId]) {
+        next.governorates[govId].prri = Math.min(100, next.governorates[govId].prri + 2);
+      }
+    }
+  } else if (skimSpreadVal <= 7) {
+    // Attractive diaspora incentive builds civic trust
+    next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+  }
 
   // =========================================================================
   // PHASE 6: MIGRATION, POPULATION & LOCAL PRRI DYNAMICS
@@ -568,7 +612,7 @@ export function calculateProjectedTurnSummary(
   ): ProjectedStat {
     const delta = nextVal - current;
     const pctChange = current !== 0 ? (delta / Math.abs(current)) * 100 : 0;
-    const isChanged = hasDraftSelections(directives) && Math.abs(delta) >= threshold;
+    const isChanged = Math.abs(delta) >= threshold;
     const isBeneficial = positiveIsBeneficial ? delta > 0 : delta < 0;
     const isHarmful = positiveIsBeneficial ? delta < 0 : delta > 0;
     return {
