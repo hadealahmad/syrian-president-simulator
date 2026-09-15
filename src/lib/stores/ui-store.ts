@@ -1,18 +1,16 @@
 import { writable } from 'svelte/store';
 
-export type MinistryTab = 'macro' | 'finance' | 'governance' | 'tax' | 'decrees' | 'oligarch' | 'ministries';
+export type MinistryTab = 'macro' | 'finance' | 'governance';
 
 export interface UIState {
   selectedGovernorateId: string | null;
   isMinistryDrawerOpen: boolean;
   isProvincialDrawerOpen: boolean;
-  isDecreeDeskOpen: boolean;
   isTurnSummaryModalOpen: boolean;
   isTurnReviewModalOpen: boolean;
   isRestartModalOpen: boolean;
   isGuideModalOpen: boolean;
   guideStep: number;
-  activeEventModalId: string | null;
   ministryTab: MinistryTab;
   selectedStatForOptions: string | null;
 }
@@ -31,13 +29,11 @@ function createUIStore() {
     selectedGovernorateId: null,
     isMinistryDrawerOpen: true,
     isProvincialDrawerOpen: true,
-    isDecreeDeskOpen: false,
     isTurnSummaryModalOpen: false,
     isTurnReviewModalOpen: false,
     isRestartModalOpen: false,
     isGuideModalOpen: !checkInitialGuideSeen(),
     guideStep: 0,
-    activeEventModalId: null,
     ministryTab: 'macro',
     selectedStatForOptions: null,
   });
@@ -70,14 +66,6 @@ function createUIStore() {
     setMinistryTab: (tab: MinistryTab) => {
       update((s) => ({ ...s, ministryTab: tab, isMinistryDrawerOpen: true }));
     },
-    toggleDecreeDesk: () => {
-      update((s) => ({
-        ...s,
-        ministryTab: 'governance',
-        isMinistryDrawerOpen: true,
-        isDecreeDeskOpen: false,
-      }));
-    },
     setTurnSummaryModal: (open: boolean) => {
       update((s) => ({ ...s, isTurnSummaryModalOpen: open }));
     },
@@ -95,9 +83,6 @@ function createUIStore() {
     },
     setGuideStep: (step: number) => {
       update((s) => ({ ...s, guideStep: step }));
-    },
-    setActiveEventModal: (eventId: string | null) => {
-      update((s) => ({ ...s, activeEventModalId: eventId }));
     },
     openStatRelatedOptions: (statId: string) => {
       update((s) => {
@@ -128,16 +113,6 @@ function createUIStore() {
     },
     closeStatRelatedOptions: () => {
       update((s) => ({ ...s, selectedStatForOptions: null }));
-    },
-    closeAllDrawers: () => {
-      update((s) => ({
-        ...s,
-        isDecreeDeskOpen: false,
-        isTurnReviewModalOpen: false,
-        isRestartModalOpen: false,
-        isGuideModalOpen: false,
-        selectedStatForOptions: null,
-      }));
     },
   };
 }

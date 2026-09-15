@@ -124,13 +124,7 @@
     { id: 'governance', labelAr: 'المراسيم والسيادة' },
   ] as const;
 
-  let activePillar = $derived(
-    $uiStore.ministryTab === 'tax' || $uiStore.ministryTab === 'oligarch' || $uiStore.ministryTab === 'finance'
-      ? 'finance'
-      : $uiStore.ministryTab === 'decrees' || $uiStore.ministryTab === 'ministries' || $uiStore.ministryTab === 'governance'
-        ? 'governance'
-        : 'macro'
-  );
+  let activePillar = $derived($uiStore.ministryTab);
 
   // Grid CapEx has an independent policy envelope of $0M to $80M
   const maxCapEx = 80;

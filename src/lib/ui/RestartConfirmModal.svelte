@@ -13,7 +13,6 @@
     uiStore.selectGovernorate(null);
     uiStore.setTurnReviewModal(false);
     uiStore.setTurnSummaryModal(false);
-    uiStore.setActiveEventModal(null);
     uiStore.setRestartModal(false);
   }
 </script>

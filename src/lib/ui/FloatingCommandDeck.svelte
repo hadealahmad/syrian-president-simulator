@@ -14,7 +14,7 @@
   );
 </script>
 
-<!-- Floating Unified Command Deck Overlay on 3D Map -->
+<!-- Floating Unified Command Deck Overlay on Sovereign Map -->
 <div class="pointer-events-none absolute inset-0 z-30 overflow-hidden font-arabic select-none">
   <!-- Left Side Command Deck: Review & End Turn + Reset Draft (Anchored at left-[406px]) -->
   <div class="pointer-events-auto absolute bottom-6 flex items-center gap-2 transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[406px]' : 'left-6'}">
