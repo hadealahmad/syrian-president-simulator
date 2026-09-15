@@ -79,6 +79,8 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
       if (id === 'provincial' && !$uiStore.selectedGovernorateId) {
         uiStore.selectGovernorate('damascus');
       }
+      if (id === 'decrees') uiStore.checkItem('decrees');
+      if (id === 'provincial') uiStore.checkItem('province');
       uiStore.openCommandPanel(id, true);
     }
   }
@@ -98,6 +100,7 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
 <svelte:window onresize={() => active && clampPanel()} />
 <div
   bind:this={hubEl}
+  data-tour="hub"
   class="pointer-events-none fixed bottom-5 left-0 z-40 flex flex-col items-center gap-2 select-none font-arabic transition-all duration-300 ease-in-out {statsOpen ? 'max-sm:right-0 right-[390px]' : 'right-0'}"
   role="group"
   aria-label="لوحة القيادة الرئاسية"

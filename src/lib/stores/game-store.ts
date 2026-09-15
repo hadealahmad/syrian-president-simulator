@@ -39,6 +39,21 @@ function loadStoredGameState(): GameState {
   return createInitialGameState();
 }
 
+/**
+ * structuredClone() throws DataCloneError on functions. Active event cards
+ * drawn before the triggerCondition strip (or from a stale session) may still
+ * carry one in memory, so scrub before cloning — resolution re-resolves the
+ * canonical card from ALL_EVENTS by id and never needs it.
+ */
+function clonePlayableState(current: GameState): GameState {
+  for (const ev of current.activeEvents ?? []) {
+    if (typeof (ev as { triggerCondition?: unknown }).triggerCondition === 'function') {
+      delete (ev as { triggerCondition?: unknown }).triggerCondition;
+    }
+  }
+  return structuredClone(current);
+}
+
 function persistGameState(state: GameState): void {
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
@@ -66,7 +81,7 @@ function createGameStore() {
     },
     chooseEventOption: (eventId: string, optionId: string) => {
       update((current) => {
-        const cloned = structuredClone(current);
+        const cloned = clonePlayableState(current);
         resolveEventOption(cloned, eventId, optionId);
         const failCheck = checkFailStates(cloned);
         if (failCheck.isFailed) {
@@ -78,7 +93,7 @@ function createGameStore() {
     },
     triggerUnresolvedCrisisPenalty: (eventId: string) => {
       update((current) => {
-        const cloned = structuredClone(current);
+        const cloned = clonePlayableState(current);
         applyUnresolvedCrisisPenalty(cloned, eventId);
         const failCheck = checkFailStates(cloned);
         if (failCheck.isFailed) {

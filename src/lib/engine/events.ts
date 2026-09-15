@@ -54,11 +54,16 @@ export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
     }
   }
 
-  // Clone events safely and evaluate option availability dynamically against current state
+  // Clone events safely and evaluate option availability dynamically against current state.
+  // NOTE: triggerCondition is a function and must NEVER enter GameState:
+  // state is structuredClone()d on every event choice and JSON-persisted on
+  // every tick — a live function throws DataCloneError (frozen event modal
+  // until refresh) and is silently dropped by JSON (save/load drift).
   return drawnRaw.map((card) => {
+    const { triggerCondition: _drop, ...plain } = card;
     return {
-      ...card,
-      options: card.options.map((opt) => ({
+      ...plain,
+      options: plain.options.map((opt) => ({
         ...opt,
         canChoose: validateOptionAvailability(state, opt),
         governorateEffects: opt.governorateEffects ? opt.governorateEffects.map((g) => ({ ...g })) : undefined,

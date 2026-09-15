@@ -7,19 +7,19 @@ export interface UIState {
   isTurnSummaryModalOpen: boolean;
   isTurnReviewModalOpen: boolean;
   isRestartModalOpen: boolean;
-  isGuideModalOpen: boolean;
-  guideStep: number;
+  tourCompleted: boolean;
+  checklist: { decrees: boolean; province: boolean; endTurn: boolean };
   selectedStatForOptions: string | null;
   activeCommandPanel: string | null;
   commandPanelPinned: boolean;
   isStatsSidebarOpen: boolean;
 }
 
-const GUIDE_STORAGE_KEY = 'president_has_seen_guide_v1';
+const TOUR_KEY = 'president_guide_tour_v2';
 
-function checkInitialGuideSeen(): boolean {
+function checkTourSeen(): boolean {
   if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage.getItem(GUIDE_STORAGE_KEY) === 'true';
+    return window.localStorage.getItem(TOUR_KEY) === 'true';
   }
   return false;
 }
@@ -32,11 +32,11 @@ function createUIStore() {
     isTurnSummaryModalOpen: false,
     isTurnReviewModalOpen: false,
     isRestartModalOpen: false,
-    isGuideModalOpen: false, // TEMP-SHOT
-    guideStep: 0,
+    tourCompleted: checkTourSeen(),
+    checklist: { decrees: false, province: false, endTurn: false },
     selectedStatForOptions: null,
-    activeCommandPanel: 'decrees', // TEMP-SHOT
-    commandPanelPinned: true, // TEMP-SHOT
+    activeCommandPanel: null,
+    commandPanelPinned: false,
     isStatsSidebarOpen: false,
   });
 
@@ -61,14 +61,11 @@ function createUIStore() {
     setRestartModal: (open: boolean) => {
       update((s) => ({ ...s, isRestartModalOpen: open }));
     },
-    setGuideModal: (open: boolean, step: number = 0) => {
-      if (typeof window !== 'undefined' && window.localStorage && !open) {
-        window.localStorage.setItem(GUIDE_STORAGE_KEY, 'true');
-      }
-      update((s) => ({ ...s, isGuideModalOpen: open, guideStep: step }));
+    completeTour: () => {
+      update((s) => ({ ...s, tourCompleted: true }));
     },
-    setGuideStep: (step: number) => {
-      update((s) => ({ ...s, guideStep: step }));
+    checkItem: (item: 'decrees' | 'province' | 'endTurn') => {
+      update((s) => ({ ...s, checklist: { ...s.checklist, [item]: true } }));
     },
     openStatRelatedOptions: (statId: string) => {
       update((s) => {

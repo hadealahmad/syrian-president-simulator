@@ -1,6 +1,7 @@
 <script lang="ts">
   import { uiStore } from '../stores/ui-store';
   import { versionStore } from '../stores/version-store';
+  import { startGuideTour } from './guide-tour';
   import GameIcon from './GameIcon.svelte';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
@@ -21,9 +22,10 @@
     <GameIcon name="cycle" cls="w-4 h-4 text-wheat-dark group-hover:text-wheat-gold transition-colors {$versionStore.isChecking ? 'animate-spin' : ''} shrink-0" />
   </button>
 
-  <!-- Presidential Guidebook Button (icon only) -->
+  <!-- Presidential Guide Tour (icon only) -->
   <button
-    onclick={() => uiStore.setGuideModal(true, 0)}
+    data-tour="guide-btn"
+    onclick={() => startGuideTour()}
     class="h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer transition-all active:scale-95 rounded-none"
     title="دليل البروتوكول الرئاسي وإرشادات إدارة الدولة وطريقة اللعب"
     aria-label="دليل البروتوكول الرئاسي"

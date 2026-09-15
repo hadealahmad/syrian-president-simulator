@@ -43,11 +43,13 @@
 </script>
 
 <header
+  data-tour="treasury"
   class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <div class="h-full w-full min-w-[660px] grid grid-cols-6 grid-rows-2">
     <!-- End Turn: spans both rows, one column wide -->
     <div
+      data-tour="end-turn"
       role="button"
       tabindex="0"
       onclick={() => uiStore.setTurnReviewModal(true)}
@@ -70,6 +72,7 @@
     <!-- ROW 1: RESOURCES -->
 <!-- Item 2: Political Capital -->
     <div
+      data-tour="capital"
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
@@ -144,6 +147,7 @@
     </div>
 <!-- Item 4: FX Reserves USD -->
     <div
+      data-tour="reserves"
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
@@ -257,6 +261,7 @@
     <!-- ROW 2: INTERACTIONS -->
 <!-- Item 7: Parallel Rate -->
     <div
+      data-tour="fx-rate"
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
@@ -395,6 +400,7 @@
     </div>
 <!-- Item 7: National Unrest / RRI -->
     <div
+      data-tour="unrest"
       role="button"
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
