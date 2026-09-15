@@ -25,6 +25,9 @@ dist-ssr
 
 # Design and planning documents
 plan/
+
+# Knowledge graph outputs (local-only, regenerated via /graphify)
+graphify-out/
 Syria Post-War Economic Simulation Design.md
 
 # Build-generated public files
