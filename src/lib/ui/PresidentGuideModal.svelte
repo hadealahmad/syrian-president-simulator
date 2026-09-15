@@ -147,35 +147,6 @@
         },
       ],
     },
-    {
-      id: "endings",
-      badge: "الفصل 06",
-      title: "بوصلة المصير الوطني والنهايات الـ 13",
-      subtitle: "سجل خطوط الانهيار الفورية ومسارات المئوية التاريخية للجمهورية",
-      spotlight: "none",
-      sections: [
-        {
-          label: "خطوط الانهيار الخمسة (Fail States)",
-          desc: "تجنب السقوط الفوري: 1) الإفلاس بنفاد الدولار ($0). 2) العصيان المدني (احتقان >=80 وتمرد 4 محافظات). 3) انقلاب الجيش (أجور <$8 وفساد >75%). 4) البلقنة (انفصال السويداء >=85%). 5) الشلل الحكومي (صفر رصيد وصفر ثقة).",
-          tag: "خطوط الانهيار",
-        },
-        {
-          label: "نهايات المئوية الخمسة (Century Outcomes)",
-          desc: "عند إتمام الدور 40 بنجاح: 1) العنقاء السيادية (نهضة شاملة). 2) الإمارة المرهونة (ديون >$12B أو ارتهان الأصول). 3) صحراء العطش (عتمة وتصحر). 4) حصن الحامية (عسكرة وفساد >70%). 5) الجمهورية المفرغة (نزيف الكفاءات).",
-          tag: "المصائر الكبرى",
-        },
-        {
-          label: "مسارات الجبهة الجنوبية الثلاثة",
-          desc: "يتحدد مصير حوران وجبل العرب مستقلاً: 1) الجنوب المتصالح والمستقر (وفاق تاريخي واندماج >=80%). 2) مستنقع الكانتونات وشبكات التهريب (انفصال >=60%). 3) الجبهة العازلة والنزاع المجمد (هدنة هشة).",
-          tag: "مصير الجنوب",
-        },
-        {
-          label: "نصائح استراتيجية لتحقيق النصر",
-          desc: "فعّل جلسات المساءلة كل دور لشحن الرصيد السياسي مجاناً، استثمر $30M في شبكة الكهرباء، طهر الأراضي من الألغام، ونفذ المشاريع الاستراتيجية بالمحافظات لحصد أعلى تقييم وطني.",
-          tag: "استراتيجية الفوز",
-        },
-      ],
-    },
   ];
 
   let currentStep = $derived($uiStore.guideStep);
@@ -269,22 +240,11 @@
       >
         <!-- Modal Top Bar -->
         <header class="flex items-center justify-between px-5 py-3.5 bg-charcoal-deep border-b border-charcoal-mid shrink-0">
-          <div class="flex items-center gap-2.5">
-            <!-- Presidential Heraldic Icon -->
-            <div class="w-7 h-7 bg-forest-mid border border-wheat-gold flex items-center justify-center shrink-0 text-wheat-gold">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h2 class="text-sm font-bold text-wheat-light font-heading tracking-wide">البروتوكول الرئاسي // دليل قيادة الدولة</h2>
-                <span class="px-1.5 py-0.2 bg-wheat-gold/20 text-wheat-gold text-[9px] font-mono border border-wheat-gold/40 font-bold">
-                  {activeData.badge}
-                </span>
-              </div>
-              <p class="text-[10px] text-wheat-dark">وثيقة التوجيه الاستراتيجي لإدارة المرحلة الانتقالية</p>
-            </div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-bold text-wheat-light font-heading tracking-wide">دليل قيادة الدولة</h2>
+            <span class="px-1.5 py-0.2 bg-wheat-gold/20 text-wheat-gold text-[9px] font-mono border border-wheat-gold/40 font-bold">
+              {activeData.badge}
+            </span>
           </div>
 
           <!-- Dismiss Button -->
