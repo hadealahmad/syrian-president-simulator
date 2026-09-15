@@ -77,7 +77,7 @@
 | **التنسيق والأنماط** | [Tailwind CSS v4](https://tailwindcss.com/) مع خط `IBM Plex Sans Arabic` |
 | **الأدوات البرمجية** | [TypeScript](https://www.typescriptlang.org/) (Strict Mode) |
 | **حزم البناء والتشغيل** | [Vite 8](https://vitejs.dev/) |
-| **الأيقونات** | [Lucide Svelte](https://lucide.dev/) |
+| **الأيقونات** | Inline SVG (`public/icons.svg`) |
 | **النشر المستمر** | GitHub Actions & GitHub Pages |
 
 ---
@@ -89,26 +89,40 @@
 │   ├── lib/
 │   │   ├── engine/              # محرك المحاكاة الحسابي والنواة البرمجية
 │   │   │   ├── baseline.ts      # بيانات نقطة البداية الديموغرافية والمالية
+│   │   │   ├── century-engine.ts # محرك استشراف المئوية (الإسقاط حتى العام 100)
 │   │   │   ├── constants.ts     # الثوابت القومية والمحافظات والوزارات
 │   │   │   ├── revenues.ts      # تدقيق الموازنة والإيرادات والنفقات والعجز
 │   │   │   ├── currency.ts      # معادلات تسعير الصرف والكتلة النقدية M2
+│   │   │   ├── spatial.ts       # العدوى المكانية للاضطرابات والهجرة بين المحافظات
+│   │   │   ├── oligarch-helpers.ts # تسويات الأوليغارشية وتصفية الأصول
 │   │   │   ├── turn-manager.ts  # دورة حياة الدور والحسابات التنبؤية الفورية
 │   │   │   ├── events.ts        # سحب وتطبيق قرارات الأزمات الطارئة
 │   │   │   ├── fail-states.ts   # فحص شروط الانهيار والإفلاس السيادي
+│   │   │   ├── prng.ts          # مولد الأرقام العشوائية الحتمي
 │   │   │   ├── types.ts         # تعاريف النماذج البرمجية وأنماط TypeScript
 │   │   │   └── deck/            # حزم بطاقات الأحداث الإقليمية والوطنية
+│   │   ├── spatial3d/           # الخريطة السيادية (SVG ثنائي الأبعاد)
+│   │   │   ├── SyriaMap.svelte  # الخريطة المتجهية للمحافظات السورية
+│   │   │   └── syria-2d-paths.ts # مسارات SVG ومراكز المحافظات الـ 14
 │   │   ├── stores/              # إدارة الحالة اللامركزية (Svelte Stores)
 │   │   │   ├── game-store.ts    # حالة اللعبة الرئيسية والدور النشط
 │   │   │   ├── draft-store.ts   # مسودة القرارات والموازنة الفورية التقديرية
-│   │   │   └── ui-store.ts      # حالة النوافذ والحوارات والخرائط
+│   │   │   ├── ui-store.ts      # حالة النوافذ والحوارات والخرائط
+│   │   │   └── version-store.ts # نسخة البناء وكشف التحديثات
 │   │   └── ui/                  # واجهات المستخدم التفاعلية (Svelte Components)
 │   │       ├── TopRibbon.svelte         # الشريط العلوي والتوقعات التنبؤية
-│   │       ├── SyriaMap2D.svelte        # الخريطة المتجهية للمحافظات السورية
 │   │       ├── MinistryDrawer.svelte    # درج الوزارات والمراسيم السيادية
 │   │       ├── ProvincialDrawer.svelte  # درج المحافظة والمشاريع التنموية
+│   │       ├── FloatingCommandDeck.svelte # منصة الأوامر العائمة وتنفيذ الدور
 │   │       ├── TurnReviewModal.svelte   # مراجعة القرارات والمصادقة النهائية
 │   │       ├── TurnSummaryModal.svelte  # التقرير الختامي لنتائج الدور المالي
-│   │       └── EventModal.svelte        # نافذة قرارات الأزمات الرئاسية
+│   │       ├── EventModal.svelte        # نافذة قرارات الأزمات الرئاسية
+│   │       ├── FailStateModal.svelte    # نافذة شروط الانهيار والخسارة
+│   │       ├── CenturyReport.svelte     # تقرير استشراف المئوية الختامي
+│   │       ├── PresidentGuideModal.svelte # الدليل الرئاسي التفاعلي
+│   │       ├── RestartConfirmModal.svelte # تأكيد إعادة بدء اللعبة
+│   │       ├── SidebarToggleLip.svelte  # لسان طيّ القوائم الجانبية
+│   │       └── VersionUpdateBanner.svelte # شريط تنبيه النسخة الجديدة
 │   ├── App.svelte               # نقطة التركيب الرئيسية للتطبيق
 │   └── main.ts                  # تهيئة التطبيق
 ├── scripts/                     # نصوص اختبار المحاكاة والتحقق البرمجي
