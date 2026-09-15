@@ -35,5 +35,13 @@ export function createInitialGameState(seed: number = 20241208): GameState {
     activeEvents: [],
     lastTurnAudit: null,
     enactedDecrees: [],
+    // Pre-game baseline displacement (war years): seed corridors so migration
+    // arrows are visible from turn 1. Key `${fromId}>${toId}` → people.
+    migrationLedger: {
+      'raqqa>aleppo': 120_000,
+      'deir_ez_zor>damascus': 95_000,
+      'quneitra>damascus': 40_000,
+      'quneitra>daraa': 25_000,
+    },
   };
 }

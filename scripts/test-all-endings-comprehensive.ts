@@ -229,14 +229,19 @@ function resolveAffordableEvents(
   for (let t = 1; t <= 40; t++) {
     resolveAffordableEvents(state);
     const dir = getDefaultTurnDirectives();
-    dir.wageBumpPercent = 4;
-    dir.gridCapExUSD = 25_000_000;
+    dir.wageBumpPercent = 0;
+    dir.gridCapExUSD = 80_000_000;
     dir.southernPolicy = 'LOCAL_VOUCHERS';
     dir.activePoliticalActions = ['CABINET_HEARING'];
-    // Sign sovereign mortgages and IMF foreign loans
+    // Revenue-positive mix to stay solvent under live mortgage drains.
+    dir.nassibTransitFeeUSD = 800;
+    dir.remittanceCaptureSpread = 12;
+    dir.corporateTaxRate = 25;
+    dir.telecomExciseRate = 20;
+    // Sign all foreign loans + Tartus mortgage (leverage 27 < 35 keeps the ending).
     if (t === 1) {
       dir.signedLoanIds = ['loan_imf_wb', 'loan_gulf_swf', 'loan_eastern_credit'];
-      dir.executedMortgageIds = ['mortgage_tartus_port', 'mortgage_khneifis_phosphate'];
+      dir.executedMortgageIds = ['mortgage_tartus_port'];
     }
     state = executeTurnLifecycle(state, dir);
     if (state.isGameOver) break;

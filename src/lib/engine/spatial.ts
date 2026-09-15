@@ -1,4 +1,4 @@
-import type { GovernorateNode, UnrestTier, TurnDirectives, MigrationSummary } from './types';
+import type { GovernorateNode, UnrestTier, TurnDirectives, MigrationFlow, MigrationSummary } from './types';
 
 /**
  * Computes the Provincial Riot Risk Index (PRRI) for a governorate.
@@ -168,6 +168,7 @@ export function processInterProvincialMigration(
   let totalDisplacedMigrants = 0;
   let totalReturnees = 0;
   const summaryAr: string[] = [];
+  const flows: MigrationFlow[] = [];
 
   const govList = Object.values(governorates);
   const safeDestinations = govList.filter((g) => g.tier === 'CALM');
@@ -187,6 +188,7 @@ export function processInterProvincialMigration(
         for (const dest of targetSafe) {
           dest.population += perDest;
           dest.idpPopulation = (dest.idpPopulation ?? 0) + perDest;
+          if (perDest > 0) flows.push({ fromId: node.id, toId: dest.id, count: perDest, kind: 'flight' });
         }
         totalDisplacedMigrants += fledCount;
         summaryAr.push(`نزوح ${fledCount.toLocaleString('en-US')} مواطن من ${node.nameAr} بسبب اشتعال الشغب نحو المحافظات الآمنة.`);
@@ -210,5 +212,6 @@ export function processInterProvincialMigration(
     totalDisplacedMigrants,
     totalReturnees,
     summaryAr,
+    flows,
   };
 }

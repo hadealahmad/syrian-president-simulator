@@ -47,6 +47,7 @@ export function getDefaultTurnDirectives(): TurnDirectives {
     signedLoanIds: [],
     executedMortgageIds: [],
     expatriateBrainGainIncentive: false,
+    extraDebtRepaymentUSD: 0,
   };
 }
 
@@ -313,6 +314,8 @@ export function simulateTurnTransitions(
       if (loan && !loan.isSigned) {
         if (next.macro.politicalCapital >= loan.politicalCapitalCost) {
           loan.isSigned = true;
+          loan.signedTurn = next.turnNumber;
+          loan.remainingPrincipalUSD = loan.disbursementUSD;
           next.macro.reservesUSD += loan.disbursementUSD;
           next.macro.sovereignDebtUSD = (next.macro.sovereignDebtUSD ?? 6_800_000_000) + loan.disbursementUSD;
           next.macro.sovereignLeverage = Math.max(0, (next.macro.sovereignLeverage ?? 65) - 8);
@@ -489,6 +492,36 @@ export function simulateTurnTransitions(
   const audit = auditSemiannualBudget(next, directives);
   next.lastTurnAudit = audit;
 
+  // Voluntary early principal repayment, highest-rate loans first. Runs after
+  // the audit so interest accrues on the opening balance and the audit's own
+  // paid-amount clamp (same inputs, no mutation there) matches exactly.
+  const DEBT_REPAY_LEVERAGE_PER_100M = 2;
+  const SOVEREIGN_LEVERAGE_CAP = 65;
+  if ((directives.extraDebtRepaymentUSD ?? 0) > 0 && next.foreignLoans) {
+    const live = next.foreignLoans.filter(
+      (l) => l.isSigned && (l.remainingPrincipalUSD ?? l.disbursementUSD) > 0
+    );
+    const totalRemaining = live.reduce((acc, l) => acc + (l.remainingPrincipalUSD ?? l.disbursementUSD), 0);
+    let toPay = Math.max(0, Math.min(directives.extraDebtRepaymentUSD ?? 0, next.macro.reservesUSD, totalRemaining));
+    live.sort((a, b) => b.interestRatePct - a.interestRatePct);
+    for (const loan of live) {
+      if (toPay <= 0) break;
+      const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD;
+      const pay = Math.min(remaining, toPay);
+      loan.remainingPrincipalUSD = remaining - pay;
+      next.macro.sovereignDebtUSD = Math.max(0, (next.macro.sovereignDebtUSD ?? 0) - pay);
+      toPay -= pay;
+    }
+    const paid = Math.min(directives.extraDebtRepaymentUSD ?? 0, next.macro.reservesUSD, totalRemaining) - toPay;
+    if (paid > 0) {
+      next.macro.sovereignLeverage = Math.min(
+        SOVEREIGN_LEVERAGE_CAP,
+        (next.macro.sovereignLeverage ?? SOVEREIGN_LEVERAGE_CAP) +
+          Math.floor(paid / 100_000_000) * DEBT_REPAY_LEVERAGE_PER_100M
+      );
+    }
+  }
+
   next.macro.reservesUSD = Math.max(0, next.macro.reservesUSD + audit.netUSDDelta);
   next.macro.treasurySYP = next.macro.treasurySYP + audit.netSYPDelta;
   next.macro.m2MoneySupplySYP += audit.seignioragePrintedSYP;
@@ -607,6 +640,16 @@ export function simulateTurnTransitions(
 
   applySpatialContagion(next.governorates);
   next.lastMigrationReport = processInterProvincialMigration(next.governorates);
+  // Accumulate gov-to-gov legs into the persistent ledger (runs on a discarded
+  // clone during previews, so only committed turns persist history).
+  {
+    const ledger: Record<string, number> = { ...(next.migrationLedger ?? {}) };
+    for (const f of next.lastMigrationReport.flows) {
+      const key = `${f.fromId}>${f.toId}`;
+      ledger[key] = (ledger[key] ?? 0) + f.count;
+    }
+    next.migrationLedger = ledger;
+  }
 
   return next;
 }
@@ -741,6 +784,7 @@ export function calculateProjectedTurnSummary(
     runwayMonths: projected.lastTurnAudit?.runwayMonths ?? 99,
     deficitSYP,
     hasSelections: hasDraftSelections(directives),
+    migrationFlows: projected.lastMigrationReport?.flows ?? [],
   };
 }
 

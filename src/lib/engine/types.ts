@@ -75,6 +75,10 @@ export interface ForeignLoanPackage {
   politicalCapitalCost: number;
   concessionSummaryAr: string;
   isSigned: boolean;
+  /** Turn number the loan was signed on (service starts the following turn). */
+  signedTurn?: number;
+  /** Remaining principal; defaults to full disbursement for pre-feature saves. */
+  remainingPrincipalUSD?: number;
 }
 
 export interface SovereignMortgageOption {
@@ -214,6 +218,8 @@ export interface TurnDirectives {
   signedLoanIds: string[];
   executedMortgageIds: string[];
   expatriateBrainGainIncentive: boolean;
+  /** Voluntary early principal repayment for this turn (USD). Highest-rate loans first. */
+  extraDebtRepaymentUSD: number;
 }
 
 export interface RevenueAudit {
@@ -227,6 +233,12 @@ export interface RevenueAudit {
   expendedSYP: number;
   netSYPDelta: number;
   seignioragePrintedSYP: number;
+  /** Semiannual debt service paid this turn (legacy coupon + signed-loan interest). */
+  debtServiceUSD: number;
+  /** FX revenue forfeited to active sovereign mortgages this turn. */
+  mortgageDrainUSD: number;
+  /** Voluntary principal repaid this turn. */
+  debtRepaymentPaidUSD: number;
 }
 
 export interface PredictivePreviewRanges {
@@ -270,6 +282,8 @@ export interface ProjectedTurnSummary {
   runwayMonths: number;
   deficitSYP: number;
   hasSelections: boolean;
+  /** Predicted gov-to-gov displacement legs for next turn under current draft directives. */
+  migrationFlows: MigrationFlow[];
 }
 
 export interface EventGovernorateDelta {
@@ -353,10 +367,19 @@ export interface CenturyEnding {
   southernReportAr: string;
 }
 
+export interface MigrationFlow {
+  fromId: string;
+  toId: string;
+  count: number;
+  kind: 'flight';
+}
+
 export interface MigrationSummary {
   totalDisplacedMigrants: number;
   totalReturnees: number;
   summaryAr: string[];
+  /** Gov-to-gov internal displacement legs for this turn (returnees excluded: no origin gov). */
+  flows: MigrationFlow[];
 }
 
 export interface GameState {
@@ -379,5 +402,7 @@ export interface GameState {
   foreignLoans: ForeignLoanPackage[];
   sovereignMortgages: SovereignMortgageOption[];
   lastMigrationReport?: MigrationSummary;
+  /** Cumulative gov-to-gov displacement across committed turns: key `${fromId}>${toId}` → people. */
+  migrationLedger?: Record<string, number>;
   enactedDecrees?: string[];
 }

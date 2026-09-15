@@ -185,7 +185,43 @@ export function auditSemiannualBudget(
   const effectiveGridCapExUSD = gridCapExUSD * (1 - competenceWaste);
   macro.gridCapacityMW += Math.round((effectiveGridCapExUSD / 1_000_000) * 12);
 
-  const foreignDebtCouponUSD = 45_000_000;
+  // Sovereign debt service: flat legacy coupon on the pre-existing $6.8B stock
+  // (kept flat to preserve turn-1 balance) + semiannual interest on each signed
+  // loan at its own rate. Service on a loan starts the turn AFTER signing.
+  const LEGACY_DEBT_COUPON_USD = 45_000_000;
+  let signedLoanServiceUSD = 0;
+  if (state.foreignLoans) {
+    for (const loan of state.foreignLoans) {
+      if (loan.isSigned && (loan.signedTurn === undefined || loan.signedTurn < state.turnNumber)) {
+        const principal = loan.remainingPrincipalUSD ?? loan.disbursementUSD;
+        signedLoanServiceUSD += Math.floor(((principal * loan.interestRatePct) / 100 / 2));
+      }
+    }
+  }
+  const debtServiceUSD = LEGACY_DEBT_COUPON_USD + signedLoanServiceUSD;
+
+  // FX revenue forfeited to active sovereign mortgage concessions.
+  let mortgageDrainUSD = 0;
+  if (state.sovereignMortgages) {
+    for (const mort of state.sovereignMortgages) {
+      if (mort.isMortgaged) mortgageDrainUSD += mort.turnRevenueLossUSD;
+    }
+  }
+
+  // Voluntary early principal repayment (allocated highest-rate-first in the
+  // turn manager; recomputed here without mutation so rehearsal previews match).
+  let totalRemainingPrincipalUSD = 0;
+  if (state.foreignLoans) {
+    for (const loan of state.foreignLoans) {
+      if (loan.isSigned) {
+        totalRemainingPrincipalUSD += loan.remainingPrincipalUSD ?? loan.disbursementUSD;
+      }
+    }
+  }
+  const debtRepaymentPaidUSD = Math.max(
+    0,
+    Math.min(directives.extraDebtRepaymentUSD ?? 0, macro.reservesUSD, totalRemainingPrincipalUSD)
+  );
 
   // Demining priority expenditure (strictly when target governorate mine saturation > 8%)
   const isDeminingActive = Boolean(
@@ -223,7 +259,9 @@ export function auditSemiannualBudget(
     netWheatImportUSD +
     fuelImportUSD +
     gridCapExUSD +
-    foreignDebtCouponUSD +
+    debtServiceUSD +
+    mortgageDrainUSD +
+    debtRepaymentPaidUSD +
     emergencyDeminingUSD +
     powerBoostUSD +
     directives.dollarAuctionUSD +
@@ -343,5 +381,8 @@ export function auditSemiannualBudget(
     expendedSYP,
     netSYPDelta,
     seignioragePrintedSYP,
+    debtServiceUSD,
+    mortgageDrainUSD,
+    debtRepaymentPaidUSD,
   };
 }

@@ -12,7 +12,7 @@ export const MONETARY_EVENTS: EventCard[] = [
     options: [
       {
         id: 'opt_emergency_print',
-        labelAr: 'طباعة إصدار نقدي إسعافي فوري بدون تغطية',
+        labelAr: 'طباعة إصدار نقدي إسعافي فوري دون تغطية',
         descriptionAr: 'ضخ كتلة نقدية سريعة لملء الصرافات ودفع الرواتب فوراً على حساب تسارع التضخم وانهيار القوة الشرائية لليرة.',
         costUSD: 0,
         costSYP: -1_200_000_000_000,
