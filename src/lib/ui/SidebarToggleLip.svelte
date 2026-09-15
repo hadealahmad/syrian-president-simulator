@@ -1,5 +1,6 @@
 <script lang="ts">
   import { uiStore } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let isRightOpen = $derived($uiStore.isMinistryDrawerOpen);
@@ -20,29 +21,17 @@
     aria-label={areBothOpen ? 'إخفاء القوائم الجانبية' : 'إظهار القوائم الجانبية'}
   >
     {#if areBothOpen}
-      <!-- Inward Arrows: Collapse Both -->
-      <svg class="w-3.5 h-3.5 text-wheat-gold transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="4 14 10 14 10 20" />
-        <polyline points="20 10 14 10 14 4" />
-        <line x1="14" y1="10" x2="21" y2="3" />
-        <line x1="3" y1="21" x2="10" y2="14" />
-      </svg>
+      <!-- Collapse Both -->
+      <GameIcon name="contract" cls="w-4 h-4 text-wheat-gold transition-transform group-hover:scale-110 shrink-0" />
       <span class="text-[10px] font-arabic font-bold text-wheat-light hidden sm:inline">
         طَيّ القوائم
       </span>
-      <span class="text-[9px] text-wheat-dark font-mono">⇥⇤</span>
     {:else}
-      <!-- Outward Arrows: Expand Both -->
-      <svg class="w-3.5 h-3.5 text-wheat-gold transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 3 21 3 21 9" />
-        <polyline points="9 21 3 21 3 15" />
-        <line x1="21" y1="3" x2="14" y2="10" />
-        <line x1="3" y1="21" x2="10" y2="14" />
-      </svg>
+      <!-- Expand Both -->
+      <GameIcon name="expand" cls="w-4 h-4 text-wheat-gold transition-transform group-hover:scale-110 shrink-0" />
       <span class="text-[10px] font-arabic font-bold text-wheat-gold hidden sm:inline">
         فتح القوائم
       </span>
-      <span class="text-[9px] text-wheat-mid font-mono">⇤⇥</span>
     {/if}
   </button>
 
@@ -53,9 +42,7 @@
     title={isRightOpen ? 'إخفاء قائمة الوزارات والسياسات' : 'إظهار قائمة الوزارات والسياسات'}
     aria-label={isRightOpen ? 'إخفاء القائمة اليمنى' : 'إظهار القائمة اليمنى'}
   >
-    <svg class="w-3.5 h-3.5 transition-transform duration-300 {isRightOpen ? 'rotate-0' : 'rotate-180'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
+    <GameIcon name="plain-arrow" cls="w-4 h-4 transition-transform duration-300 {isRightOpen ? '-rotate-90' : 'rotate-90'} shrink-0" />
   </button>
 </div>
 
@@ -71,8 +58,6 @@
     title={isLeftOpen ? 'إخفاء القائمة الإقليمية للمحافظات' : 'إظهار القائمة الإقليمية للمحافظات'}
     aria-label={isLeftOpen ? 'إخفاء القائمة اليسرى' : 'إظهار القائمة اليسرى'}
   >
-    <svg class="w-3.5 h-3.5 transition-transform duration-300 {isLeftOpen ? 'rotate-0' : 'rotate-180'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6" />
-    </svg>
+    <GameIcon name="plain-arrow" cls="w-4 h-4 transition-transform duration-300 {isLeftOpen ? 'rotate-90' : '-rotate-90'} shrink-0" />
   </button>
 </div>

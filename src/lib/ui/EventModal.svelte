@@ -1,5 +1,6 @@
 <script lang="ts">
   import { gameStore } from '../stores/game-store';
+  import GameIcon from './GameIcon.svelte';
 
   function formatMillionUSD(usd: number): string {
     return (usd / 1_000_000).toFixed(1);
@@ -249,11 +250,7 @@
 
                   {#if !opt.canChoose && opt.deficitReason}
                     <div class="text-[11px] text-umber-glow font-medium pt-1 flex items-center gap-1.5">
-                      <svg class="w-3 h-3 shrink-0 text-umber-crimson" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
+                      <GameIcon name="cross-mark" cls="w-3.5 h-3.5 shrink-0 text-umber-crimson" />
                       <span>{opt.deficitReason}</span>
                     </div>
                   {:else if !opt.canChoose && opt.requirementsDescriptionAr}
@@ -366,11 +363,7 @@
 
             <!-- Warning note -->
             <div class="text-[11px] text-wheat-dark leading-relaxed flex items-start gap-2 bg-charcoal-surface/70 p-2.5 border border-charcoal-mid">
-              <svg class="w-4 h-4 text-wheat-gold shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
+              <GameIcon name="checked-shield" cls="w-4 h-4 text-wheat-gold shrink-0 mt-0.5" />
               <span>
                 عند تأكيد هذا الخيار، سيتم إنفاذ الأمر الرئاسي وخصم التكاليف من الموازنة واختتام معالجة هذه البرقية الطارئة.
               </span>

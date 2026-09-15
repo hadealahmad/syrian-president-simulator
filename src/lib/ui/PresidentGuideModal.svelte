@@ -1,5 +1,6 @@
 <script lang="ts">
   import { uiStore } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
 
     const STEPS = [
     {
@@ -253,7 +254,7 @@
             class="px-2.5 py-1 text-xs text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid border border-transparent hover:border-charcoal-mid transition-colors cursor-pointer font-heading flex items-center gap-1"
           >
             <span>تخطي الدليل</span>
-            <span class="font-mono text-[11px]">✕</span>
+            <GameIcon name="cross-mark" cls="w-3 h-3 shrink-0" />
           </button>
         </header>
 
@@ -324,18 +325,14 @@
                 class="flex items-center gap-1.5 px-4.5 py-1.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-md active:translate-y-0.5 cursor-pointer"
               >
                 <span>التالي</span>
-                <svg class="w-3.5 h-3.5 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
+                <GameIcon name="plain-arrow" cls="w-3.5 h-3.5 rotate-90 shrink-0" />
               </button>
             {:else}
               <button
                 onclick={handleClose}
                 class="flex items-center gap-2 px-5 py-1.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-xl active:translate-y-0.5 cursor-pointer"
               >
-                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <GameIcon name="check-mark" cls="w-3.5 h-3.5 shrink-0" />
                 <span>بدء الحكم وإغلاق الدليل</span>
               </button>
             {/if}

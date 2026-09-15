@@ -3,6 +3,7 @@
   import { gameStore } from '../stores/game-store';
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -133,7 +134,7 @@
             onclick={handleClose}
             class="text-wheat-dark hover:text-wheat-light text-sm px-2 py-1 bg-charcoal-surface hover:bg-forest-surface border border-charcoal-mid rounded-none transition-colors cursor-pointer"
           >
-            ✕
+            <GameIcon name="cross-mark" cls="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
         <p class="text-xs text-wheat-dark mt-1">
