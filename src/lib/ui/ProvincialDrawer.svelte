@@ -48,8 +48,6 @@
   let selectedId = $derived($uiStore.selectedGovernorateId);
   let node = $derived(selectedId ? $gameStore.governorates[selectedId] : null);
 
-  let activeProvincialTab = $state<'directives' | 'field'>('directives');
-
   let isSelectedForDemining = $derived($draftStore.deminingPriorityId === selectedId);
   let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);
   let canAffordDemining = $derived(
@@ -104,11 +102,7 @@
     isProjectAffordablePC && isProjectAffordable
   );
 
-  $effect(() => {
-    if (selectedId) {
-      activeProvincialTab = 'directives';
-    }
-  });
+
 </script>
 
 <aside
@@ -116,8 +110,8 @@
 >
   {#if node}
     <div class="space-y-4">
-      <!-- Dossier Header & Navigation Tabs -->
-      <div class="border-b border-charcoal-mid pb-3 space-y-2">
+      <!-- Dossier Header -->
+      <div class="border-b border-charcoal-mid pb-3">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
             <h2 class="text-base font-bold text-wheat-light font-heading">{node.nameAr}</h2>
@@ -131,27 +125,16 @@
             {ARCHETYPE_NAMES_AR[node.archetype] ?? node.archetype}
           </span>
         </div>
-
-        <!-- 2 Clean Dossier Tabs -->
-        <div class="grid grid-cols-2 gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none">
-          <button
-            onclick={() => (activeProvincialTab = 'directives')}
-            class="py-1.5 px-3 text-xs font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'directives' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
-          >
-            القرارات والمشاريع
-          </button>
-          <button
-            onclick={() => (activeProvincialTab = 'field')}
-            class="py-1.5 px-3 text-xs font-semibold transition-colors rounded-none text-center cursor-pointer {activeProvincialTab === 'field' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
-          >
-            نظرة عامة والموقف الميداني
-          </button>
-        </div>
       </div>
 
-      <!-- SUB-TAB 1: DIRECTIVES & STRATEGIC INVESTMENTS -->
-      {#if activeProvincialTab === 'directives'}
-        <div class="space-y-4">
+      <!-- SECTION 1: SOVEREIGN DIRECTIVES & STRATEGIC PROJECTS -->
+      <div class="space-y-3">
+        <div class="flex items-center gap-2 pt-1 pb-1 border-b border-charcoal-mid/80">
+          <span class="w-1.5 h-3.5 bg-wheat-gold"></span>
+          <h3 class="text-xs font-bold text-wheat-gold font-heading tracking-wide">
+            القرارات والمشاريع السيادية
+          </h3>
+        </div>
           <!-- Sovereign Strategic Project Card -->
           <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-2.5 rounded-none transition-all duration-300 {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
             <!-- Title & Field Challenge (content moved outside card under title) -->
@@ -354,11 +337,17 @@
               </span>
             </div>
           </div>
-        </div>
+      </div>
 
-      <!-- SUB-TAB 2: FIELD SITUATION & DEMOGRAPHICS DOSSIER -->
-      {:else if activeProvincialTab === 'field'}
-        <div class="space-y-3 text-xs">
+      <!-- SECTION 2: SPECIAL DOSSIERS (If Golan or Suwayda) -->
+      {#if node.id === 'quneitra' || node.id === 'as_suwayda'}
+        <div class="space-y-3 pt-2">
+          <div class="flex items-center gap-2 pb-1 border-b border-charcoal-mid/80">
+            <span class="w-1.5 h-3.5 bg-amber-500"></span>
+            <h3 class="text-xs font-bold text-amber-400 font-heading tracking-wide">
+              الملفات الأمنية والسيادية الخاصة
+            </h3>
+          </div>
           <!-- Special Dossier: Golan Foreign Interference (Golan / Quneitra) -->
           {#if node.id === 'quneitra'}
             {@const golanTension = node.golanTensionIndex ?? $gameStore.governorates['quneitra']?.golanTensionIndex ?? $gameStore.governorates['daraa']?.golanTensionIndex ?? 45}
@@ -468,8 +457,20 @@
             </div>
           {/if}
 
-          <!-- Demographic Census Ledger -->
-          <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-2 rounded-none">
+        </div>
+      {/if}
+
+      <!-- SECTION 3: FIELD SITUATION & DEMOGRAPHIC ASSESSMENT -->
+      <div class="space-y-3 pt-2 text-xs">
+        <div class="flex items-center gap-2 pb-1 border-b border-charcoal-mid/80">
+          <span class="w-1.5 h-3.5 bg-wheat-mid"></span>
+          <h3 class="text-xs font-bold text-wheat-light font-heading tracking-wide">
+            الموقف الميداني والواقع الخدمي والديموغرافي
+          </h3>
+        </div>
+
+        <!-- Demographic Census Ledger -->
+        <div class="p-3 bg-charcoal-surface border border-charcoal-mid space-y-2 rounded-none">
             <div class="flex justify-between items-center">
               <span class="text-wheat-dark font-heading">إجمالي السكان المقيمين والنازحين:</span>
               <span class="font-bold text-wheat-light font-mono">{formatNumber(node.population)} نسمة</span>
@@ -528,8 +529,7 @@
               {/each}
             </div>
           </div>
-        </div>
-      {/if}
+      </div>
     </div>
   {:else}
     <!-- Empty State: Clear Instructions to Player -->
