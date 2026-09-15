@@ -2,6 +2,7 @@
   import { gameStore } from '../stores/game-store';
   import { projectedTurnStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
 
   function formatNumber(num: number): string {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
@@ -48,7 +49,11 @@
   <!-- ========================================================================= -->
   <div class="h-[41px] w-full min-w-[660px] grid grid-cols-7 border-b border-charcoal-mid/60">
     <!-- Item 1: Turn & Calendar (Distinct Background) -->
-    <div class="h-full px-1 flex flex-col justify-center items-center text-center bg-forest-surface/50 transition-colors min-w-0">
+    <div class="h-full px-1 flex flex-row items-stretch text-center bg-forest-surface/50 transition-colors min-w-0">
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="hourglass" cls="w-6 h-6 text-wheat-gold shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-xs text-wheat-gold font-bold font-mono font-heading whitespace-nowrap">الدور {String($gameStore.turnNumber).padStart(2, '0')}/40</span>
         <span class="text-[10px] text-wheat-mid font-mono whitespace-nowrap">({$gameStore.calendarYear})</span>
@@ -61,6 +66,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 2: Political Capital -->
@@ -69,9 +75,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الرصيد السياسي السيادي: الحالي {p.politicalCapital.current}% | المتوقع {p.politicalCapital.projected}% ({p.politicalCapital.pctChange > 0 ? '+' : ''}{p.politicalCapital.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="crown-coin" cls="w-6 h-6 text-wheat-gold shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
         {#if p.politicalCapital.isChanged}
@@ -91,6 +101,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 3: Public Treasury SYP -->
@@ -99,9 +110,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('treasurySYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('treasurySYP'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الخزينة العامة: الحالي {formatTrillion(p.treasurySYP.current)}T ل.س {p.treasurySYP.current < 0 ? '(عجز)' : ''} | المتوقع للدور القادم {formatTrillion(p.treasurySYP.projected)}T ل.س {p.treasurySYP.projected < 0 ? '(عجز)' : ''} ({p.treasurySYP.pctChange > 0 ? '+' : ''}{p.treasurySYP.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="money-stack" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الخزينة</span>
         {#if p.treasurySYP.isChanged}
@@ -127,6 +142,7 @@
           <span class="text-[8.5px] {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">ل.س</span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 4: FX Reserves USD -->
@@ -135,9 +151,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('reservesUSD'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="احتياطي النقد الأجنبي: الحالي ${formatMillionUSD(p.reservesUSD.current)}M | المتوقع للدور القادم ${formatMillionUSD(p.reservesUSD.projected)}M ({p.reservesUSD.pctChange > 0 ? '+' : ''}{p.reservesUSD.pctChange.toFixed(1)}%) | كفاية الاحتياطي: {runwayMonths} شهراً"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="coins" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتياطي ($)</span>
         {#if p.reservesUSD.isChanged}
@@ -165,6 +185,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 5: Wage Bill -->
@@ -173,9 +194,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilPayrollSYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilPayrollSYP'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilPayrollSYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="فاتورة الرواتب والأجور (لكل دور 6 أشهر): الحالي {formatTrillion(p.civilPayrollSYP.current)}T ل.س | المتوقع {formatTrillion(p.civilPayrollSYP.projected)}T ل.س ({p.civilPayrollSYP.pctChange > 0 ? '+' : ''}{p.civilPayrollSYP.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="wallet" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">فاتورة الرواتب</span>
         {#if p.civilPayrollSYP.isChanged}
@@ -197,6 +222,7 @@
           <span class="text-[8.5px] text-wheat-dark font-normal">ل.س</span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 6: Real Wage USD -->
@@ -205,9 +231,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="أجر الموظف الحقيقي بالدولار: الحالي ${p.realWageUSD.current} | المتوقع ${p.realWageUSD.projected} ({p.realWageUSD.pctChange > 0 ? '+' : ''}{p.realWageUSD.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="banknote" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
         {#if p.realWageUSD.isChanged}
@@ -229,6 +259,7 @@
           <span class="text-[8.5px] text-wheat-dark font-normal">/ش</span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 7: Parallel Rate -->
@@ -237,9 +268,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('parallelRate'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="سعر صرف الليرة بالسوق الموازي: الحالي 1$ = {formatNumber(p.parallelRateSYP.current)} | المتوقع 1$ = {formatNumber(p.parallelRateSYP.projected)} ({p.parallelRateSYP.pctChange > 0 ? '+' : ''}{p.parallelRateSYP.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="trade" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">السوق الموازي</span>
         {#if p.parallelRateSYP.isChanged}
@@ -259,6 +294,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
   </div>
 
@@ -272,9 +308,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceHeadcount')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceHeadcount'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none min-w-0 {selectedStat === 'civilServiceHeadcount' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none min-w-0 {selectedStat === 'civilServiceHeadcount' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الجهاز الوظيفي العام: الحالي {formatMillionPeople(p.civilServiceHeadcount.current)}M موظف ({formatNumber(p.civilServiceHeadcount.current)}) | المتوقع {formatMillionPeople(p.civilServiceHeadcount.projected)}M ({p.civilServiceHeadcount.pctChange > 0 ? '+' : ''}{p.civilServiceHeadcount.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="meeple-group" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الموظفون</span>
         {#if p.civilServiceHeadcount.isChanged}
@@ -294,6 +334,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 2: External Sovereign Debt USD -->
@@ -302,9 +343,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="الدين السيادي الخارجي: الحالي ${formatBillionUSD(p.sovereignDebtUSD.current)}B | المتوقع ${formatBillionUSD(p.sovereignDebtUSD.projected)}B ({p.sovereignDebtUSD.pctChange > 0 ? '+' : ''}{p.sovereignDebtUSD.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="scales" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الدين الخارجي</span>
         {#if p.sovereignDebtUSD.isChanged}
@@ -324,6 +369,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 3: Tax Compliance Rate -->
@@ -332,9 +378,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('taxCompliancePct')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('taxCompliancePct'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="معدل الامتثال والتحصيل الضريبي: الحالي {p.taxCompliancePct.current}% | المتوقع {p.taxCompliancePct.projected}% ({p.taxCompliancePct.pctChange > 0 ? '+' : ''}{p.taxCompliancePct.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="abacus" cls="w-6 h-6 text-forest-accent/80 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الامتثال الضريبي</span>
         {#if p.taxCompliancePct.isChanged}
@@ -354,6 +404,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 4: Systemic Corruption -->
@@ -362,9 +413,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('systemicCorruption')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('systemicCorruption'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الفساد المؤسسي والتسرب: الحالي {p.systemicCorruption.current}/100 | المتوقع {p.systemicCorruption.projected}/100 ({p.systemicCorruption.pctChange > 0 ? '+' : ''}{p.systemicCorruption.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="blindfold" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الفساد المؤسسي</span>
         {#if p.systemicCorruption.isChanged}
@@ -386,6 +441,7 @@
           <span class="text-[8.5px] text-wheat-dark font-normal">/100</span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 5: Civic Trust -->
@@ -394,9 +450,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civicTrust')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civicTrust'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الثقة الشعبية بالحكومة: الحالي {p.civicTrust.current}% | المتوقع {p.civicTrust.projected}% ({p.civicTrust.pctChange > 0 ? '+' : ''}{p.civicTrust.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="crowned-heart" cls="w-6 h-6 text-forest-accent/80 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الثقة الشعبية</span>
         {#if p.civicTrust.isChanged}
@@ -416,6 +476,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 6: Sovereign Leverage -->
@@ -424,9 +485,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignLeverage')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignLeverage'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignLeverage' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignLeverage' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر السيادة والاستقلال الاستراتيجي: الحالي {p.sovereignLeverage.current}% | المتوقع {p.sovereignLeverage.projected}% ({p.sovereignLeverage.pctChange > 0 ? '+' : ''}{p.sovereignLeverage.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="stone-throne" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">السيادة الوطنية</span>
         {#if p.sovereignLeverage.isChanged}
@@ -446,6 +511,7 @@
           </span>
         {/if}
       </div>
+      </div>
     </div>
 
     <!-- Item 7: National Unrest / RRI -->
@@ -454,9 +520,13 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('unrestIndex'); }}
-      class="h-full px-1 flex flex-col justify-center items-center text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full px-1 flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title="مؤشر الاحتقان الوطني: الحالي {p.nationalRRI.current}/100 | المتوقع للدور القادم {p.nationalRRI.projected}/100 ({p.nationalRRI.pctChange > 0 ? '+' : ''}{p.nationalRRI.pctChange.toFixed(1)}%)"
     >
+      <div class="flex items-center justify-center px-1.5 border-l border-charcoal-mid/60 bg-forest-surface/40 shrink-0">
+        <GameIcon name="flame" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+      </div>
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتقان الوطني</span>
         {#if p.nationalRRI.isChanged}
@@ -481,6 +551,7 @@
         {:else}
           <span class="text-[8.5px] text-wheat-dark font-normal">/100</span>
         {/if}
+      </div>
       </div>
     </div>
   </div>

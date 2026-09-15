@@ -2,6 +2,7 @@
   import { gameStore } from '../stores/game-store';
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore, type MinistryTab } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -331,10 +332,10 @@
         </div>
         <button
           onclick={() => uiStore.closeStatRelatedOptions()}
-          class="px-2 py-0.5 text-[9.5px] bg-forest-mid hover:bg-forest-deep border border-charcoal-mid text-wheat-light hover:text-wheat-gold cursor-pointer shrink-0 font-bold transition-colors"
+          class="px-2 py-0.5 text-[9.5px] bg-forest-mid hover:bg-forest-deep border border-charcoal-mid text-wheat-light hover:text-wheat-gold cursor-pointer shrink-0 font-bold transition-colors flex items-center gap-1"
           title="إلغاء التصفية واستعادة تفاعل كافة الخيارات"
         >
-          ✕ إلغاء التصفية
+          <GameIcon name="cross-mark" cls="w-3 h-3 shrink-0" /> إلغاء التصفية
         </button>
       </div>
     {/if}

@@ -77,8 +77,10 @@
 | **التنسيق والأنماط** | [Tailwind CSS v4](https://tailwindcss.com/) مع خط `IBM Plex Sans Arabic` |
 | **الأدوات البرمجية** | [TypeScript](https://www.typescriptlang.org/) (Strict Mode) |
 | **حزم البناء والتشغيل** | [Vite 8](https://vitejs.dev/) |
-| **الأيقونات** | Inline SVG (`public/icons.svg`) |
+| **الأيقونات** | [Game Icons](https://game-icons.net/) عبر [Iconify](https://icones.js.org/) (مدمجة كـ SVG في `src/lib/ui/GameIcon.svelte`) |
 | **النشر المستمر** | GitHub Actions & GitHub Pages |
+
+> **تنبيه الحقوق (Icon credit):** جميع أيقونات الواجهة من مجموعة [Game Icons](https://game-icons.net/) (رخصة [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/))، ووجوه القبول من مجموعة [Remix Icon](https://remixicon.com/) (رخصة [Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0))، مأخوذة عبر [Iconify](https://icones.js.org/) ومدمجة محلياً في `src/lib/ui/GameIcon.svelte` — لا توجد حزمة أيقونات خارجية في الاعتماديات.
 
 ---
 

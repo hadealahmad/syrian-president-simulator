@@ -2,7 +2,9 @@
   import { gameStore } from '../stores/game-store';
   import { uiStore } from '../stores/ui-store';
   import { draftStore } from '../stores/draft-store';
+  import GameIcon from '../ui/GameIcon.svelte';
   import { SYRIA_2D_GOVERNORATES, SYRIA_2D_VIEWBOX } from './syria-2d-paths';
+  import type { GovernorateNode } from '../engine/types';
 
   let hoveredGovId = $state<string | null>(null);
 
@@ -29,23 +31,41 @@
     REVOLT: 'تمرد مسلح',
   };
 
-  function getGovFillColor(tier: string, isHovered: boolean, isSelected: boolean): string {
-    if (isSelected) {
-      if (tier === 'CALM') return '#4ea093';
-      if (tier === 'TENSE') return '#b09c73';
-      if (tier === 'RIOT') return '#822633';
-      return '#5e1b26';
-    }
-    if (isHovered) {
-      if (tier === 'CALM') return SYID_COLORS.forestLight;
-      if (tier === 'TENSE') return SYID_COLORS.wheatLight;
-      if (tier === 'RIOT') return '#7e2432';
-      return '#571823';
-    }
-    if (tier === 'CALM') return SYID_COLORS.forest;
-    if (tier === 'TENSE') return SYID_COLORS.wheat;
-    if (tier === 'RIOT') return SYID_COLORS.umber;
-    return SYID_COLORS.umberDark;
+  // Composite attention index: mean of four normalized strains (mines, blackout,
+  // unrebuilt share, unrest). 0 = needs nothing, 1 = needs everything. Drives the
+  // fill heat so the eye goes where decisions are needed.
+  function attentionIndex(gov: GovernorateNode | undefined): number {
+    if (!gov) return 0.3;
+    return (
+      gov.mineSaturationPct / 100 +
+      gov.dailyBlackoutHours / 24 +
+      (1 - gov.reconstructionScore) +
+      gov.prri / 100
+    ) / 4;
+  }
+
+  // Dark red (worst) -> gold (mid) -> green (best) health ramp. Deep, muted tones
+  // so the bright status glyphs always read on top of the fill.
+  const RAMP_WORST: [number, number, number] = [74, 21, 30]; // umber dark red
+  const RAMP_MID: [number, number, number] = [152, 133, 97]; // golden wheat
+  const RAMP_BEST: [number, number, number] = [46, 107, 95]; // deep forest green
+
+  function lerp3(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
+    return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t)];
+  }
+
+  function healthFill(h: number): string {
+    const t = Math.min(1, Math.max(0, h));
+    const c = t < 0.5 ? lerp3(RAMP_WORST, RAMP_MID, t * 2) : lerp3(RAMP_MID, RAMP_BEST, (t - 0.5) * 2);
+    return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  }
+
+  function getGovFillColor(gov: GovernorateNode | undefined, isHovered: boolean, isSelected: boolean): string {
+    // Health is the inverse of the attention index, spread-calibrated to turn-1 values.
+    const health = 1 - Math.min(1, Math.max(0, (attentionIndex(gov) - 0.25) / 0.5));
+    if (isSelected) return healthFill(Math.min(1, health + 0.3));
+    if (isHovered) return healthFill(Math.min(1, health + 0.12));
+    return healthFill(health);
   }
 
   function handleGovClick(govId: string): void {
@@ -99,7 +119,7 @@
         {@const tier = govState?.tier ?? 'CALM'}
         {@const isHovered = hoveredGovId === gov.id}
         {@const isSelected = $uiStore.selectedGovernorateId === gov.id}
-        {@const fill = getGovFillColor(tier, isHovered, isSelected)}
+        {@const fill = getGovFillColor(govState, isHovered, isSelected)}
         {@const stroke = isSelected ? SYID_COLORS.selectedStroke : isHovered ? SYID_COLORS.hoverStroke : SYID_COLORS.charcoalBorder}
         {@const strokeWidth = isSelected ? 3.5 : isHovered ? 2.8 : 1.6}
 
@@ -112,7 +132,7 @@
           stroke-linejoin="round"
           stroke-linecap="round"
           filter={isSelected ? 'url(#syid-selected-glow)' : isHovered ? 'url(#syid-glow)' : undefined}
-          class="transition-all duration-150 ease-out"
+          class="transition-all duration-150 ease-out focus:outline-none [-webkit-tap-highlight-color:transparent]"
           onclick={() => handleGovClick(gov.id)}
           onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && handleGovClick(gov.id)}
           onmouseenter={() => handleGovMouseEnter(gov.id)}
@@ -126,34 +146,24 @@
       {/each}
     </g>
 
-    <!-- Tactical Center Indicators: Infrastructure & Mine Markers (Subtle, strictly no text labels) -->
+    <!-- On-Map Status Cluster: fixed 2x2 slots (mines / power / rebuilding / acceptance) -->
     <g class="pointer-events-none">
       {#each SYRIA_2D_GOVERNORATES as gov (gov.id)}
         {@const govState = $gameStore.governorates[gov.id]}
         {#if govState}
           {@const [cx, cy] = gov.center}
-          <!-- Demining Hazard Marker if contaminated -->
-          {#if govState.mineSaturationPct > 12}
-            <circle
-              cx={cx - 7}
-              cy={cy}
-              r="2.5"
-              fill="#ce1126"
-              stroke="#0D1117"
-              stroke-width="0.8"
-            />
+          {@const mined = govState.mineSaturationPct > 12}
+          {@const powerColor = govState.dailyBlackoutHours <= 12 ? '#3fb950' : govState.dailyBlackoutHours <= 16 ? '#f5d547' : '#ce1126'}
+          {@const rebuildName = govState.reconstructionScore >= 0.85 ? 'stone-wall' : govState.reconstructionScore >= 0.55 ? 'brick-wall' : 'broken-wall'}
+          {@const rebuildColor = govState.reconstructionScore >= 0.85 ? '#3fb950' : govState.reconstructionScore >= 0.55 ? '#b9a779' : '#ce1126'}
+          {@const faceName = govState.tier === 'CALM' ? 'emotion-happy-fill' : govState.tier === 'TENSE' ? 'emotion-normal-fill' : 'emotion-sad-fill'}
+          {@const faceColor = govState.tier === 'CALM' ? '#3fb950' : govState.tier === 'TENSE' ? '#f5d547' : '#ce1126'}
+          {#if mined}
+            <GameIcon name="minefield" color="#ce1126" outline="#0D1117" x={cx - 26} y={cy - 26} size={24} />
           {/if}
-          <!-- Power Grid Stability Indicator if supplied -->
-          {#if govState.dailyBlackoutHours <= 12}
-            <circle
-              cx={cx + 7}
-              cy={cy}
-              r="2.2"
-              fill="#f5d547"
-              stroke="#0D1117"
-              stroke-width="0.8"
-            />
-          {/if}
+          <GameIcon name="power-generator" color={powerColor} outline="#0D1117" x={cx + 2} y={cy - 26} size={24} />
+          <GameIcon name={rebuildName} color={rebuildColor} outline="#0D1117" x={cx - 26} y={cy + 2} size={24} />
+          <GameIcon name={faceName} color={faceColor} outline="#0D1117" x={cx + 2} y={cy + 2} size={24} />
         {/if}
       {/each}
     </g>
