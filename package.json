@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
-    "deploy": "node scripts/deploy-gh-pages.js"
+    "deploy": "node scripts/deploy-gh-pages.js",
+    "test:endings": "npx tsx scripts/test-all-endings-comprehensive.ts"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.0",

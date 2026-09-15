@@ -453,6 +453,48 @@
                 </div>
               </div>
 
+              <!-- Southern Policy Command Selector -->
+              <div class="space-y-1.5 pt-2 border-t border-charcoal-mid">
+                <span class="text-[10.5px] text-wheat-mid font-heading block">توجيه سياسة الجبهة الجنوبية:</span>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onclick={() => draftStore.setField('southernPolicy', 'HISTORIC_ACCORD')}
+                    class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'HISTORIC_ACCORD' ? 'bg-forest-surface border-forest-accent text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
+                  >
+                    <div class="font-bold text-[10px] leading-tight text-forest-accent">الوفاق التاريخي</div>
+                    <div class="text-[8.5px] text-wheat-dark leading-snug">وفاق السهل والجبل (+18 اندماج)</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onclick={() => draftStore.setField('southernPolicy', 'LOCAL_VOUCHERS')}
+                    class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'LOCAL_VOUCHERS' ? 'bg-forest-surface border-wheat-gold text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
+                  >
+                    <div class="font-bold text-[10px] leading-tight text-wheat-gold">قسائم الإغاثة</div>
+                    <div class="text-[8.5px] text-wheat-dark leading-snug">دعم مقنن وهدنة هادئة (+4 اندماج)</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onclick={() => draftStore.setField('southernPolicy', 'UNCONDITIONAL_AID')}
+                    class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'UNCONDITIONAL_AID' ? 'bg-forest-surface border-amber-500 text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
+                  >
+                    <div class="font-bold text-[10px] leading-tight text-amber-300">مساعدات مفتوحة</div>
+                    <div class="text-[8.5px] text-wheat-dark leading-snug">تهدئة عاجلة واستفزاز البدو</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onclick={() => draftStore.setField('southernPolicy', 'BLOCKADE')}
+                    class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'BLOCKADE' ? 'bg-umber-deep border-umber-border text-umber-crimson shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
+                  >
+                    <div class="font-bold text-[10px] leading-tight text-umber-crimson">الحصار الأمني</div>
+                    <div class="text-[8.5px] text-wheat-dark leading-snug">عزل وتصعيد (+30 انفصال)</div>
+                  </button>
+                </div>
+              </div>
+
 
             </div>
           {/if}

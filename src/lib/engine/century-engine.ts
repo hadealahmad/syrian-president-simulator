@@ -30,7 +30,14 @@ export function projectCenturyOutcome(state: GameState): CenturyEnding {
   let reportAr =
     'نجحت الدولة في تفادي الانهيار العسكري الشامل، لكنها بقيت عالقة في مستنقع الاقتصاد الريعي الهش. هاجر معظم الأطباء والمهندسين وأصحاب الحرف، وتحولت الجمهورية إلى مجتمع استهلاكي يعيش على حوالات أبنائه في الخارج دون قاعدة إنتاجية صلبة.';
 
-  if (finalScore >= 80 && macro.systemicCorruption < 40 && avgReconstruction >= 0.80) {
+  if (
+    finalScore >= 80 &&
+    macro.systemicCorruption < 40 &&
+    avgReconstruction >= 0.65 &&
+    macro.sovereignLeverage >= 50 &&
+    macro.sovereignDebtUSD <= 10_000_000_000 &&
+    macro.dailyPowerHours >= 12
+  ) {
     id = 'sovereign_phoenix';
     titleAr = 'العنقاء السيادية: النهضة السورية الكبرى';
     subtitleAr = 'استعادة الإنتاج الصناعي، السيادة النقدية، وبناء دولة المؤسسات';

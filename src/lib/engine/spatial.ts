@@ -76,7 +76,7 @@ export function updateSouthernFront(
         suwayda.prri = Math.max(10, suwayda.prri - 8);
         break;
       case 'UNCONDITIONAL_AID':
-        sii = Math.min(100, sii + 4);
+        sii = Math.min(55, sii + 3);
         ssp = Math.max(0, ssp - 10);
         tri = Math.min(100, tri + 20);
         break;
@@ -87,7 +87,7 @@ export function updateSouthernFront(
         suwayda.prri = Math.min(100, suwayda.prri + 25);
         break;
       case 'LOCAL_VOUCHERS':
-        sii = Math.min(100, sii + 6);
+        sii = Math.min(65, sii + 4);
         ssp = Math.max(0, ssp - 5);
         tri = Math.max(0, tri - 2);
         break;

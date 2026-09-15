@@ -133,7 +133,8 @@ export function resolveEventOption(
         gov.activeHospitalsPct = Math.max(0, Math.min(100, gov.activeHospitalsPct + eff.activeHospitalsPct));
       }
       if (eff.reconstructionScore !== undefined) {
-        gov.reconstructionScore = Math.max(0, Math.min(100, gov.reconstructionScore + eff.reconstructionScore));
+        const delta = Math.abs(eff.reconstructionScore) > 1 ? eff.reconstructionScore / 100 : eff.reconstructionScore;
+        gov.reconstructionScore = Math.max(0, Math.min(1.0, gov.reconstructionScore + delta));
       }
       if (eff.suwaydaIntegrationIndex !== undefined && gov.suwaydaIntegrationIndex !== undefined) {
         gov.suwaydaIntegrationIndex = Math.max(0, Math.min(100, gov.suwaydaIntegrationIndex + eff.suwaydaIntegrationIndex));
@@ -168,6 +169,15 @@ export function resolveEventOption(
       state.governorates['as_suwayda'].suwaydaSecessionProb = 0;
       state.governorates['as_suwayda'].tribalRageIndex = 0;
       state.governorates['as_suwayda'].prri = 15;
+    }
+  }
+
+  if (optionId === 'opt_disarm_suwayda') {
+    if (state.governorates['as_suwayda']) {
+      state.governorates['as_suwayda'].suwaydaSecessionProb = 95;
+      state.governorates['as_suwayda'].suwaydaIntegrationIndex = 0;
+      state.governorates['as_suwayda'].prri = 85;
+      state.governorates['as_suwayda'].tier = 'REVOLT';
     }
   }
 

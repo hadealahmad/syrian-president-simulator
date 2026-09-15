@@ -24,6 +24,13 @@
     return val.toFixed(2);
   }
 
+  const SOUTHERN_POLICY_NAMES_AR: Record<string, string> = {
+    HISTORIC_ACCORD: "الوفاق التاريخي الشامل (وفاق السهل والجبل)",
+    LOCAL_VOUCHERS: "قسائم الإغاثة المحلية المشروطة",
+    UNCONDITIONAL_AID: "المساعدات الإنسانية المفتوحة",
+    BLOCKADE: "الحصار الأمني المشدد وإغلاق المعابر",
+  };
+
   const DECREE_TITLES_AR: Record<string, string> = {
     ANTI_CORRUPTION_COMMISSION: 'مرسوم إطلاق هيئة النزاهة وتدقيق الأصول',
     PROPERTY_RESTITUTION_PORTAL: 'المنصة الرقمية لرد الملكيات العقارية للاجئين',
@@ -615,6 +622,30 @@
             </button>
           </div>
         {/each}
+
+        <!-- 14. Southern Policy Directives -->
+        {#if $draftStore.southernPolicy && $draftStore.southernPolicy !== 'LOCAL_VOUCHERS'}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-0.5">
+              <span class="font-bold text-wheat-light block font-heading">
+                الجبهة الجنوبية: {SOUTHERN_POLICY_NAMES_AR[$draftStore.southernPolicy] ?? $draftStore.southernPolicy}
+              </span>
+              <span class="text-[10px] text-wheat-dark block font-mono">
+                {$draftStore.southernPolicy === 'HISTORIC_ACCORD'
+                  ? 'رعاية وفاق تاريخي بين جبل العرب واللجاة (+18 اندماج، -15 احتمال انفصال)'
+                  : $draftStore.southernPolicy === 'BLOCKADE'
+                    ? 'إغلاق المعابر والحصار الأمني المشدد (+30% خطر انفصال)'
+                    : 'مساعدات إغاثية غير مشروطة (+4 اندماج، +20 احتقان بدو اللجاة)'}
+              </span>
+            </div>
+            <button
+              onclick={() => draftStore.setField('southernPolicy', 'LOCAL_VOUCHERS')}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء التوجيه
+            </button>
+          </div>
+        {/if}
       </div>
 
       <!-- Footer & Final Action -->

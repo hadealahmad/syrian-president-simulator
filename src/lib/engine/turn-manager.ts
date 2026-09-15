@@ -10,6 +10,7 @@ import { calculateParallelRate, calculateRealWageUSD } from './currency';
 import { drawEventsForTurn } from './events';
 import { checkFailStates } from './fail-states';
 import { projectCenturyOutcome } from './century-engine';
+import { updateSouthernFront, applySpatialContagion, processInterProvincialMigration } from './spatial';
 import { PRNG } from './prng';
 import {
   getOligarchSettlementIncome,
@@ -346,6 +347,7 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 3: GEOPOLITICAL & SOUTHERN THEATER DYNAMICS
   // =========================================================================
+  updateSouthernFront(next.governorates, directives);
   if (directives.southernPolicy === 'HISTORIC_ACCORD') {
     if (next.governorates['as_suwayda']) {
       next.governorates['as_suwayda'].prri = Math.max(0, next.governorates['as_suwayda'].prri - 20);
@@ -602,6 +604,9 @@ export function simulateTurnTransitions(
     else if (gov.prri < 85) gov.tier = 'RIOT';
     else gov.tier = 'REVOLT';
   }
+
+  applySpatialContagion(next.governorates);
+  next.lastMigrationReport = processInterProvincialMigration(next.governorates);
 
   return next;
 }
