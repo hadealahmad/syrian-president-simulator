@@ -150,7 +150,7 @@
   let remittanceCapturedM = $derived(
     $draftStore.remittanceCaptureSpread <= 15
       ? Math.round(1000 * ($draftStore.remittanceCaptureSpread / 100))
-      : 20
+      : Math.round(150 + ($draftStore.remittanceCaptureSpread - 15) * 8.5)
   );
 
   let gridCapExM = $derived($draftStore.gridCapExUSD / 1_000_000);
@@ -648,11 +648,11 @@
 
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="text-[10px] text-wheat-dark">الأثر المالي:</span>
-            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
+            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-amber-900/60 border border-amber-600/60 text-amber-300' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
               +${remittanceCapturedM}M دولار/دور
             </span>
-            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : ($draftStore.remittanceCaptureSpread <= 7 ? 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold' : 'bg-forest-surface border border-charcoal-mid text-wheat-light')} font-mono font-bold text-[9px]">
-              {$draftStore.remittanceCaptureSpread > 15 ? 'انهيار التحويلات إلى السوق الموازي (عتبة 15%)' : ($draftStore.remittanceCaptureSpread <= 7 ? 'تحفيز المغتربين والقنوات الرسمية (+ثقة)' : 'اقتطاع اعتيادي مستقر (الحالة المحايدة)')}
+            <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-amber-900/40 border border-amber-600/50 text-amber-200' : ($draftStore.remittanceCaptureSpread <= 7 ? 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold' : 'bg-forest-surface border border-charcoal-mid text-wheat-light')} font-mono font-bold text-[9px]">
+              {$draftStore.remittanceCaptureSpread > 15 ? 'اقتطاع طوارئ قسري (سيولة إنقاذية قصوى)' : ($draftStore.remittanceCaptureSpread <= 7 ? 'تحفيز المغتربين والقنوات الرسمية (+ثقة)' : 'اقتطاع اعتيادي مستقر (الحالة المحايدة)')}
             </span>
           </div>
 
@@ -666,14 +666,15 @@
             class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
           />
           <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-            <span>5% (جذب الدولار رسمياً)</span>
+            <span>5% (جذب الدولار)</span>
             <span class="text-wheat-gold">10% (محايد)</span>
-            <span>25% (جباية قصوى للمركزي)</span>
+            <span>15% (سقف آمن)</span>
+            <span class="text-amber-400">25% (طوارئ: +${remittanceCapturedM}M)</span>
           </div>
           <div class="text-[10px] text-wheat-dark leading-relaxed p-2 bg-charcoal-surface/60 border border-charcoal-mid/60">
             {$draftStore.remittanceCaptureSpread <= 15
-              ? `نسبة اقتطاع المركزي (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +\$${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية دون إثارة مقاطعة المغتربين.`
-              : `تحذير: تجاوز عتبة الحوالات (15%)! يقاطع المغتربون القنوات الرسمية وتنهار الجباية إلى $20M فقط وتتجه السيولة إلى شبكات الحوالات الموازية مع تراجع الثقة وتدهور الصرف.`}
+              ? `نسبة اقتطاع اعتيادية (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +\${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية بأمان ودون إثارة مقاطعة المغتربين.`
+              : `اقتطاع طوارئ استثنائي (${$draftStore.remittanceCaptureSpread}%): يوفر للمصرف المركزي سيولة دولارية إنقاذية ضخمة تصل إلى +\${remittanceCapturedM}M كاش لإنقاذ الاحتياطي ومنع العجز عن سداد الديون واستيراد القمح والفيول، مقابل كلفة مقبولة على الثقة الشعبية ونشاط الصرافة غير النظامي.`}
           </div>
         </div>
 

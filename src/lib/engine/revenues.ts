@@ -75,14 +75,17 @@ export function auditSemiannualBudget(
   // Remittance Skimming & Dual Exchange Rate Mechanism
   // Expatriates remit ~$1.0B USD per 6-month turn
   const totalRemittancesUSD = 1_000_000_000;
-  const skimSpread = (directives.remittanceCaptureSpread ?? 10) / 100;
+  const spreadPct = directives.remittanceCaptureSpread ?? 10;
   let remittanceCapturedUSD = 0;
-  if (skimSpread <= 0.15) {
-    // Within safe spread: state captures skim without triggering hawala boycott
-    remittanceCapturedUSD = Math.round(totalRemittancesUSD * skimSpread);
+  if (spreadPct <= 15) {
+    // Standard safe capture without informal flight ($50M to $150M)
+    remittanceCapturedUSD = Math.round(totalRemittancesUSD * (spreadPct / 100));
   } else {
-    // Hawala Backfire Threshold! Citizens bypass official banks entirely
-    remittanceCapturedUSD = Math.round(totalRemittancesUSD * 0.02); // Only 2% compliance
+    // Emergency Predatory Haircut (Dire situations):
+    // The state aggressively captures hard currency via mandatory bank deductions.
+    // Provides immediate liquidity surge (up to $235M at 25%) to avert sovereign bankruptcy
+    const emergencySurgeM = 150 + (spreadPct - 15) * 8.5; // 16% -> $158.5M ... 25% -> $235M
+    remittanceCapturedUSD = Math.round(emergencySurgeM * 1_000_000);
   }
 
   // Oligarch Confiscated Wealth Inflows (USD)

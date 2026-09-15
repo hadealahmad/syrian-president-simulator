@@ -325,7 +325,7 @@
                 هامش اقتطاع الحوالات الخارجية: {$draftStore.remittanceCaptureSpread}%
               </span>
               <span class="text-[11px] text-wheat-dark">
-                {$draftStore.remittanceCaptureSpread <= 8 ? 'الأثر: تشجيع تحويل أموال المغتربين عبر القنوات الرسمية للمصرف المركزي (+ثقة).' : ($draftStore.remittanceCaptureSpread <= 15 ? 'الأثر: جباية دولارية اعتيادية متوازنة للمركزي.' : 'الأثر: تجاوز عتبة الحوالات (15%) ومقاطعة القنوات الرسمية لصالح السوق الموازي.')}
+                {$draftStore.remittanceCaptureSpread <= 8 ? 'الأثر: تشجيع تحويل أموال المغتربين عبر القنوات الرسمية للمصرف المركزي (+ثقة).' : ($draftStore.remittanceCaptureSpread <= 15 ? 'الأثر: جباية دولارية اعتيادية متوازنة للمركزي.' : `الأثر: اقتطاع طوارئ قسري يوفر سيولة إنقاذية قصوى للمصرف المركزي (+${Math.round(150 + ($draftStore.remittanceCaptureSpread - 15) * 8.5)}M$) لدرء خطر الإفلاس، مع كلفة على الثقة والصرف.`)}
               </span>
             </div>
             <button

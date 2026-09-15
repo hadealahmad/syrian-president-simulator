@@ -517,14 +517,22 @@ export function simulateTurnTransitions(
   // Remittance Policy side-effects (Plan section 7.2)
   const skimSpreadVal = directives.remittanceCaptureSpread ?? 10;
   if (skimSpreadVal > 15) {
-    // Hawala flight & black market penalty
-    next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 3);
-    // Black market diversion drives parallel rate up
-    next.macro.parallelRateSYP = Math.round(next.macro.parallelRateSYP * 1.03);
-    // Provincial unrest rises in remittance-dependent urban centres
+    // Scaled trade-offs for emergency remittance haircut:
+    // In dire conditions, player gains immediate hard currency upside (up to $235M in audit)
+    // while bearing controlled social and currency friction
+    const excessSpread = skimSpreadVal - 15;
+    const trustPenalty = Math.max(1, Math.round(excessSpread * 0.35)); // -1 to -3 trust
+    next.macro.civicTrust = Math.max(0, next.macro.civicTrust - trustPenalty);
+
+    // Minor parallel rate divergence due to increased hawala traffic (0.3% to 2.5%)
+    const parallelFactor = 1 + Number((excessSpread * 0.0025).toFixed(3));
+    next.macro.parallelRateSYP = Math.round(next.macro.parallelRateSYP * parallelFactor);
+
+    // Modest friction in remittance-dependent urban hubs
+    const prriBump = excessSpread >= 6 ? 2 : 1;
     for (const govId of ['damascus', 'rif_dimashq', 'homs', 'latakia', 'tartus', 'as_suwayda']) {
       if (next.governorates[govId]) {
-        next.governorates[govId].prri = Math.min(100, next.governorates[govId].prri + 2);
+        next.governorates[govId].prri = Math.min(100, next.governorates[govId].prri + prriBump);
       }
     }
   } else if (skimSpreadVal <= 7) {
