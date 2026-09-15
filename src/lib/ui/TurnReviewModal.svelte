@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from 'svelte/store';
   import { gameStore } from '../stores/game-store';
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
@@ -100,6 +101,11 @@
     gameStore.commitTurn($draftStore);
     draftStore.advanceToNextTurn();
     uiStore.setTurnReviewModal(false);
+    // Show the post-turn closing audit, unless the turn ended the game
+    // (FailStateModal takes over in that case).
+    if (!get(gameStore).isGameOver) {
+      uiStore.setTurnSummaryModal(true);
+    }
   }
 
   function handleClose(): void {
