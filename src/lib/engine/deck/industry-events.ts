@@ -29,7 +29,7 @@ export const INDUSTRY_EVENTS: EventCard[] = [
       },
       {
         id: 'opt_cement_zero_duty_import',
-        labelAr: 'فتح باب استيراد الإسمنت الأجنبي بدون جمارك لكسر الأسعار',
+        labelAr: 'فتح باب استيراد الإسمنت الأجنبي دون جمارك لكسر الأسعار',
         descriptionAr: 'السماح بتدفق الإسمنت التركي والمصري عبر الموانئ لخفض الأسعار التنافسية فوراً.',
         requirementsDescriptionAr: 'احتياطي نقد أجنبي >= $35M',
         costUSD: 35_000_000,
@@ -420,7 +420,7 @@ export const INDUSTRY_EVENTS: EventCard[] = [
       {
         id: 'opt_terminal_concession_lease',
         labelAr: 'منح عقد تشغيل الرصيف لشركة مشغلة خاصة مقابل تطويره مجاناً',
-        descriptionAr: 'خصخصة تشغيل محطة الحاويات لمدة 10 سنوات مقابل استثمار أجنبي فوري بقيمة $60M.',
+        descriptionAr: 'خصخصة تشغيل محطة الحاويات مدة 10 سنوات مقابل استثمار أجنبي فوري بقيمة $60M.',
         costUSD: -30_000_000,
         costSYP: 0,
         costPC: 16,

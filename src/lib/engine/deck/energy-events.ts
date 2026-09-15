@@ -86,7 +86,7 @@ export const ENERGY_EVENTS: EventCard[] = [
         customEffectAr: 'منع الطوابير واستمرار حركة النقل والمخابز مع استنزاف الاحتياطي الأجنبي (-$110M)',
         governorateEffects: [
           { governorateId: 'tartus', prri: -6, customSummaryAr: 'إخماد الحريق وتطمين الأهالي (-6 احتقان)' },
-          { governorateId: 'damascus', prri: -8, customSummaryAr: 'تأمين بنزين العاصمة بدون انقطاع (-8 احتقان)' }
+          { governorateId: 'damascus', prri: -8, customSummaryAr: 'تأمين بنزين العاصمة دون انقطاع (-8 احتقان)' }
         ]
       },
       {
@@ -181,7 +181,7 @@ export const ENERGY_EVENTS: EventCard[] = [
         effectRRI: -6,
         effectCorruption: -4,
         effectCompetence: 14,
-        customEffectAr: 'تأمين شريان الطاقة الاستراتيجي بشكل دائم ورفع كفاءة الأمن في البادية (+14 كفاءة)',
+        customEffectAr: 'تأمين دائم لشريان الطاقة الاستراتيجي ورفع كفاءة الأمن في البادية (+14 كفاءة)',
         governorateEffects: [
           { governorateId: 'homs', securityEfficacy: 14, prri: -8, customSummaryAr: 'إحكام السيطرة على بادية تدمر (+14 أمن)' },
           { governorateId: 'deir_ez_zor', securityEfficacy: 10, customSummaryAr: 'تأمين محور تدمر-دير الزور (+10 أمن)' }
@@ -270,7 +270,7 @@ export const ENERGY_EVENTS: EventCard[] = [
         effectRRI: -16,
         effectCorruption: -4,
         effectCompetence: 6,
-        customEffectAr: 'إنقاذ الأرواح وتخفيف المعاناة الإنسانية بشكل واسع (+14 ثقة، -16 احتقان)',
+        customEffectAr: 'إنقاذ الأرواح وتخفيف واسع للمعاناة الإنسانية (+14 ثقة، -16 احتقان)',
         governorateEffects: [
           { governorateId: 'homs', prri: -18, customSummaryAr: 'تدفئة أرياف وقرى حمص الباردة (-18 احتقان)' },
           { governorateId: 'damascus', prri: -12, customSummaryAr: 'توزيع مازوت التدفئة بالأحياء الشعبية (-12 احتقان)' },
@@ -454,7 +454,7 @@ export const ENERGY_EVENTS: EventCard[] = [
         effectRRI: -14,
         effectCorruption: -2,
         effectCompetence: 16,
-        customEffectAr: 'زيادة ساعات الكهرباء الوطنية بشكل ملموس وإنعاش القطاعات الاقتصادية (+14 ثقة)',
+        customEffectAr: 'زيادة ملموسة في ساعات الكهرباء الوطنية وإنعاش القطاعات الاقتصادية (+14 ثقة)',
         governorateEffects: [
           { governorateId: 'rif_dimashq', dailyBlackoutHours: -4, prri: -12, customSummaryAr: 'قفزة بتغذية ريف دمشق (-4 سا تقنين)' },
           { governorateId: 'damascus', dailyBlackoutHours: -4, prri: -12, customSummaryAr: 'إنارة العاصمة دمشق (-4 سا تقنين)' },

@@ -223,8 +223,9 @@
         </span>
       </div>
     {:else if activeData.spotlight === 'command-deck'}
+      <!-- Bottom-center command hub spotlight: centered to the viewport like the hub itself -->
       <div
-        class="pointer-events-none absolute bottom-4 left-[398px] w-[350px] h-[68px] border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
+        class="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 w-[540px] max-w-[94vw] h-[68px] border-2 border-wheat-gold shadow-[0_0_35px_rgba(223,202,160,0.5)] z-40 transition-all duration-300"
       >
         <span class="absolute -top-6 right-2 px-2 py-0.5 bg-wheat-gold text-forest-deep text-[10px] font-bold font-heading shadow-md">
           منصة القيادة واعتماد الدور

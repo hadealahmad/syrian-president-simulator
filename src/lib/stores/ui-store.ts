@@ -1,7 +1,5 @@
 import { writable } from 'svelte/store';
 
-export type MinistryTab = 'macro' | 'finance' | 'governance';
-
 export interface UIState {
   selectedGovernorateId: string | null;
   isMinistryDrawerOpen: boolean;
@@ -11,8 +9,10 @@ export interface UIState {
   isRestartModalOpen: boolean;
   isGuideModalOpen: boolean;
   guideStep: number;
-  ministryTab: MinistryTab;
   selectedStatForOptions: string | null;
+  activeCommandPanel: string | null;
+  commandPanelPinned: boolean;
+  isStatsSidebarOpen: boolean;
 }
 
 const GUIDE_STORAGE_KEY = 'president_has_seen_guide_v1';
@@ -27,15 +27,17 @@ function checkInitialGuideSeen(): boolean {
 function createUIStore() {
   const { subscribe, update, set } = writable<UIState>({
     selectedGovernorateId: null,
-    isMinistryDrawerOpen: true,
-    isProvincialDrawerOpen: true,
+    isMinistryDrawerOpen: false,
+    isProvincialDrawerOpen: false,
     isTurnSummaryModalOpen: false,
     isTurnReviewModalOpen: false,
     isRestartModalOpen: false,
-    isGuideModalOpen: !checkInitialGuideSeen(),
+    isGuideModalOpen: false, // TEMP-SHOT
     guideStep: 0,
-    ministryTab: 'macro',
     selectedStatForOptions: null,
+    activeCommandPanel: 'decrees', // TEMP-SHOT
+    commandPanelPinned: true, // TEMP-SHOT
+    isStatsSidebarOpen: false,
   });
 
   return {
@@ -44,27 +46,11 @@ function createUIStore() {
       update((s) => ({
         ...s,
         selectedGovernorateId: id,
-        isProvincialDrawerOpen: true,
+        // Map clicks pin the provincial command panel (drawers retired).
+        // The stats sidebar is fully independent and never affected.
+        activeCommandPanel: id ? 'provincial' : s.activeCommandPanel,
+        commandPanelPinned: id ? true : s.commandPanelPinned,
       }));
-    },
-    toggleMinistryDrawer: () => {
-      update((s) => ({ ...s, isMinistryDrawerOpen: !s.isMinistryDrawerOpen }));
-    },
-    toggleProvincialDrawer: () => {
-      update((s) => ({ ...s, isProvincialDrawerOpen: !s.isProvincialDrawerOpen }));
-    },
-    toggleBothSidebars: () => {
-      update((s) => {
-        const anyOpen = s.isMinistryDrawerOpen || s.isProvincialDrawerOpen;
-        return {
-          ...s,
-          isMinistryDrawerOpen: !anyOpen,
-          isProvincialDrawerOpen: !anyOpen,
-        };
-      });
-    },
-    setMinistryTab: (tab: MinistryTab) => {
-      update((s) => ({ ...s, ministryTab: tab, isMinistryDrawerOpen: true }));
     },
     setTurnSummaryModal: (open: boolean) => {
       update((s) => ({ ...s, isTurnSummaryModalOpen: open }));
@@ -87,32 +73,27 @@ function createUIStore() {
     openStatRelatedOptions: (statId: string) => {
       update((s) => {
         const isSame = s.selectedStatForOptions === statId;
-        const nextStat = isSame ? null : statId;
-
-        let nextMinistryOpen = s.isMinistryDrawerOpen;
-        let nextMinistryTab = s.ministryTab;
-
-        if (nextStat) {
-          nextMinistryOpen = true;
-          if (['corporateTaxRate', 'taxCompliancePct', 'telecomExciseRate', 'sovereignDebtUSD', 'sovereignLeverage', 'nassibTransitFeeUSD'].includes(nextStat)) {
-            nextMinistryTab = 'finance';
-          } else if (['politicalCapital', 'systemicCorruption'].includes(nextStat)) {
-            nextMinistryTab = 'governance';
-          } else {
-            nextMinistryTab = 'macro';
-          }
-        }
-
         return {
           ...s,
-          selectedStatForOptions: nextStat,
-          isMinistryDrawerOpen: nextMinistryOpen,
-          ministryTab: nextMinistryTab,
+          selectedStatForOptions: isSame ? null : statId,
         };
       });
     },
     closeStatRelatedOptions: () => {
       update((s) => ({ ...s, selectedStatForOptions: null }));
+    },
+    openCommandPanel: (id: string | null, pinned: boolean = false) => {
+      // Bottom panels never touch the independent stats sidebar.
+      update((s) => ({ ...s, activeCommandPanel: id, commandPanelPinned: pinned }));
+    },
+    closeCommandPanel: () => {
+      // Only the bottom panel; the stats sidebar has its own toggle and
+      // survives canvas/governorate map clicks and other hub buttons.
+      update((s) => ({ ...s, activeCommandPanel: null, commandPanelPinned: false }));
+    },
+    toggleStatsSidebar: (open?: boolean) => {
+      // Fully independent toggle: never opens/closes bottom panels.
+      update((s) => ({ ...s, isStatsSidebarOpen: open ?? !s.isStatsSidebarOpen }));
     },
   };
 }

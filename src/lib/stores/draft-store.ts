@@ -158,7 +158,13 @@ function loadStoredDraft(): TurnDirectives {
     const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // One-time decree intents must not survive a reload looking
+        // pre-toggled; only the continuous martial-law state carries over.
+        parsed.activePoliticalActions = (parsed.activePoliticalActions || []).filter(
+          (a: string) => a === 'MARTIAL_LAW'
+        );
+        return parsed;
       } catch (e) {
         console.error('Failed to parse saved draft:', e);
       }
@@ -203,6 +209,7 @@ function createDraftStore() {
         executedMortgageIds: [],
         oligarchDecisions: {},
         provincialProjects: [],
+        extraDebtRepaymentUSD: 0,
         // Retain continuous states (MARTIAL_LAW) until lifted, reset one-time and periodic decrees:
         activePoliticalActions: (d.activePoliticalActions || []).filter((a) => a === 'MARTIAL_LAW'),
         // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, demining, brain gain) are preserved!

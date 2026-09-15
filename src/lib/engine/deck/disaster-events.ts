@@ -109,7 +109,7 @@ export const DISASTER_EVENTS: EventCard[] = [
       },
       {
         id: 'opt_earthquake_rental_stipend',
-        labelAr: 'صرف بدل إيجار نقدي لمدة عام وإلزام السكان بالإخلاء الذاتي',
+        labelAr: 'صرف بدل إيجار نقدي مدة عام وإلزام السكان بالإخلاء الذاتي',
         descriptionAr: 'منح السكان مبالغ نقدية لاستئجار شقق في أحياء آمنة وإخلاء الأبنية فوراً لدرء الخطر.',
         costUSD: 0,
         costSYP: 350_000_000_000,

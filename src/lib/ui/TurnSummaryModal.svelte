@@ -61,6 +61,21 @@
             <span class="text-[10px] block font-mono {audit.netUSDDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}">
               {audit.netUSDDelta >= 0 ? '+' : ''}${formatMillionUSD(audit.netUSDDelta)}M هذا الدور
             </span>
+            {#if (audit.debtServiceUSD ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-wheat-dark">
+                خدمة الدين: ${formatMillionUSD(audit.debtServiceUSD)}M
+              </span>
+            {/if}
+            {#if (audit.mortgageDrainUSD ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-umber-crimson">
+                نزيف الرهون: ${formatMillionUSD(audit.mortgageDrainUSD)}M
+              </span>
+            {/if}
+            {#if (audit.debtRepaymentPaidUSD ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-forest-accent">
+                سداد أصل: ${formatMillionUSD(audit.debtRepaymentPaidUSD)}M
+              </span>
+            {/if}
           </div>
 
           <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-1 rounded-none">
