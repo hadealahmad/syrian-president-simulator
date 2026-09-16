@@ -99,7 +99,7 @@
       role="dialog"
       aria-modal="true"
       aria-label="الإعدادات"
-      class="relative w-[min(72vw,230px)] min-w-[200px] min-h-[280px] aspect-[3/4] bg-forest-deep/95 modal-frame-stripes modal-frame-gold shadow-2xl text-wheat-light rounded-none flex flex-col overflow-y-auto"
+      class="relative w-[min(80vw,280px)] min-w-[200px] min-h-[280px] aspect-[3/4] bg-forest-deep/95 modal-frame-stripes modal-frame-gold shadow-2xl text-wheat-light rounded-none flex flex-col overflow-y-auto"
     >
       {#if !themesOpen}
         <!-- Menu title -->
