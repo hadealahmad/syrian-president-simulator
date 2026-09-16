@@ -9,8 +9,16 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>رئيس الجمهورية | محاكاة إدارة واقتصاد سوريا ما بعد الحرب</title>
+    <!-- Theming engine: stamp the persisted theme before first paint (no flash).
+         Source of truth for ids: src/lib/themes.ts (`THEME_STORAGE_KEY`). -->
+    <script>
+      try {
+        var __th = localStorage.getItem('president-theme-v1');
+        if (__th) document.documentElement.dataset.theme = __th;
+      } catch (e) {}
+    </script>
   </head>
-  <body class="bg-[#161616] text-[#edebe0] font-['Thmanyah_Sans',sans-serif] overflow-hidden">
+  <body class="bg-charcoal-deep text-wheat-light font-['Thmanyah_Sans',sans-serif] overflow-hidden">
     <div id="app" class="w-full h-full"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

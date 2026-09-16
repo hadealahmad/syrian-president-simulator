@@ -6,25 +6,46 @@
   import { get } from 'svelte/store';
   import { SYRIA_2D_GOVERNORATES, SYRIA_2D_VIEWBOX } from './syria-2d-paths';
   import type { GovernorateNode, MigrationFlow } from '../engine/types';
+  import { theme } from '../stores/theme-store';
+  import { cssRgbTriplet, cssVar } from '../themes';
 
   let hoveredGovId = $state<string | null>(null);
   let hoveredStat = $state<{ govId: string; key: string } | null>(null);
 
-  // Syrian Visual Identity (SyID) color palette constants from syrian.zone/syid
-  const SYID_COLORS = {
-    forest: '#428177',       // Forest primary (Calm / Sovereign baseline)
-    forestLight: '#52998e',  // Forest hover
-    forestDark: '#054239',   // Forest active / deep
-    wheat: '#988561',        // Golden Wheat deep (Tense status)
-    wheatLight: '#b9a779',   // Golden Wheat mid
-    wheatCream: '#edebe0',   // Golden Wheat highlight
-    umber: '#6b1f2a',        // Deep Umber (Riot / Unrest)
-    umberDark: '#4a151e',    // Deep Umber dark (Armed Revolt)
-    charcoal: '#161616',     // Charcoal background
-    charcoalBorder: '#0D1117', // Sovereign borders
-    hoverStroke: '#E6EDF3',  // SyID hover boundary highlight
-    selectedStroke: '#b9a779', // SyID selected boundary highlight
-  };
+  // ── Theming: every color resolves live from CSS variables (app.css is the
+  // single source of truth; `themes.ts` only reads them back). `themeId` is
+  // read inside `mapCss` so a theme switch repaints the whole canvas.
+  let themeId = $state('default');
+  $effect(() => theme.subscribe((v) => { themeId = v; }));
+
+  const mapCss = $derived.by(() => {
+    void themeId;
+    return {
+      ok: cssVar('--map-ok', '#3fb950'),
+      warn: cssVar('--map-warn', '#f5d547'),
+      danger: cssVar('--map-danger', '#ce1126'),
+      midGold: cssVar('--map-arrow-hist', '#b9a779'),
+      ink: cssVar('--map-ink', '#0D1117'),
+      shadow: cssVar('--map-shadow', '#050a09'),
+      divider: cssVar('--color-charcoal-white', '#ffffff'),
+      arrowHist: cssVar('--map-arrow-hist', '#b9a779'),
+      arrowPred: cssVar('--map-arrow-pred', '#E6EDF3'),
+      selectedStroke: cssVar('--map-selected-stroke', '#b9a779'),
+      hoverStroke: cssVar('--map-hover-stroke', '#E6EDF3'),
+      rampWorst: cssRgbTriplet('--map-ramp-worst', [74, 21, 30]),
+      rampMid: cssRgbTriplet('--map-ramp-mid', [152, 133, 97]),
+      rampBest: cssRgbTriplet('--map-ramp-best', [46, 107, 95]),
+    };
+  });
+
+  // Sovereign border strokes (SyID identity); fills come from the health ramp.
+  function syidStrokes(): { charcoalBorder: string; hoverStroke: string; selectedStroke: string } {
+    return {
+      charcoalBorder: mapCss.ink,
+      hoverStroke: mapCss.hoverStroke,
+      selectedStroke: mapCss.selectedStroke,
+    };
+  }
 
   // Composite attention index: mean of four normalized strains (mines, blackout,
   // unrebuilt share, unrest). 0 = needs nothing, 1 = needs everything. Drives the
@@ -41,9 +62,10 @@
 
   // Dark red (worst) -> gold (mid) -> green (best) health ramp. Deep, muted tones
   // so the bright status glyphs always read on top of the fill.
-  const RAMP_WORST: [number, number, number] = [74, 21, 30]; // umber dark red
-  const RAMP_MID: [number, number, number] = [152, 133, 97]; // golden wheat
-  const RAMP_BEST: [number, number, number] = [46, 107, 95]; // deep forest green
+  // Values come from `--map-ramp-*` (app.css) so themes recolor the ramp.
+  function rampWorst(): [number, number, number] { return mapCss.rampWorst; }
+  function rampMid(): [number, number, number] { return mapCss.rampMid; }
+  function rampBest(): [number, number, number] { return mapCss.rampBest; }
 
   function lerp3(a: [number, number, number], b: [number, number, number], t: number): [number, number, number] {
     return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t)];
@@ -51,7 +73,7 @@
 
   function healthFill(h: number): string {
     const t = Math.min(1, Math.max(0, h));
-    const c = t < 0.5 ? lerp3(RAMP_WORST, RAMP_MID, t * 2) : lerp3(RAMP_MID, RAMP_BEST, (t - 0.5) * 2);
+    const c = t < 0.5 ? lerp3(rampWorst(), rampMid(), t * 2) : lerp3(rampMid(), rampBest(), (t - 0.5) * 2);
     return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
   }
 
@@ -119,13 +141,13 @@
   }
 
   function getGovStats(gov: GovernorateNode): GovStat[] {
-    const powerColor = gov.dailyBlackoutHours <= 12 ? '#3fb950' : gov.dailyBlackoutHours <= 16 ? '#f5d547' : '#ce1126';
+    const powerColor = gov.dailyBlackoutHours <= 12 ? mapCss.ok : gov.dailyBlackoutHours <= 16 ? mapCss.warn : mapCss.danger;
     const rebuildName = gov.reconstructionScore >= 0.85 ? 'stone-wall' : gov.reconstructionScore >= 0.55 ? 'brick-wall' : 'broken-wall';
-    const rebuildColor = gov.reconstructionScore >= 0.85 ? '#3fb950' : gov.reconstructionScore >= 0.55 ? '#b9a779' : '#ce1126';
+    const rebuildColor = gov.reconstructionScore >= 0.85 ? mapCss.ok : gov.reconstructionScore >= 0.55 ? mapCss.midGold : mapCss.danger;
     const faceName = gov.tier === 'CALM' ? 'emotion-happy-fill' : gov.tier === 'TENSE' ? 'emotion-normal-fill' : 'emotion-sad-fill';
-    const faceColor = gov.tier === 'CALM' ? '#3fb950' : gov.tier === 'TENSE' ? '#f5d547' : '#ce1126';
+    const faceColor = gov.tier === 'CALM' ? mapCss.ok : gov.tier === 'TENSE' ? mapCss.warn : mapCss.danger;
     return [
-      { key: 'mines', name: 'minefield', labelAr: 'المساحة الملغومة', color: '#ce1126', pct: Math.min(100, Math.max(0, gov.mineSaturationPct)) },
+      { key: 'mines', name: 'minefield', labelAr: 'المساحة الملغومة', color: mapCss.danger, pct: Math.min(100, Math.max(0, gov.mineSaturationPct)) },
       { key: 'power', name: 'power-generator', labelAr: 'التغذية الكهربائية', color: powerColor, pct: Math.max(0, Math.min(100, ((24 - gov.dailyBlackoutHours) / 24) * 100)) },
       { key: 'rebuild', name: rebuildName, labelAr: 'إعادة الإعمار', color: rebuildColor, pct: Math.max(0, Math.min(100, gov.reconstructionScore * 100)) },
       { key: 'mood', name: faceName, labelAr: 'الاستقرار الشعبي', color: faceColor, pct: Math.max(0, Math.min(100, 100 - gov.prri)) },
@@ -303,13 +325,13 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -- Empty-canvas click-catcher (dismisses open panels); keyboard users toggle panels via the hub buttons. -->
 <div
-  class="relative w-full h-full overflow-hidden select-none bg-[#0e1715] flex items-center justify-center box-border pb-[112px]"
+  class="relative w-full h-full overflow-hidden select-none bg-(--map-canvas) flex items-center justify-center box-border pb-[112px]"
   role="region"
   aria-label="الخارطة الاستراتيجية للجمهورية العربية السورية"
   onclick={handleCanvasClick}
 >
   <!-- Faint Tactical Coordinate Grid Background -->
-  <div class="absolute inset-0 opacity-[0.04] pointer-events-none bg-[radial-gradient(#edebe0_1px,transparent_1px)] [background-size:24px_24px]"></div>
+  <div class="absolute inset-0 opacity-[0.04] pointer-events-none bg-[radial-gradient(var(--map-grid)_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
   <!-- 2D Sovereign Vector Map (SVG) -->
   <svg
@@ -326,17 +348,17 @@
       {/each}
       <!-- Migration arrowheads: solid wheat = past turns, dashed light = predicted -->
       <marker id="mig-head-hist" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="15" markerHeight="15" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-        <path d="M 0 1 L 9 5 L 0 9 z" fill="#b9a779" opacity="0.8" />
+        <path d="M 0 1 L 9 5 L 0 9 z" fill={mapCss.arrowHist} opacity="0.8" />
       </marker>
       <marker id="mig-head-pred" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="15" markerHeight="15" markerUnits="userSpaceOnUse" orient="auto-start-reverse">
-        <path d="M 0 1 L 9 5 L 0 9 z" fill="#E6EDF3" opacity="0.85" />
+        <path d="M 0 1 L 9 5 L 0 9 z" fill={mapCss.arrowPred} opacity="0.85" />
       </marker>
     </defs>
 
     <!-- Base Shadow Silhouette -->
     <g class="opacity-30 pointer-events-none transform translate-y-1.5 translate-x-0.5">
       {#each SYRIA_2D_GOVERNORATES as gov (gov.id)}
-        <path d={gov.path} fill="#050a09" />
+        <path d={gov.path} fill={mapCss.shadow} />
       {/each}
     </g>
 
@@ -349,7 +371,7 @@
         {@const isHovered = hoveredGovId === gov.id}
         {@const isSelected = $uiStore.selectedGovernorateId === gov.id}
         {@const fill = getGovFillColor(govState)}
-        {@const stroke = isSelected ? SYID_COLORS.selectedStroke : isHovered ? SYID_COLORS.hoverStroke : SYID_COLORS.charcoalBorder}
+        {@const stroke = isSelected ? syidStrokes().selectedStroke : isHovered ? syidStrokes().hoverStroke : syidStrokes().charcoalBorder}
         {@const strokeWidth = isHovered ? 2.8 : 1.6}
         {@const bbox = govBBox(gov.id, gov.path)}
         {@const stats = govState ? getGovStats(govState) : []}
@@ -384,7 +406,7 @@
           <g clip-path={`url(#gov-clip-${gov.id})`} class="pointer-events-none">
             <rect x={bbox[0]} y={fillY} width={bw} height={Math.max(0, bbox[3] - fillY)} fill={activeStat.color} opacity="0.85" />
             {#if fillFrac > 0.02 && fillFrac < 0.98}
-              <rect x={bbox[0]} y={fillY - 1.5} width={bw} height={3} fill="#ffffff" opacity="0.9" />
+              <rect x={bbox[0]} y={fillY - 1.5} width={bw} height={3} fill={mapCss.divider} opacity="0.9" />
             {/if}
           </g>
         {/if}
@@ -402,7 +424,7 @@
             <path
               d={arrow.d}
               fill="none"
-              stroke="#b9a779"
+              stroke={mapCss.arrowHist}
               stroke-width={arrow.width}
               opacity="0.32"
               stroke-linecap="round"
@@ -413,7 +435,7 @@
             <path
               d={arrow.d}
               fill="none"
-              stroke="#E6EDF3"
+              stroke={mapCss.arrowPred}
               stroke-width={arrow.width}
               opacity="0.6"
               stroke-linecap="round"
@@ -458,17 +480,17 @@
             >
               <title>{stat.labelAr}: {Math.round(stat.pct)}%</title>
               {#if isActive}
-                <circle cx={cx + dx + 12} cy={cy + dy + 12} r={17} fill="#0D1117" opacity="0.75" />
+                <circle cx={cx + dx + 12} cy={cy + dy + 12} r={17} fill={mapCss.ink} opacity="0.75" />
                 <circle cx={cx + dx + 12} cy={cy + dy + 12} r={17} fill="none" stroke={stat.color} stroke-width={2} opacity="0.95" />
               {/if}
-              <GameIcon name={stat.name} color={stat.color} outline="#0D1117" x={isActive ? cx + dx - 2 : cx + dx} y={isActive ? cy + dy - 2 : cy + dy} size={isActive ? 28 : 24} />
+              <GameIcon name={stat.name} color={stat.color} outline={mapCss.ink} x={isActive ? cx + dx - 2 : cx + dx} y={isActive ? cy + dy - 2 : cy + dy} size={isActive ? 28 : 24} />
             </g>
           {/each}
           {#if activeKey}
             {@const activeStat = stats.find((s) => s.key === activeKey)}
             {#if activeStat}
               <g class="pointer-events-none">
-                <rect x={cx - 26} y={cy - 52} width={52} height={20} rx={4} fill="#0D1117" opacity="0.88" stroke={activeStat.color} stroke-width={1.5} />
+                <rect x={cx - 26} y={cy - 52} width={52} height={20} rx={4} fill={mapCss.ink} opacity="0.88" stroke={activeStat.color} stroke-width={1.5} />
                 <text x={cx} y={cy - 37.5} text-anchor="middle" font-size="13" font-weight="700" fill={activeStat.color} font-family="monospace">{Math.round(activeStat.pct)}%</text>
               </g>
             {/if}
@@ -485,7 +507,7 @@
       onclick={() => (showMigration = !showMigration)}
       aria-pressed={showMigration}
       aria-label="تبديل أسهم النزوح"
-      class="flex items-center gap-1.5 text-[10px] px-2 py-1 bg-[#0D1117]/85 border transition-colors cursor-pointer {showMigration ? 'border-[#b9a779] text-[#edebe0]' : 'border-[#2a2f3a] text-[#988561] opacity-60 hover:opacity-100'}"
+      class="flex items-center gap-1.5 text-[10px] px-2 py-1 bg-(--map-ink)/85 border transition-colors cursor-pointer {showMigration ? 'border-(--map-selected-stroke) text-(--map-cream)' : 'border-(--map-toggle-off) text-(--map-toggle-off-text) opacity-60 hover:opacity-100'}"
     >
       <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
         <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />

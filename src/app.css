@@ -122,6 +122,24 @@
   /* Radiant vermilion crimson for critical alert text, revolt indicators & badges (8:1 contrast) */
   --color-umber-crimson: #f87171;
 
+  /* Bright warm glow for warning text on deep-red surfaces */
+  --color-umber-glow: #fbbf24;
+
+  /* ==========================================================================
+     STATUS PALETTE (semantic states — prefer these over raw amber/red)
+     ========================================================================== */
+  /* Healthy / nominal */
+  --color-status-ok: #3fb950;
+
+  /* Degraded / caution */
+  --color-status-warn: #f5d547;
+
+  /* Critical / revolt */
+  --color-status-danger: #ce1126;
+
+  /* Informational / predicted */
+  --color-status-info: #58a6ff;
+
   /* ==========================================================================
      CHARCOAL & STRUCTURAL SLATE PALETTE (Foundational Canvas & Delineation)
      ========================================================================== */
@@ -147,6 +165,118 @@
   --font-mono: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
 }
 
+/* ==========================================================================
+   THEMING ENGINE — single source of truth for every UI color.
+   Tailwind v4 exposes each `--color-*` above as `var(--color-*)`, so
+   re-declaring the same variable under `:root[data-theme="<id>"]`
+   recolorizes every `bg-/text-/border-/ring-…` utility instantly —
+   no Svelte file needs to change.
+   Registry of ids: `src/lib/themes.ts` (`THEMES`). State + persistence:
+   `src/lib/stores/theme-store.ts`. Toggle UI: `FloatingCommandDeck`.
+   To add a theme: copy the `mono` block, rename the selector, edit values.
+   Map/canvas JS colors MUST read these via `cssVar()` (`themes.ts`),
+   never hardcode hex — see `SyriaMap.svelte`.
+   ========================================================================== */
+:root,
+:root[data-theme='default'] {
+  --color-forest-deep: #0a1b18;
+  --color-forest-mid: #133832;
+  --color-forest-surface: #1a453e;
+  --color-forest-accent: #4ec7b4;
+  --color-forest-accent-muted: #247568;
+  --color-wheat-light: #f7f5ed;
+  --color-wheat-mid: #dfcaa0;
+  --color-wheat-dark: #c2b698;
+  --color-wheat-gold: #f2cf77;
+  --color-umber-deep: #240c11;
+  --color-umber-mid: #4a141d;
+  --color-umber-border: #8b2333;
+  --color-umber-crimson: #f87171;
+  --color-umber-glow: #fbbf24;
+  --color-status-ok: #3fb950;
+  --color-status-warn: #f5d547;
+  --color-status-danger: #ce1126;
+  --color-status-info: #58a6ff;
+  --color-charcoal-deep: #071210;
+  --color-charcoal-surface: #0e2420;
+  --color-charcoal-mid: #254b42;
+  --color-charcoal-light: #3b6b60;
+  --color-charcoal-white: #ffffff;
+
+  /* 2D map canvas + SVG chrome (defaults mirror the SyID palette) */
+  --map-canvas: #0e1715;
+  --map-ink: #0d1117;
+  --map-grid: #edebe0;
+  --map-cream: #edebe0;
+  --map-arrow-hist: #b9a779;
+  --map-arrow-pred: #e6edf3;
+  --map-shadow: #050a09;
+  --map-ok: #3fb950;
+  --map-warn: #f5d547;
+  --map-danger: #ce1126;
+  --map-ramp-worst: 74 21 30;
+  --map-ramp-mid: 152 133 97;
+  --map-ramp-best: 46 107 95;
+  --map-selected-stroke: #b9a779;
+  --map-hover-stroke: #e6edf3;
+  --map-toggle-off: #2a2f3a;
+  --map-toggle-off-text: #988561;
+}
+
+/* Test theme: grayscale chrome, pure status colors (red/blue/green/yellow). */
+:root[data-theme='mono'] {
+  --color-forest-deep: #000000;
+  --color-forest-mid: #101010;
+  --color-forest-surface: #1d1d1d;
+  --color-forest-accent: #ffffff;
+  --color-forest-accent-muted: #8a8a8a;
+  --color-wheat-light: #ffffff;
+  --color-wheat-mid: #e8e8e8;
+  --color-wheat-dark: #a3a3a3;
+  --color-wheat-gold: #ffe600;
+  --color-umber-deep: #0d0d0d;
+  --color-umber-mid: #1f1f1f;
+  --color-umber-border: #525252;
+  --color-umber-crimson: #ff2b2b;
+  --color-umber-glow: #ffe600;
+  --color-status-ok: #00e600;
+  --color-status-warn: #ffe600;
+  --color-status-danger: #ff0000;
+  --color-status-info: #2b7fff;
+  --color-charcoal-deep: #000000;
+  --color-charcoal-surface: #101010;
+  --color-charcoal-mid: #2e2e2e;
+  --color-charcoal-light: #616161;
+  --color-charcoal-white: #ffffff;
+
+  /* Remap Tailwind's default warning/danger ramps used across panels. */
+  --color-amber-200: #fff380;
+  --color-amber-300: #ffe600;
+  --color-amber-400: #ffe600;
+  --color-amber-500: #e6cf00;
+  --color-amber-600: #b3a100;
+  --color-amber-900: #333300;
+  --color-red-700: #ff0000;
+
+  --map-canvas: #000000;
+  --map-ink: #0d0d0d;
+  --map-grid: #ffffff;
+  --map-cream: #ffffff;
+  --map-arrow-hist: #a3a3a3;
+  --map-arrow-pred: #2b7fff;
+  --map-shadow: #000000;
+  --map-ok: #00e600;
+  --map-warn: #ffe600;
+  --map-danger: #ff0000;
+  --map-ramp-worst: 90 10 10;
+  --map-ramp-mid: 82 82 82;
+  --map-ramp-best: 229 229 229;
+  --map-selected-stroke: #ffffff;
+  --map-hover-stroke: #ffffff;
+  --map-toggle-off: #3a3a3a;
+  --map-toggle-off-text: #8a8a8a;
+}
+
 @layer base {
   :root {
     --font-arabic: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
@@ -160,8 +290,8 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #071210;
-    color: #f7f5ed;
+    background-color: var(--color-charcoal-deep);
+    color: var(--color-wheat-light);
     font-family: var(--font-arabic);
     user-select: none;
     -webkit-user-select: none;
@@ -196,14 +326,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a1b18;
+  background: var(--color-forest-deep);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1a453e;
-  border: 1px solid #254b42;
+  background: var(--color-forest-surface);
+  border: 1px solid var(--color-charcoal-mid);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4ec7b4;
+  background: var(--color-forest-accent);
 }
