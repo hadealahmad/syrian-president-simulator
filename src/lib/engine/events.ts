@@ -102,7 +102,7 @@ export function resolveEventOption(
   }
 
   // Apply political capital
-  state.macro.politicalCapital = Math.max(0, Math.min(100, state.macro.politicalCapital - option.costPC));
+  state.macro.politicalCapital = Math.max(0, Math.min(200, state.macro.politicalCapital - option.costPC));
 
   // Domestic SYP financing: deduct or credit treasury balance
   if (option.costSYP > 0) {

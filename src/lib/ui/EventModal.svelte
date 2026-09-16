@@ -45,9 +45,9 @@
 
           let deficitReason: string | null = null;
           if (!hasSufficientPC && !hasSufficientUSD) {
-            deficitReason = `عجز في الرصيد السياسي (يتطلب ${opt.costPC}% والمتاح ${$gameStore.macro.politicalCapital}%) ونقص في النقد الأجنبي`;
+            deficitReason = `عجز في الرصيد السياسي (يتطلب ${opt.costPC} نقطة والمتاح ${$gameStore.macro.politicalCapital} نقطة) ونقص في النقد الأجنبي`;
           } else if (!hasSufficientPC) {
-            deficitReason = `عجز في الرصيد السياسي: يتطلب ${opt.costPC}% رصيد سياسي بينما المتاح لديك فقط ${$gameStore.macro.politicalCapital}%`;
+            deficitReason = `عجز في الرصيد السياسي: يتطلب ${opt.costPC} نقطة رصيد سياسي بينما المتاح لديك فقط ${$gameStore.macro.politicalCapital} نقطة`;
           } else if (!hasSufficientUSD) {
             deficitReason = `نقص في احتياطي النقد الأجنبي: يتطلب $${(opt.costUSD / 1_000_000).toFixed(1)}M بينما المتاح $${($gameStore.macro.reservesUSD / 1_000_000).toFixed(1)}M`;
           }
@@ -157,7 +157,7 @@
             <span class="text-xs text-wheat-dark font-semibold block font-heading">خيارات الاستجابة الرئاسية:</span>
             <div class="flex items-center gap-1.5 text-[11px] font-mono text-wheat-mid">
               <span>الرصيد السياسي المتاح:</span>
-              <span class="text-wheat-gold font-bold">{$gameStore.macro.politicalCapital}%</span>
+              <span class="text-wheat-gold font-bold">{$gameStore.macro.politicalCapital} نقطة</span>
             </div>
           </div>
 
@@ -201,7 +201,7 @@
 
                     {#if opt.costPC > 0}
                       <span class="px-1.5 py-0.5 border font-mono rounded-none {$gameStore.macro.politicalCapital < opt.costPC ? 'bg-umber-deep/80 border-umber-crimson text-umber-glow font-bold' : 'bg-charcoal-surface border-charcoal-light text-wheat-mid'}">
-                        -{opt.costPC}% رصيد سياسي
+                        -{opt.costPC} نقطة رصيد سياسي
                       </span>
                     {/if}
                     <span class="text-forest-accent font-medium">
@@ -327,7 +327,7 @@
 
                 {#if selectedOptionForConfirm.costPC > 0}
                   <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-charcoal-surface border border-charcoal-light text-wheat-mid">
-                    -{selectedOptionForConfirm.costPC}% رصيد سياسي
+                    -{selectedOptionForConfirm.costPC} نقطة رصيد سياسي
                   </span>
                 {/if}
 

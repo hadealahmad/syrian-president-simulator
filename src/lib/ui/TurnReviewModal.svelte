@@ -92,6 +92,10 @@
     ($draftStore.signedLoanIds && $draftStore.signedLoanIds.length > 0) ||
     ($draftStore.executedMortgageIds && $draftStore.executedMortgageIds.length > 0) ||
     $draftStore.expatriateBrainGainIncentive ||
+    $draftStore.populistGrant ||
+    $draftStore.charityFundActive ||
+    $draftStore.importSurge ||
+    (($draftStore.terminatedLoanIds?.length ?? 0) > 0) ||
     ($draftStore.provincialProjects && $draftStore.provincialProjects.length > 0) ||
     ($draftStore.activePoliticalActions && $draftStore.activePoliticalActions.length > 0) ||
     $draftStore.southernPolicy !== 'LOCAL_VOUCHERS'
@@ -469,6 +473,97 @@
             </button>
           </div>
         {/if}
+
+        <!-- Populist Grant -->
+        {#if $draftStore.populistGrant}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">
+                منحة شعبية استثنائية (مكافأة نصف سنوية)
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.75T ل.س</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: +8 رصيد سياسي و+2 ثقة وتهدئة الاحتقان (-2)</span>
+              </div>
+            </div>
+            <button
+              onclick={() => draftStore.setField('populistGrant', false)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
+        <!-- Charity Fund -->
+        {#if $draftStore.charityFundActive}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">
+                صندوق الكرامة السيادي (مستمر دورياً)
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.25T ل.س/دور</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: +3 رصيد سياسي كل دور و+1 ثقة</span>
+              </div>
+            </div>
+            <button
+              onclick={() => draftStore.setField('charityFundActive', false)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
+        <!-- Import Surge -->
+        {#if $draftStore.importSurge}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">
+                دفعة استيراد إغاثية طارئة (غذاء ووقود)
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$40M</span>
+                <span class="text-[11px] text-forest-accent mr-2">| الأثر: +6 رصيد سياسي و-1 سا تقنين وتهدئة الاحتقان (-2)</span>
+              </div>
+            </div>
+            <button
+              onclick={() => draftStore.setField('importSurge', false)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
+        <!-- Loan Terminations -->
+        {#each ($draftStore.terminatedLoanIds ?? []) as loanId}
+          {@const tloan = $gameStore.foreignLoans.find((l) => l.id === loanId)}
+          {#if tloan && tloan.isSigned}
+            <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+              <div class="space-y-1">
+                <span class="font-bold text-wheat-light block font-heading">
+                  فسخ سيادي: {tloan.titleAr}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-[11px] text-wheat-dark">الكلفة:</span>
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-${formatMillionUSD(tloan.remainingPrincipalUSD ?? tloan.disbursementUSD)}M</span>
+                  <span class="text-[11px] text-forest-accent mr-2">| الأثر: +6 رصيد سياسي و+4 رافعة سيادية وإطفاء خدمة الدين</span>
+                </div>
+              </div>
+              <button
+                onclick={() => draftStore.toggleLoanTermination(loanId)}
+                class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          {/if}
+        {/each}
 
         <!-- 10. Demining Priority -->
         {#if deminingGov}

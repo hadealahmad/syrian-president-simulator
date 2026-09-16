@@ -11,6 +11,12 @@ import {
   getOligarchLiquidationPCCost,
   getOligarchNationalizePCEarned,
 } from '../engine/oligarch-helpers';
+import {
+  POPULIST_GRANT_COST_SYP,
+  CHARITY_FUND_COST_SYP,
+  IMPORT_SURGE_COST_USD,
+  LOAN_TERMINATION_PC_EARNED,
+} from '../engine/revenues';
 
 export interface TurnBudget {
   initialPC: number;
@@ -109,13 +115,39 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     committedSYP += 350_000_000_000;
   }
 
+  // 7b. Populist patronage (SYP/FX spent to buy political capital)
+  if (draft.populistGrant) {
+    committedSYP += POPULIST_GRANT_COST_SYP;
+    committedPC -= 8;
+  }
+  if (draft.charityFundActive) {
+    committedSYP += CHARITY_FUND_COST_SYP;
+    committedPC -= 3;
+  }
+  if (draft.importSurge) {
+    committedUSD += IMPORT_SURGE_COST_USD;
+    committedPC -= 6;
+  }
+  if (draft.terminatedLoanIds && draft.terminatedLoanIds.length > 0) {
+    let availUSD = Math.max(0, initialUSD);
+    for (const id of draft.terminatedLoanIds) {
+      const loan = gameState.foreignLoans.find((l) => l.id === id);
+      if (!loan || !loan.isSigned) continue;
+      const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD;
+      if (remaining <= 0 || availUSD < remaining) continue;
+      committedUSD += remaining;
+      committedPC -= LOAN_TERMINATION_PC_EARNED;
+      availUSD -= remaining;
+    }
+  }
+
   // 8. Grid CapEx
   committedUSD += draft.gridCapExUSD || 0;
 
   // 9. Central Bank Dollar Auction
   committedUSD += draft.dollarAuctionUSD || 0;
 
-  const remainingPC = Math.max(0, initialPC - committedPC);
+  const remainingPC = Math.max(0, Math.min(200, initialPC - committedPC));
   const remainingUSD = Math.max(0, initialUSD - committedUSD);
   const remainingSYP = initialSYP - committedSYP;
 
@@ -159,12 +191,19 @@ function loadStoredDraft(): TurnDirectives {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Backfill fields added after the save was written so old drafts
+        // never carry undefined directive keys into the engine or budget.
+        const normalized = { ...getDefaultTurnDirectives(), ...parsed };
         // One-time decree intents must not survive a reload looking
         // pre-toggled; only the continuous martial-law state carries over.
-        parsed.activePoliticalActions = (parsed.activePoliticalActions || []).filter(
+        normalized.activePoliticalActions = (normalized.activePoliticalActions || []).filter(
           (a: string) => a === 'MARTIAL_LAW'
         );
-        return parsed;
+        // One-shot patronage intents never survive a reload either.
+        normalized.populistGrant = false;
+        normalized.importSurge = false;
+        normalized.terminatedLoanIds = [];
+        return normalized;
       } catch (e) {
         console.error('Failed to parse saved draft:', e);
       }
@@ -210,9 +249,12 @@ function createDraftStore() {
         oligarchDecisions: {},
         provincialProjects: [],
         extraDebtRepaymentUSD: 0,
+        populistGrant: false,
+        importSurge: false,
+        terminatedLoanIds: [],
         // Retain continuous states (MARTIAL_LAW) until lifted, reset one-time and periodic decrees:
         activePoliticalActions: (d.activePoliticalActions || []).filter((a) => a === 'MARTIAL_LAW'),
-        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, demining, brain gain) are preserved!
+        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, demining, brain gain, charity fund) are preserved!
       }));
     },
     togglePoliticalAction: (action: string) => {
@@ -261,6 +303,16 @@ function createDraftStore() {
           ? current.filter((id) => id !== loanId)
           : [...current, loanId];
         return { ...d, signedLoanIds: next };
+      });
+    },
+    toggleLoanTermination: (loanId: string) => {
+      update((d) => {
+        const current = d.terminatedLoanIds || [];
+        const exists = current.includes(loanId);
+        const next = exists
+          ? current.filter((id) => id !== loanId)
+          : [...current, loanId];
+        return { ...d, terminatedLoanIds: next };
       });
     },
     toggleMortgage: (mortgageId: string) => {

@@ -15,7 +15,7 @@ export const BASELINE_MACRO = {
   annualInflationPct: 24.5,             // Annualized CPI inflation
   sovereignDebtUSD: 6_800_000_000,      // Pre-existing external debt
   sovereignLeverage: 65,                // 0 - 100 (National autonomy)
-  politicalCapital: 50,                 // 0 - 100 (Presidential decree resource)
+  politicalCapital: 50,                 // 0 - 200 points (Presidential decree resource)
   civicTrust: 42,                       // 0 - 100 (Public confidence)
   systemicCorruption: 58,               // 0 - 100 (Institutional leakage drag)
   nationalRRI: 45,                      // 0 - 100 (National Riot Risk Index)

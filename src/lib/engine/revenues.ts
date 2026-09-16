@@ -1,5 +1,39 @@
 import type { GameState, TurnDirectives, RevenueAudit } from './types';
 
+// Patronage economics: cash/FX spent to buy political capital.
+export const POPULIST_GRANT_COST_SYP = 750_000_000_000;
+export const CHARITY_FUND_COST_SYP = 250_000_000_000;
+export const IMPORT_SURGE_COST_USD = 40_000_000;
+export const LOAN_TERMINATION_PC_EARNED = 6;
+export const LOAN_TERMINATION_LEVERAGE_EARNED = 4;
+
+/**
+ * Full early termination (sovereign buyback) of signed loans, all-or-nothing
+ * per loan in listed order, clamped by available FX reserves. Pure function:
+ * the turn manager replays the same allocation when mutating state, so the
+ * audit preview and the committed turn always agree.
+ */
+export function allocateLoanTermination(
+  state: GameState,
+  directives: TurnDirectives
+): { paidByLoan: Record<string, number>; totalPaidUSD: number; terminatedIds: string[] } {
+  const paidByLoan: Record<string, number> = {};
+  const terminatedIds: string[] = [];
+  let avail = Math.max(0, state.macro.reservesUSD);
+  for (const id of directives.terminatedLoanIds ?? []) {
+    if (paidByLoan[id] !== undefined) continue;
+    const loan = state.foreignLoans?.find((l) => l.id === id);
+    if (!loan || !loan.isSigned) continue;
+    const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD;
+    if (remaining <= 0) continue;
+    if (avail < remaining) continue; // all-or-nothing: skip when unaffordable
+    paidByLoan[id] = remaining;
+    terminatedIds.push(id);
+    avail -= remaining;
+  }
+  return { paidByLoan, totalPaidUSD: Math.max(0, state.macro.reservesUSD - avail), terminatedIds };
+}
+
 /**
  * Executes the Comprehensive Semiannual Revenue & Expenditure Audit
  * implementing the multi-currency macroeconomic engine from Syria Post-War Simulation Design.
@@ -210,17 +244,21 @@ export function auditSemiannualBudget(
 
   // Voluntary early principal repayment (allocated highest-rate-first in the
   // turn manager; recomputed here without mutation so rehearsal previews match).
+  // Runs on reserves left over AFTER full loan terminations, and only against
+  // loans that survive termination.
+  const termination = allocateLoanTermination(state, directives);
+  const reservesAfterTermination = Math.max(0, macro.reservesUSD - termination.totalPaidUSD);
   let totalRemainingPrincipalUSD = 0;
   if (state.foreignLoans) {
     for (const loan of state.foreignLoans) {
-      if (loan.isSigned) {
+      if (loan.isSigned && termination.paidByLoan[loan.id] === undefined) {
         totalRemainingPrincipalUSD += loan.remainingPrincipalUSD ?? loan.disbursementUSD;
       }
     }
   }
   const debtRepaymentPaidUSD = Math.max(
     0,
-    Math.min(directives.extraDebtRepaymentUSD ?? 0, macro.reservesUSD, totalRemainingPrincipalUSD)
+    Math.min(directives.extraDebtRepaymentUSD ?? 0, reservesAfterTermination, totalRemainingPrincipalUSD)
   );
 
   // Demining priority expenditure (strictly when target governorate mine saturation > 8%)
@@ -255,15 +293,20 @@ export function auditSemiannualBudget(
     }
   }
 
+  // Emergency food/fuel import surge: populist market-flooding paid in hard currency
+  const importSurgeUSD = directives.importSurge ? IMPORT_SURGE_COST_USD : 0;
+
   const expendedUSD =
     netWheatImportUSD +
     fuelImportUSD +
     gridCapExUSD +
     debtServiceUSD +
     mortgageDrainUSD +
+    termination.totalPaidUSD +
     debtRepaymentPaidUSD +
     emergencyDeminingUSD +
     powerBoostUSD +
+    importSurgeUSD +
     directives.dollarAuctionUSD +
     provincialProjectsCostUSD;
 
@@ -332,6 +375,10 @@ export function auditSemiannualBudget(
   // Expatriate Brain Gain Contracts
   const brainGainCostSYP = directives.expatriateBrainGainIncentive ? 350_000_000_000 : 0;
 
+  // Populist patronage: one-shot grant + recurring charity fund, both SYP-funded
+  const populistGrantSYP = directives.populistGrant ? POPULIST_GRANT_COST_SYP : 0;
+  const charityFundSYP = directives.charityFundActive ? CHARITY_FUND_COST_SYP : 0;
+
   const golanDrainSYP = directives.golanBorderStance === 'DEPLOY_ARMOR' ? 900_000_000_000 : 0;
 
   const expendedSYP =
@@ -344,6 +391,8 @@ export function auditSemiannualBudget(
     golanDrainSYP +
     wheatDomesticProcurementSYP +
     brainGainCostSYP +
+    populistGrantSYP +
+    charityFundSYP +
     provincialProjectsCostSYP;
 
   // Seigniorage & Domestic Fiscal Balance (SYP)

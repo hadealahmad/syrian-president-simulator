@@ -56,6 +56,24 @@
     !$draftStore.expatriateBrainGainIncentive &&
     $budgetStore.isCoveredByFX(20_000_000, 350_000_000_000)
   );
+
+  // Populist patronage affordability (SYP-funded, FX backstop allowed)
+  let canAffordGrant = $derived(
+    $draftStore.populistGrant ||
+    $budgetStore.canAffordWithFxCoverage(0, 750_000_000_000)
+  );
+  let isGrantCoveredByFX = $derived(
+    !$draftStore.populistGrant &&
+    $budgetStore.isCoveredByFX(0, 750_000_000_000)
+  );
+  let canAffordCharity = $derived(
+    $draftStore.charityFundActive ||
+    $budgetStore.canAffordWithFxCoverage(0, 250_000_000_000)
+  );
+  let isCharityCoveredByFX = $derived(
+    !$draftStore.charityFundActive &&
+    $budgetStore.isCoveredByFX(0, 250_000_000_000)
+  );
 </script>
 
 <div class="space-y-3">
@@ -146,8 +164,8 @@
     </div>
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
       {$draftStore.remittanceCaptureSpread <= 15
-        ? `نسبة اقتطاع اعتيادية (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +\${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية بأمان ودون إثارة مقاطعة المغتربين.`
-        : `اقتطاع طوارئ استثنائي (${$draftStore.remittanceCaptureSpread}%): يوفر للمصرف المركزي سيولة دولارية إنقاذية ضخمة تصل إلى +\${remittanceCapturedM}M كاش لإنقاذ الاحتياطي ومنع العجز عن سداد الديون واستيراد القمح والفيول، مقابل كلفة مقبولة على الثقة الشعبية ونشاط الصرافة غير النظامي.`}
+        ? `نسبة اقتطاع اعتيادية (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية بأمان ودون إثارة مقاطعة المغتربين.`
+        : `اقتطاع طوارئ استثنائي (${$draftStore.remittanceCaptureSpread}%): يوفر للمصرف المركزي سيولة دولارية إنقاذية ضخمة تصل إلى +${remittanceCapturedM}M كاش لإنقاذ الاحتياطي ومنع العجز عن سداد الديون واستيراد القمح والفيول، مقابل كلفة مقبولة على الثقة الشعبية ونشاط الصرافة غير النظامي.`}
     </div>
   </div>
 
@@ -405,6 +423,86 @@
       {:else if !canAffordBrainGain}
         ميزانية غير كافية
       {:else if isBrainGainCoveredByFX}
+        تفعيل (بتغطية النقد الأجنبي)
+      {:else}
+        مُعطّل
+      {/if}
+    </button>
+  </div>
+
+  <!-- Populist Grant: one-shot SYP bonus buying +8 PC -->
+  <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'populistGrant') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div class="space-y-1">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-xs font-bold text-wheat-gold block font-heading">منحة شعبية استثنائية (مكافأة نصف سنوية)</span>
+        <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">لمرة واحدة هذا الدور</span>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[10px] text-wheat-dark">الكلفة:</span>
+        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.75T ل.س</span>
+        <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+8 رصيد سياسي</span>
+        <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+2 ثقة / -2 احتقان</span>
+        {#if isGrantCoveredByFX && !$draftStore.populistGrant}
+          <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+            مغطى بالنقد الأجنبي
+          </span>
+        {/if}
+      </div>
+    </div>
+    <button
+      disabled={!$draftStore.populistGrant && !canAffordGrant}
+      onclick={() => {
+        if ($draftStore.populistGrant || canAffordGrant) {
+          draftStore.setField('populistGrant', !$draftStore.populistGrant);
+        }
+      }}
+      class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.populistGrant ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordGrant ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+    >
+      {#if $draftStore.populistGrant}
+        مُعتمد
+      {:else if !canAffordGrant}
+        ميزانية غير كافية
+      {:else if isGrantCoveredByFX}
+        اعتماد (بتغطية النقد الأجنبي)
+      {:else}
+        اعتماد
+      {/if}
+    </button>
+  </div>
+
+  <!-- Sovereign Charity Fund: persistent SYP drain buying +3 PC/turn -->
+  <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'charityFund') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div class="space-y-1">
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-xs font-bold text-wheat-gold block font-heading">صندوق الكرامة السيادي (إعانات أسر الشهداء)</span>
+        <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">تفعيل مستمر دورياً</span>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <span class="text-[10px] text-wheat-dark">الكلفة:</span>
+        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.25T ل.س/دور</span>
+        <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+3 رصيد سياسي/دور</span>
+        <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+1 ثقة</span>
+        {#if isCharityCoveredByFX && !$draftStore.charityFundActive}
+          <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+            مغطى بالنقد الأجنبي
+          </span>
+        {/if}
+      </div>
+    </div>
+    <button
+      disabled={!$draftStore.charityFundActive && !canAffordCharity}
+      onclick={() => {
+        if ($draftStore.charityFundActive || canAffordCharity) {
+          draftStore.setField('charityFundActive', !$draftStore.charityFundActive);
+        }
+      }}
+      class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.charityFundActive ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordCharity ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+    >
+      {#if $draftStore.charityFundActive}
+        مُفعّل (مستمر)
+      {:else if !canAffordCharity}
+        ميزانية غير كافية
+      {:else if isCharityCoveredByFX}
         تفعيل (بتغطية النقد الأجنبي)
       {:else}
         مُعطّل

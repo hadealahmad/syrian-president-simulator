@@ -64,7 +64,7 @@
     | 'm2MoneySupplySYP' | 'civilServiceHeadcount' | 'civilPayrollSYP';
 
   const PROJECTED_STATS: { key: GeneralStatKey; labelAr: string; fmt: string }[] = [
-    { key: 'politicalCapital', labelAr: 'الرصيد السياسي', fmt: 'pct' },
+    { key: 'politicalCapital', labelAr: 'الرصيد السياسي', fmt: 'points' },
     { key: 'treasurySYP', labelAr: 'الخزينة العامة', fmt: 'trillion' },
     { key: 'reservesUSD', labelAr: 'احتياطي النقد الأجنبي', fmt: 'mUSD' },
     { key: 'sovereignDebtUSD', labelAr: 'الدين السيادي الخارجي', fmt: 'bUSD' },
@@ -82,6 +82,7 @@
   ];
 
   const FMT_SUFFIX: Record<string, string> = {
+    points: 'نقطة',
     trillion: 'ل.س',
     per100: '/100',
     hours: 'س',
@@ -91,6 +92,7 @@
   function fmtVal(fmt: string, v: number): string {
     switch (fmt) {
       case 'pct': return `${v}%`;
+      case 'points': return `${v}`;
       case 'per100': return `${v}`;
       case 'trillion': return `${formatTrillion(v)}T`;
       case 'mUSD': return `$${(v / 1_000_000).toFixed(1)}M`;

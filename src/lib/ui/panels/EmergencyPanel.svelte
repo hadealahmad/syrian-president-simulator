@@ -35,6 +35,11 @@
   );
   let repayM = $derived(($draftStore.extraDebtRepaymentUSD ?? 0) / 1_000_000);
 
+  // Emergency import surge: $40M of reserves for +6 PC and blackout relief
+  let canAffordSurge = $derived(
+    $draftStore.importSurge || ($gameStore.macro.reservesUSD ?? 0) >= 40_000_000
+  );
+
   function dimClass(key: string): string {
     return selectedStat
       ? isOptionRelated(selectedStat, key)
@@ -94,7 +99,9 @@
         {#if loan.isSigned}
           {@const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD}
           {@const service = Math.floor(((remaining * loan.interestRatePct) / 100 / 2))}
-          <div class="px-2 py-2 border border-forest-accent/40 bg-forest-surface/40 opacity-90 space-y-1">
+          {@const isTerminating = ($draftStore.terminatedLoanIds ?? []).includes(loan.id)}
+          {@const canTerminate = isTerminating || ($budgetStore.remainingUSD >= remaining && remaining > 0)}
+          <div class="px-2 py-2 border border-forest-accent/40 bg-forest-surface/40 opacity-90 space-y-1 {isTerminating ? 'ring-2 ring-wheat-gold/80' : ''}">
             <div class="flex items-center gap-1.5">
               <GameIcon name="check-mark" cls="w-4 h-4 text-forest-accent shrink-0" />
               <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{loan.titleAr}</span>
@@ -107,6 +114,16 @@
                 <span class="font-bold">−</span>خدمة ${(service / 1_000_000).toFixed(1)}M$ / دور
               </span>
             </span>
+            {#if remaining > 0}
+              <button
+                disabled={!canTerminate}
+                onclick={() => { if (canTerminate) draftStore.toggleLoanTermination(loan.id); }}
+                title="فسخ سيادي: سداد كامل المتبقي (${(remaining / 1_000_000).toFixed(1)}M$) من الاحتياطي مقابل +6 رصيد سياسي و+4 رافعة سيادية"
+                class="w-full mt-1 px-1.5 py-1 border text-[9px] font-bold rounded-none transition-colors {isTerminating ? 'bg-forest-surface border-forest-accent text-forest-accent cursor-pointer' : canTerminate ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-wheat-mid/60 cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+              >
+                {isTerminating ? 'فسخ سيادي مُعتمد (+6 سياسي / +4 سيادة)' : !canTerminate ? 'احتياطي غير كافٍ للفسخ' : `فسخ سيادي (−$${(remaining / 1_000_000).toFixed(1)}M → +6 سياسي / +4 سيادة)`}
+              </button>
+            {/if}
           </div>
         {:else}
           <button
@@ -160,6 +177,38 @@
         </div>
       </div>
     {/if}
+
+    <!-- Emergency food/fuel import surge: burn $40M of reserves for +6 PC -->
+    <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2">
+      <div class="space-y-1">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="text-xs font-bold text-wheat-gold block font-heading">دفعة استيراد إغاثية طارئة (غذاء ووقود)</span>
+          <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">لمرة واحدة هذا الدور</span>
+        </div>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-$40M</span>
+          <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+6 رصيد سياسي</span>
+          <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">-1 سا تقنين / -2 احتقان</span>
+        </div>
+      </div>
+      <button
+        disabled={!$draftStore.importSurge && !canAffordSurge}
+        onclick={() => {
+          if ($draftStore.importSurge || canAffordSurge) {
+            draftStore.setField('importSurge', !$draftStore.importSurge);
+          }
+        }}
+        class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.importSurge ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordSurge ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+      >
+        {#if $draftStore.importSurge}
+          مُعتمدة
+        {:else if !canAffordSurge}
+          احتياطي غير كافٍ
+        {:else}
+          اعتماد
+        {/if}
+      </button>
+    </div>
 
     <!-- Sovereign mortgages grid -->
     <div class="space-y-2 pt-1">

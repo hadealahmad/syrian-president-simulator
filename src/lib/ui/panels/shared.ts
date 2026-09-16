@@ -191,9 +191,9 @@ export function isProvincialActionRelated(selectedStat: string | null, actionKey
 // Hub-button dot mapping: which option keys live in each command panel.
 // Mirrors the dimming logic so a dot means "this panel has visible cards".
 export const PANEL_OPTION_KEYS: Record<string, string[]> = {
-  emergency: ['loans', 'mortgages'],
+  emergency: ['loans', 'mortgages', 'loanTermination', 'importSurge'],
   decrees: [],
-  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain'],
+  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain', 'populistGrant', 'charityFund'],
   assets: ['oligarchs'],
   policies: ['foodSubsidyLevel', 'workforceStrategy', 'wheatProcurement', 'dieselSmuggling'],
   stats: [],
@@ -245,6 +245,13 @@ export function isOptionRelated(selectedStat: string | null, optionKey: string):
       return ['reservesUSD', 'sovereignLeverage', 'politicalCapital', 'sovereignDebtUSD'].includes(selectedStat);
     case 'brainGain':
       return ['civicTrust', 'reservesUSD', 'treasurySYP', 'taxCompliancePct', 'politicalCapital'].includes(selectedStat);
+    case 'populistGrant':
+    case 'charityFund':
+      return ['politicalCapital', 'treasurySYP', 'unrestIndex', 'civicTrust'].includes(selectedStat);
+    case 'importSurge':
+      return ['politicalCapital', 'reservesUSD', 'unrestIndex', 'dailyPowerHours', 'civicTrust'].includes(selectedStat);
+    case 'loanTermination':
+      return ['politicalCapital', 'reservesUSD', 'sovereignDebtUSD', 'sovereignLeverage'].includes(selectedStat);
     default:
       return false;
   }
@@ -254,7 +261,7 @@ export function isOptionRelated(selectedStat: string | null, optionKey: string):
 // Values stay in the UI; these describe the mechanic only.
 export const STAT_EXPLAINERS_AR: Record<string, string> = {
   politicalCapital:
-    'رصيد النفوذ التنفيذي: يُنفق على المراسيم والقروض والمعاملات، ويُسترد عبر جلسات المساءلة والخطابات والتأميم. نفاده يشلّ القرارات ويهدد بانهيار الحكومة.',
+    'رصيد النفوذ التنفيذي (بالنقاط، بحد أقصى 200): يُنفق على المراسيم والقروض والمعاملات، ويُسترد عبر جلسات المساءلة والخطابات والتأميم — أو بشراء الولاء نقداً: المنحة الشعبية (+8)، صندوق الكرامة (+3/دور)، دفعة الاستيراد الإغاثية (+6)، والفسخ السيادي للقروض (+6). نفاده يشلّ القرارات ويهدد بانهيار الحكومة.',
   treasurySYP:
     'خزينة الدولة بالليرة: الإيرادات (ضرائب، جمارك، رسوم) ناقص الرواتب والدعم والنفقات. السالب المفتوح مسموح (عجز ودين حكومي) دون طباعة قسرية.',
   reservesUSD:

@@ -6,6 +6,14 @@ import type {
   ProjectedTurnSummary,
 } from './types';
 import { auditSemiannualBudget } from './revenues';
+import {
+  allocateLoanTermination,
+  POPULIST_GRANT_COST_SYP,
+  CHARITY_FUND_COST_SYP,
+  IMPORT_SURGE_COST_USD,
+  LOAN_TERMINATION_PC_EARNED,
+  LOAN_TERMINATION_LEVERAGE_EARNED,
+} from './revenues';
 import { calculateParallelRate, calculateRealWageUSD } from './currency';
 import { drawEventsForTurn } from './events';
 import { checkFailStates } from './fail-states';
@@ -48,6 +56,10 @@ export function getDefaultTurnDirectives(): TurnDirectives {
     executedMortgageIds: [],
     expatriateBrainGainIncentive: false,
     extraDebtRepaymentUSD: 0,
+    populistGrant: false,
+    charityFundActive: false,
+    importSurge: false,
+    terminatedLoanIds: [],
   };
 }
 
@@ -84,6 +96,10 @@ export function hasDraftSelections(directives: TurnDirectives): boolean {
     directives.deminingPriorityId !== def.deminingPriorityId ||
     directives.powerBoostGovId !== def.powerBoostGovId ||
     directives.expatriateBrainGainIncentive !== def.expatriateBrainGainIncentive ||
+    directives.populistGrant !== def.populistGrant ||
+    directives.charityFundActive !== def.charityFundActive ||
+    directives.importSurge !== def.importSurge ||
+    ((directives.terminatedLoanIds?.length ?? 0) > 0) ||
     directives.propertyRestitution !== def.propertyRestitution ||
     (directives.activePoliticalActions && directives.activePoliticalActions.length > 0) ||
     (directives.provincialProjects && directives.provincialProjects.length > 0) ||
@@ -212,7 +228,7 @@ export function simulateTurnTransitions(
         next.enactedDecrees.push('TRIBAL_CUSTOMS_COUNCIL');
       }
     } else if (actId === 'CABINET_HEARING') {
-      next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 8);
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 8);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 3);
       Object.values(next.ministries).forEach((m) => {
         m.competence = Math.min(100, m.competence + 2);
@@ -221,14 +237,14 @@ export function simulateTurnTransitions(
         g.prri = Math.max(0, g.prri - 2);
       });
     } else if (actId === 'UNITY_SPEECH') {
-      next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 4);
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 4);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
       Object.values(next.governorates).forEach((g) => {
         g.prri = Math.max(0, g.prri - 4);
       });
       next.enactedDecrees.push('UNITY_SPEECH');
     } else if (actId === 'OPPOSITION_SEATS') {
-      next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + 18);
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 18);
       next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 4);
       const minKeys = Object.keys(next.ministries);
       if (minKeys.length > 0) {
@@ -262,6 +278,45 @@ export function simulateTurnTransitions(
   }
 
   // =========================================================================
+  // PHASE 0B: POPULIST PATRONAGE — cash/FX spent to buy political capital
+  // =========================================================================
+  // Applied flags feed the Phase 6 provincial relief below (nationalRRI is
+  // derived from governorates there, so relief must land per-governorate).
+  let grantApplied = false;
+  let charityApplied = false;
+  let surgeApplied = false;
+
+  // 1. One-shot populist wage/grant bonus (750B SYP -> +8 PC)
+  if (directives.populistGrant) {
+    if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 0, POPULIST_GRANT_COST_SYP, next.macro.parallelRateSYP)) {
+      grantApplied = true;
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 8);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+    }
+  }
+
+  // 2. Persistent sovereign charity fund (250B SYP/turn -> +3 PC/turn)
+  if (directives.charityFundActive) {
+    if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 0, CHARITY_FUND_COST_SYP, next.macro.parallelRateSYP)) {
+      charityApplied = true;
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 3);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 1);
+    }
+  }
+
+  // 3. One-shot emergency food/fuel import surge ($40M -> +6 PC, blackout relief)
+  if (directives.importSurge) {
+    if (next.macro.reservesUSD >= IMPORT_SURGE_COST_USD) {
+      surgeApplied = true;
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 6);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+      for (const gov of Object.values(next.governorates)) {
+        gov.dailyBlackoutHours = Math.max(1, Number((gov.dailyBlackoutHours - 1).toFixed(1)));
+      }
+    }
+  }
+
+  // =========================================================================
   // PHASE 1: OLIGARCH ASSET DECISIONS & PROPERTY RESTITUTION
   // =========================================================================
   if (directives.oligarchDecisions) {
@@ -282,7 +337,7 @@ export function simulateTurnTransitions(
           const earnedPC = getOligarchNationalizePCEarned(asset.valuationUSD);
           next.macro.civilServiceHeadcount = (next.macro.civilServiceHeadcount ?? 850_000) + 8000;
           next.macro.systemicCorruption = Math.min(100, next.macro.systemicCorruption + 5);
-          next.macro.politicalCapital = Math.min(100, next.macro.politicalCapital + earnedPC);
+          next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + earnedPC);
         } else if (action === 'FOREIGN_LIQUIDATION') {
           const costPC = getOligarchLiquidationPCCost(asset.valuationUSD);
           if (next.macro.politicalCapital >= costPC) {
@@ -492,17 +547,41 @@ export function simulateTurnTransitions(
   const audit = auditSemiannualBudget(next, directives);
   next.lastTurnAudit = audit;
 
+  // Full early termination (sovereign buyback) of signed loans: pay the whole
+  // remaining principal from reserves, all-or-nothing per loan in listed order
+  // (same allocation as the audit preview). Each buyback earns +6 PC and +4
+  // sovereignty leverage — the "no-austerity pledge" made flesh.
+  const SOVEREIGN_LEVERAGE_CAP = 65;
+  const DEBT_REPAY_LEVERAGE_PER_100M = 2;
+  const termination = allocateLoanTermination(next, directives);
+  if (termination.totalPaidUSD > 0 && next.foreignLoans) {
+    for (const id of termination.terminatedIds) {
+      const loan = next.foreignLoans.find((l) => l.id === id);
+      const paid = termination.paidByLoan[id] ?? 0;
+      if (!loan || paid <= 0) continue;
+      loan.remainingPrincipalUSD = 0;
+      next.macro.sovereignDebtUSD = Math.max(0, (next.macro.sovereignDebtUSD ?? 0) - paid);
+      next.macro.sovereignLeverage = Math.min(
+        SOVEREIGN_LEVERAGE_CAP,
+        (next.macro.sovereignLeverage ?? SOVEREIGN_LEVERAGE_CAP) + LOAN_TERMINATION_LEVERAGE_EARNED
+      );
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + LOAN_TERMINATION_PC_EARNED);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 1);
+    }
+  }
+
   // Voluntary early principal repayment, highest-rate loans first. Runs after
   // the audit so interest accrues on the opening balance and the audit's own
   // paid-amount clamp (same inputs, no mutation there) matches exactly.
-  const DEBT_REPAY_LEVERAGE_PER_100M = 2;
-  const SOVEREIGN_LEVERAGE_CAP = 65;
+  // Terminated loans already read 0 remaining, and the clamp spends reserves
+  // left over after the buybacks — mirroring the audit computation.
   if ((directives.extraDebtRepaymentUSD ?? 0) > 0 && next.foreignLoans) {
     const live = next.foreignLoans.filter(
       (l) => l.isSigned && (l.remainingPrincipalUSD ?? l.disbursementUSD) > 0
     );
     const totalRemaining = live.reduce((acc, l) => acc + (l.remainingPrincipalUSD ?? l.disbursementUSD), 0);
-    let toPay = Math.max(0, Math.min(directives.extraDebtRepaymentUSD ?? 0, next.macro.reservesUSD, totalRemaining));
+    const reservesAfterTermination = Math.max(0, next.macro.reservesUSD - termination.totalPaidUSD);
+    let toPay = Math.max(0, Math.min(directives.extraDebtRepaymentUSD ?? 0, reservesAfterTermination, totalRemaining));
     live.sort((a, b) => b.interestRatePct - a.interestRatePct);
     for (const loan of live) {
       if (toPay <= 0) break;
@@ -608,6 +687,9 @@ export function simulateTurnTransitions(
   const capExDelta = directives.gridCapExUSD - 35_000_000;
   const powerRelief = Math.round((capExDelta / 35_000_000) * 2);
 
+  // 7. Populist patronage relief (only when the Phase 0B transfer cleared)
+  const patronageRelief = (grantApplied ? 2 : 0) + (charityApplied ? 1 : 0) + (surgeApplied ? 2 : 0);
+
   // 7. Real purchasing power shock (beyond normal wage relief)
   const prevRealWage = currentState.macro.civilServiceWageSYP / Math.max(1, currentState.macro.parallelRateSYP);
   const nextRealWage = next.macro.civilServiceWageSYP / Math.max(1, next.macro.parallelRateSYP);
@@ -618,7 +700,7 @@ export function simulateTurnTransitions(
   else if (realWageDiff > 12) purchasingPowerDelta = -3;
 
   for (const gov of Object.values(next.governorates)) {
-    let delta = -wageRelief + foodSubsidyDelta + workforceDelta - powerRelief + purchasingPowerDelta;
+    let delta = -wageRelief + foodSubsidyDelta + workforceDelta - powerRelief - patronageRelief + purchasingPowerDelta;
     if (breadbasketGovs.includes(gov.id)) {
       delta += wheatDelta;
     }

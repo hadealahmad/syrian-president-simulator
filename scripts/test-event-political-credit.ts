@@ -73,7 +73,7 @@ async function runVisualTest() {
     await sendCommand('Runtime.enable');
     await new Promise((r) => setTimeout(r, 2000));
 
-    // Close guide if open, set political credit to 5%, and inject event 1
+    // Close guide if open, set political credit to 5 points, and inject event 1
     await sendCommand('Runtime.evaluate', {
       expression: `
         (window as any).__uiStore.setGuideModal(false);

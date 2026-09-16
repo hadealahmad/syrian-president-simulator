@@ -220,6 +220,14 @@ export interface TurnDirectives {
   expatriateBrainGainIncentive: boolean;
   /** Voluntary early principal repayment for this turn (USD). Highest-rate loans first. */
   extraDebtRepaymentUSD: number;
+  /** One-shot populist cash grant this turn (750B SYP -> +8 PC). Reset each turn. */
+  populistGrant: boolean;
+  /** Persistent sovereign charity fund toggle (250B SYP/turn -> +3 PC/turn). */
+  charityFundActive: boolean;
+  /** One-shot emergency food/fuel import surge this turn ($40M -> +6 PC). Reset each turn. */
+  importSurge: boolean;
+  /** Full early termination (sovereign buyback) of signed loans this turn. Reset each turn. */
+  terminatedLoanIds: string[];
 }
 
 export interface RevenueAudit {

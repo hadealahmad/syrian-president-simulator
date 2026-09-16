@@ -95,11 +95,11 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current}%</span>
+        <span class="text-xs font-bold text-wheat-gold">{p.politicalCapital.current} نقطة</span>
         {#if p.politicalCapital.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.politicalCapital.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            {p.politicalCapital.projected}%
+            {p.politicalCapital.projected} نقطة
           </span>
         {/if}
       </div>
