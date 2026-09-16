@@ -67,7 +67,7 @@ const prng = new PRNG(12345);
 // 1. Player with excellent finances ($800M reserves, 10T treasury, 5% inflation)
 const richState: GameState = createInitialGameState();
 richState.macro.reservesUSD = 800_000_000;
-richState.macro.treasurySYP = 10_000_000_000_000;
+richState.macro.treasurySYP = 1_000_000_000;
 richState.macro.annualInflationPct = 5;
 richState.macro.civicTrust = 85;
 richState.governorates['as_suwayda'].prri = 15;
@@ -98,7 +98,7 @@ console.log('PASS: Aleppo amperat strike correctly suppressed when power is plen
 // 2. Player with distressed state
 const poorState: GameState = createInitialGameState();
 poorState.macro.reservesUSD = 200_000_000;
-poorState.macro.treasurySYP = 2_000_000_000_000;
+poorState.macro.treasurySYP = 200_000_000;
 poorState.macro.annualInflationPct = 35;
 poorState.macro.civicTrust = 40;
 poorState.governorates['as_suwayda'].prri = 45;

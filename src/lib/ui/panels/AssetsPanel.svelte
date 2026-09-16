@@ -3,7 +3,7 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
-  import { isOptionRelated, formatM, formatTrillion, ASSET_STATUS_AR, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText } from './shared';
+  import { isOptionRelated, formatM, formatBillion, ASSET_STATUS_AR, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText } from './shared';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -94,7 +94,7 @@
                   }
                 }}
                 class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'NATIONALIZE_SOE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer'}"
-                title="تأميم حكومي: ضم الأصل لشركات الدولة، كسب +{nationalizePCEarned} رصيد سياسي، +{formatTrillion(asset.soeVenueSYPPerTurn)}T ل.س/دور، +8000 موظف، +5 فساد"
+                title="تأميم حكومي: ضم الأصل لشركات الدولة، كسب +{nationalizePCEarned} رصيد سياسي، +{formatBillion(asset.soeVenueSYPPerTurn)}B SP/دور، +8000 موظف، +5 فساد"
               >
                 <span class="font-bold text-[10px]">تأميم حكومي</span>
                 <div class="flex items-center gap-1 flex-wrap justify-center">
@@ -102,7 +102,7 @@
                     +{nationalizePCEarned} رصيد سياسي
                   </span>
                   <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">
-                    +{formatTrillion(asset.soeVenueSYPPerTurn)}T/دور
+                    +{formatBillion(asset.soeVenueSYPPerTurn)}B/دور
                   </span>
                 </div>
               </button>

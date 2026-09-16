@@ -7,6 +7,12 @@
   } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  // Collapsible per-section effect explainers (help icon before each title, hidden by default)
+  let openExplainers = $state<Record<string, boolean>>({});
+  function toggleExplainer(key: string): void {
+    openExplainers[key] = !openExplainers[key];
+  }
 </script>
 
 <div class="space-y-3">
@@ -17,9 +23,11 @@
 
   <!-- 2. Food Subsidies Tier -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'foodSubsidyLevel') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div>
+    <div class="flex items-center gap-1.5">
+      <button type="button" onclick={() => toggleExplainer("food")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+        <GameIcon name="help" cls="w-4 h-4" />
+      </button>
       <span class="text-xs font-bold text-wheat-gold font-heading block">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
-      <span class="text-[11px] text-wheat-dark">مستوى الدعم التمويني والخبز</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -29,7 +37,7 @@
         <span class="font-bold text-[10.5px]">تقشف</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+15 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.80T توفير</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+8.00B توفير</span>
         </div>
       </button>
 
@@ -55,11 +63,11 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.food ? '' : 'hidden'}">
       {#if $draftStore.foodSubsidyLevel === 'AUSTERE'}
-        <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة الليرة، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
+        <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة SP، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
       {:else if $draftStore.foodSubsidyLevel === 'GENEROUS'}
-        <span class="text-forest-accent font-medium">الأثر:</span> تثبيت شامل لأسعار الخبز والسلع وتخفيض الاحتقان (-12 نقطة)، مع استنزاف إضافي لسيولة الليرة والدولار لاستيراد القمح.
+        <span class="text-forest-accent font-medium">الأثر:</span> تثبيت شامل لأسعار الخبز والسلع وتخفيض الاحتقان (-12 نقطة)، مع استنزاف إضافي لسيولة SP والدولار لاستيراد القمح.
       {:else}
         <span class="text-wheat-mid font-medium">الأثر:</span> دعم متوازن يضمن توفير الخبز والمواد التموينية المدعومة ضمن الحدود المالية المقبولة للموازنة.
       {/if}
@@ -68,9 +76,11 @@
 
   <!-- 3. State Workforce Policy -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'workforceStrategy') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div>
+    <div class="flex items-center gap-1.5">
+      <button type="button" onclick={() => toggleExplainer("workforce")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+        <GameIcon name="help" cls="w-4 h-4" />
+      </button>
       <span class="text-xs font-bold text-wheat-gold font-heading block">إدارة الوظائف الحكومية والبطالة المقنعة</span>
-      <span class="text-[11px] text-wheat-dark">إعادة هيكلة ملاك الدولة والتوظيف</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -90,7 +100,7 @@
       >
         <span class="font-bold text-[10.5px]">شطب الوهمي</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.45T توفير</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+4.50B توفير</span>
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-5 فساد</span>
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+4 احتقان</span>
         </div>
@@ -108,7 +118,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.workforce ? '' : 'hidden'}">
       {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
         <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
       {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
@@ -121,9 +131,11 @@
 
   <!-- 4. Wheat Pricing -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'wheatProcurement') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div>
+    <div class="flex items-center gap-1.5">
+      <button type="button" onclick={() => toggleExplainer("wheat")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+        <GameIcon name="help" cls="w-4 h-4" />
+      </button>
       <span class="text-xs font-bold text-wheat-gold font-heading block">تسعير شراء القمح المحلي من المزارعين</span>
-      <span class="text-[11px] text-wheat-dark">ضمان الأمن الغذائي واستلام محصول القمح السوري</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -132,7 +144,7 @@
       >
         <span class="font-bold text-[10.5px]">سعر إلزامي</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+0.50T توفير</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+5.00B توفير</span>
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+8 احتقان</span>
         </div>
       </button>
@@ -155,15 +167,15 @@
         <span class="font-bold text-[10.5px]">علاوة تحفيز</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">توريد 100%</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-0.60T كلفة</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-6.00B كلفة</span>
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.wheat ? '' : 'hidden'}">
       {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
-        <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بالليرة، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
+        <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بـSP، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
       {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
-        <span class="text-forest-accent font-medium">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بالليرة.
+        <span class="text-forest-accent font-medium">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بـSP.
       {:else}
         <span class="text-wheat-mid font-medium">الأثر:</span> تسعير عادل يضمن توريد القمح المحلي بالسعر الرائج واستقرار مخزون الطحين.
       {/if}
@@ -172,9 +184,11 @@
 
   <!-- 5. Diesel Smuggling Control -->
   <div class="py-2.5 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'dieselSmuggling') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div>
+    <div class="flex items-center gap-1.5">
+      <button type="button" onclick={() => toggleExplainer("diesel")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+        <GameIcon name="help" cls="w-4 h-4" />
+      </button>
       <span class="text-xs font-bold text-wheat-gold font-heading block">مكافحة تهريب المشتقات النفطية</span>
-      <span class="text-[11px] text-wheat-dark">ضبط المازوت والفيول لدعم محطات التوليد</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -210,7 +224,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.diesel ? '' : 'hidden'}">
       {#if $draftStore.dieselSmuggling === 'CRACKDOWN'}
         <span class="text-forest-accent font-medium">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
       {:else if $draftStore.dieselSmuggling === 'PERMISSIVE'}

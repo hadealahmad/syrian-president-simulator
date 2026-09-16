@@ -3,14 +3,14 @@
   import { projectedTurnStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
-  import { STAT_EXPLAINERS_AR } from './panels/shared';
+  import { STAT_EXPLAINERS_AR, STAT_STATE_TEXT, statState } from './panels/shared';
 
   function formatNumber(num: number): string {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
   }
 
-  function formatTrillion(syp: number): string {
-    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+  function formatBillion(syp: number): string {
+    const val = Number((syp / 1_000_000_000).toFixed(2));
     if (Object.is(val, -0) || val === 0) return '0.00';
     return val.toFixed(2);
   }
@@ -36,6 +36,12 @@
   );
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  // Value-state tiers (identity lives on the neutral icon; state on the value).
+  let corruptionState = $derived(statState('systemicCorruption', p.systemicCorruption.current));
+  let trustState = $derived(statState('civicTrust', p.civicTrust.current));
+  let unrestState = $derived(statState('unrestIndex', p.nationalRRI.current));
+  let wageState = $derived(statState('civilServiceWageUSD', p.realWageUSD.current));
 
   let seasonText = $derived(
     $gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء'
@@ -115,7 +121,7 @@
       title={STAT_EXPLAINERS_AR.treasurySYP}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="money-stack" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+        <GameIcon name="money-stack" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -133,14 +139,14 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span dir="ltr" class="text-xs font-bold {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-light'}">{formatTrillion(p.treasurySYP.current)}T</span>
+        <span dir="ltr" class="text-xs font-bold {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-light'}">{formatBillion(p.treasurySYP.current)}B</span>
         {#if p.treasurySYP.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span dir="ltr" class="text-xs font-bold {p.treasurySYP.projected < 0 ? 'text-umber-crimson' : p.treasurySYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
-            {formatTrillion(p.treasurySYP.projected)}T
+            {formatBillion(p.treasurySYP.projected)}B
           </span>
         {:else}
-          <span class="text-[8.5px] {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">ل.س</span>
+          <span class="text-[8.5px] {p.treasurySYP.current < 0 ? 'text-umber-crimson' : 'text-wheat-dark'}">SP</span>
         {/if}
       </div>
       </div>
@@ -156,7 +162,7 @@
       title={STAT_EXPLAINERS_AR.reservesUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="coins" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+        <GameIcon name="coins" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -172,13 +178,13 @@
             خطر
           </span>
         {:else if runwayAlertTier === 'WARNING'}
-          <span class="px-1 py-0 bg-forest-mid border border-wheat-mid text-wheat-gold text-[7.5px] font-semibold">
+          <span class="px-1 py-0 bg-forest-mid border border-wheat-mid text-wheat-mid text-[7.5px] font-semibold">
             تنبيه
           </span>
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-light">${formatMillionUSD(p.reservesUSD.current)}M</span>
+        <span class="text-xs font-bold {runwayAlertTier === 'CRITICAL' ? 'text-umber-crimson' : 'text-wheat-light'}">${formatMillionUSD(p.reservesUSD.current)}M</span>
         {#if p.reservesUSD.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.reservesUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -198,7 +204,7 @@
       title={STAT_EXPLAINERS_AR.sovereignDebtUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="scales" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+        <GameIcon name="scales" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -212,7 +218,7 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-mid">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
+        <span class="text-xs font-bold text-wheat-light">${formatBillionUSD(p.sovereignDebtUSD.current)}B</span>
         {#if p.sovereignDebtUSD.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.sovereignDebtUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -232,7 +238,7 @@
       title={STAT_EXPLAINERS_AR.taxCompliancePct}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="abacus" cls="w-6 h-6 text-forest-accent/80 shrink-0" />
+        <GameIcon name="abacus" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -268,7 +274,7 @@
       title={STAT_EXPLAINERS_AR.parallelRate}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="trade" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+        <GameIcon name="trade" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -282,7 +288,7 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-wheat-mid">{formatNumber(p.parallelRateSYP.current)}</span>
+        <span class="text-xs font-bold text-wheat-light">{formatNumber(p.parallelRateSYP.current)}</span>
         {#if p.parallelRateSYP.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.parallelRateSYP.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -302,7 +308,7 @@
       title={STAT_EXPLAINERS_AR.civilServiceWageUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="banknote" cls="w-6 h-6 text-wheat-dark/70 shrink-0" />
+        <GameIcon name="banknote" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -316,7 +322,7 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold text-forest-accent">${p.realWageUSD.current}</span>
+        <span class="text-xs font-bold {STAT_STATE_TEXT[wageState]}">${p.realWageUSD.current}</span>
         {#if p.realWageUSD.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.realWageUSD.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -338,7 +344,7 @@
       title={STAT_EXPLAINERS_AR.systemicCorruption}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="blindfold" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+        <GameIcon name="blindfold" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -352,7 +358,7 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold {p.systemicCorruption.current > 65 ? 'text-umber-crimson' : 'text-wheat-gold'}">{p.systemicCorruption.current}</span>
+        <span class="text-xs font-bold {STAT_STATE_TEXT[corruptionState]}">{p.systemicCorruption.current}</span>
         {#if p.systemicCorruption.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.systemicCorruption.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -374,7 +380,7 @@
       title={STAT_EXPLAINERS_AR.civicTrust}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="crowned-heart" cls="w-6 h-6 text-forest-accent/80 shrink-0" />
+        <GameIcon name="crowned-heart" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -388,7 +394,7 @@
         {/if}
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
-        <span class="text-xs font-bold {p.civicTrust.current < 35 ? 'text-umber-crimson' : 'text-forest-accent'}">{p.civicTrust.current}%</span>
+        <span class="text-xs font-bold {STAT_STATE_TEXT[trustState]}">{p.civicTrust.current}%</span>
         {#if p.civicTrust.isChanged}
           <span class="text-[8.5px] text-wheat-dark">←</span>
           <span class="text-xs font-bold {p.civicTrust.isBeneficial ? 'text-forest-accent' : 'text-umber-crimson'}">
@@ -409,7 +415,7 @@
       title={STAT_EXPLAINERS_AR.unrestIndex}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
-        <GameIcon name="flame" cls="w-6 h-6 text-umber-crimson/80 shrink-0" />
+        <GameIcon name="flame" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
       <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
       <div class="flex items-center justify-center gap-1">
@@ -424,7 +430,7 @@
       </div>
       <div class="flex items-baseline justify-center gap-1 font-mono">
         <span
-          class="text-xs font-bold {p.nationalRRI.current > 70 ? 'text-umber-crimson animate-pulse' : p.nationalRRI.current > 50 ? 'text-wheat-gold' : 'text-forest-accent'}"
+          class="text-xs font-bold {STAT_STATE_TEXT[unrestState]} {unrestState === 'crit' ? 'animate-pulse' : ''}"
         >
           {p.nationalRRI.current}
         </span>

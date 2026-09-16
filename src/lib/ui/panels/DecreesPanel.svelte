@@ -25,7 +25,7 @@
   let reusable = $derived(ordered(DECREES.filter((d) => d.behavior === 'PERIODIC')));
   let grantActive = $derived($draftStore.populistGrant);
   let canAffordGrant = $derived(
-    $draftStore.populistGrant || $budgetStore.canAffordWithFxCoverage(0, 750_000_000_000)
+    $draftStore.populistGrant || $budgetStore.canAffordWithFxCoverage(0, 7_500_000_000)
   );
 
   function openModal(dec: PoliticalDecreeItem): void {
@@ -172,14 +172,14 @@
       {/each}
       <!-- Populist grant: one-shot SYP bonus, housed with decrees -->
       <div
-        title={!grantActive && !canAffordGrant ? 'موقوف مؤقتاً: ميزانية غير كافية (0.75T ل.س)' : 'منحة شعبية استثنائية'}
+        title={!grantActive && !canAffordGrant ? 'موقوف مؤقتاً: ميزانية غير كافية (7.50B SP)' : 'منحة شعبية استثنائية'}
         class="relative flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {grantActive ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordGrant ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS} {dimClass('populistGrant')}"
       >
         <span class="{CADENCE_PILL_CLASS}">كل دور</span>
         <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 pt-5 {grantActive || canAffordGrant ? '' : SUSPENDED_CONTENT_CLASS}">
           <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">منحة شعبية استثنائية</span>
           <span class="flex items-center gap-1 flex-wrap">
-            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−0.75T ل.س</span>
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−7.50B SP</span>
             <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+8 رصيد سياسي</span>
             <span class="px-1.5 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">لمرة واحدة هذا الدور</span>
           </span>

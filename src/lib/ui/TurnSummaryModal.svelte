@@ -6,8 +6,8 @@
     return new Intl.NumberFormat('en-US').format(Math.round(num));
   }
 
-  function formatTrillionSYP(syp: number): string {
-    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+  function formatBillionSYP(syp: number): string {
+    const val = Number((syp / 1_000_000_000).toFixed(2));
     if (Object.is(val, -0) || val === 0) return '0.00';
     return val.toFixed(2);
   }
@@ -66,6 +66,15 @@
                 خدمة الدين: ${formatMillionUSD(audit.debtServiceUSD)}M
               </span>
             {/if}
+            {#if (audit.iranOilCouponUSD ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-wheat-dark">
+                القسط النفطي الإيراني: ${formatMillionUSD(audit.iranOilCouponUSD)}M
+              </span>
+            {:else if ($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1}
+              <span class="text-[10px] block font-mono text-forest-accent">
+                القسط الإيراني: مُسقط ✓
+              </span>
+            {/if}
             {#if (audit.mortgageDrainUSD ?? 0) > 0}
               <span class="text-[10px] block font-mono text-umber-crimson">
                 نزيف الرهون: ${formatMillionUSD(audit.mortgageDrainUSD)}M
@@ -79,9 +88,9 @@
           </div>
 
           <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-1 rounded-none">
-            <span class="text-[11px] text-wheat-dark block font-heading">رصيد الخزينة (الليرة)</span>
+            <span class="text-[11px] text-wheat-dark block font-heading">رصيد الخزينة (SP)</span>
             <span dir="ltr" class="text-sm font-bold {$gameStore.macro.treasurySYP < 0 ? 'text-umber-crimson' : 'text-wheat-light'} font-mono">
-              {formatTrillionSYP($gameStore.macro.treasurySYP)} تريليون
+              {formatBillionSYP($gameStore.macro.treasurySYP)}B SP
             </span>
             {#if $gameStore.macro.treasurySYP < 0}
               <span class="text-[10px] text-umber-crimson block font-heading">
@@ -89,7 +98,17 @@
               </span>
             {:else if audit.seignioragePrintedSYP > 0}
               <span class="text-[10px] text-wheat-gold block font-mono">
-                إصدار نقدي: +{formatTrillionSYP(audit.seignioragePrintedSYP)}T
+                إصدار نقدي: +{formatBillionSYP(audit.seignioragePrintedSYP)}B
+              </span>
+            {/if}
+            {#if (audit.overdraftInterestSYP ?? 0) > 0}
+              <span class="text-[10px] text-umber-crimson block font-mono">
+                فوائد العجز: {formatBillionSYP(audit.overdraftInterestSYP)}B
+              </span>
+            {/if}
+            {#if (audit.auctionAbsorbedSYP ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-wheat-dark">
+                امتصاص المزاد (أُتلف): {formatBillionSYP(audit.auctionAbsorbedSYP)}B
               </span>
             {/if}
           </div>
@@ -102,7 +121,7 @@
         <div class="p-3 bg-forest-mid border border-charcoal-mid space-y-2 text-xs rounded-none">
           <div class="flex justify-between">
             <span class="text-wheat-light">سعر الصرف بالسوق الموازي:</span>
-            <span class="font-bold text-wheat-gold font-mono">{formatNumber($gameStore.macro.parallelRateSYP)} ل.س</span>
+            <span class="font-bold text-wheat-gold font-mono">{formatNumber($gameStore.macro.parallelRateSYP)} SP</span>
           </div>
           <div class="flex justify-between">
             <span class="text-wheat-light">متوسط الأجر الحقيقي للموظف:</span>

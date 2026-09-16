@@ -8,6 +8,7 @@ import { INDUSTRY_EVENTS } from './industry-events';
 import { SOVEREIGNTY_EVENTS } from './sovereignty-events';
 import { SERVICES_EVENTS } from './services-events';
 import { DISASTER_EVENTS } from './disaster-events';
+import { DEBT_EVENTS } from './debt-events';
 
 export {
   MASTER_EVENTS,
@@ -19,6 +20,7 @@ export {
   SOVEREIGNTY_EVENTS,
   SERVICES_EVENTS,
   DISASTER_EVENTS,
+  DEBT_EVENTS,
 };
 
 /**
@@ -34,4 +36,5 @@ export const ALL_EVENTS: EventCard[] = [
   ...SOVEREIGNTY_EVENTS,
   ...SERVICES_EVENTS,
   ...DISASTER_EVENTS,
+  ...DEBT_EVENTS,
 ];

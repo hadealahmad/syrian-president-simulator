@@ -62,7 +62,7 @@ function resolveAffordableEvents(
     const dir = getDefaultTurnDirectives();
     dir.wageBumpPercent = -20;
     dir.foodSubsidyLevel = 'AUSTERE';
-    dir.moneyPrintingSYP = 25_000_000_000_000;
+    dir.moneyPrintingSYP = 250_000_000_000;
     dir.gridCapExUSD = 0;
     state = executeTurnLifecycle(state, dir);
     if (state.isGameOver) break;
@@ -235,7 +235,7 @@ function resolveAffordableEvents(
     dir.activePoliticalActions = ['CABINET_HEARING'];
     // Revenue-positive mix to stay solvent under live mortgage drains.
     dir.nassibTransitFeeUSD = 800;
-    dir.remittanceCaptureSpread = 12;
+    dir.remittanceCaptureSpread = 15; // +$30M/turn vs 12 covers the $25M Iran oil coupon
     dir.corporateTaxRate = 25;
     dir.telecomExciseRate = 20;
     // Sign all foreign loans + Tartus mortgage (leverage 27 < 35 keeps the ending).

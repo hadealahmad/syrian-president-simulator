@@ -6,8 +6,8 @@
     return (usd / 1_000_000).toFixed(1);
   }
 
-  function formatTrillionSYP(syp: number): string {
-    return (syp / 1_000_000_000_000).toFixed(2);
+  function formatBillionSYP(syp: number): string {
+    return (syp / 1_000_000_000).toFixed(2);
   }
 
   const GOV_NAMES: Record<string, string> = {
@@ -137,7 +137,7 @@
               <span>عجز سيادي شامل — تعذر الوفاء بمتطلبات أي خيار!</span>
             </div>
             <p class="text-xs leading-relaxed text-wheat-light">
-              لا تملك مؤسسات الدولة النقد الأجنبي ($) أو سيولة الخزينة (ل.س) أو الرصيد السياسي المطلوب لتنفيذ أي من خيارات الاستجابة المتاحة.
+              لا تملك مؤسسات الدولة النقد الأجنبي ($) أو سيولة الخزينة (SP) أو الرصيد السياسي المطلوب لتنفيذ أي من خيارات الاستجابة المتاحة.
               سيؤدي التخلف عن المعالجة إلى فرض عقوبة سيادية كارثية (ارتفاع الاحتقان الشعبي +25 نقطة، انهيار الثقة -25، تآكل الرصيد السياسي -30، وارتكاسات ميدانية عبر المحافظات).
             </p>
             <div class="pt-1 flex justify-end">
@@ -191,11 +191,11 @@
 
                     {#if opt.costSYP > 0}
                       <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold {$gameStore.macro.treasurySYP < opt.costSYP ? 'bg-umber-deep/80 border border-umber-crimson text-umber-glow' : 'bg-umber-deep border border-umber-border text-umber-crimson'}">
-                        -{formatTrillionSYP(opt.costSYP)}T ل.س
+                        -{formatBillionSYP(opt.costSYP)}B SP
                       </span>
                     {:else if opt.costSYP < 0}
                       <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
-                        +{formatTrillionSYP(-opt.costSYP)}T ل.س
+                        +{formatBillionSYP(-opt.costSYP)}B SP
                       </span>
                     {/if}
 
@@ -317,11 +317,11 @@
 
                 {#if selectedOptionForConfirm.costSYP > 0}
                   <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-umber-deep border border-umber-border text-umber-crimson">
-                    -{formatTrillionSYP(selectedOptionForConfirm.costSYP)}T ل.س
+                    -{formatBillionSYP(selectedOptionForConfirm.costSYP)}B SP
                   </span>
                 {:else if selectedOptionForConfirm.costSYP < 0}
                   <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
-                    +{formatTrillionSYP(-selectedOptionForConfirm.costSYP)}T ل.س
+                    +{formatBillionSYP(-selectedOptionForConfirm.costSYP)}B SP
                   </span>
                 {/if}
 

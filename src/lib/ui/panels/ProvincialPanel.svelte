@@ -135,7 +135,7 @@
               -${node.strategicProject.costUSD / 1_000_000}M
             </span>
             <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-              -{(node.strategicProject.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
+              -{(node.strategicProject.costSYP / 1_000_000_000).toFixed(2)}B SP
             </span>
             {#if isProjectCoveredByFX && !isProjectCommitted}
               <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
@@ -200,7 +200,7 @@
     <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('demining') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
       {#if canDeployDemining}
       <div
-        title={demBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($20M / 0.8T ل.س)' : 'توجيه فرق نزع الألغام'}
+        title={demBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($20M / 8.0B SP)' : 'توجيه فرق نزع الألغام'}
         class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isSelectedForDemining ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordDemining ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
       >
         <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {demBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
@@ -211,7 +211,7 @@
           <span class="text-[10px] text-wheat-dark block">تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة</span>
           <div class="flex items-center gap-1 flex-wrap">
             <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$20M</span>
-            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.8T ل.س</span>
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-8.0B SP</span>
             <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">-8% تلوث</span>
             {#if isDeminingCoveredByFX && !isSelectedForDemining}
               <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
@@ -267,7 +267,7 @@
     <!-- Power Supply Boost Priority Directive -->
     <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('power') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
       <div
-        title={powerBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($10M / 0.3T ل.س)' : 'أولوية تعزيز التغذية والكهرباء'}
+        title={powerBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($10M / 3.0B SP)' : 'أولوية تعزيز التغذية والكهرباء'}
         class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isSelectedForPowerBoost ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordPowerBoost ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
       >
         <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {powerBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
@@ -278,7 +278,7 @@
           <span class="text-[10px] text-wheat-dark block">محولات طوارئ وصيانة خطوط التوتر وتهدئة (-6)</span>
           <div class="flex items-center gap-1 flex-wrap">
             <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$10M</span>
-            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.3T ل.س</span>
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-3.0B SP</span>
             <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">-4 س ظلام</span>
             {#if isPowerBoostCoveredByFX && !isSelectedForPowerBoost}
               <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
@@ -425,7 +425,7 @@
           <button
             type="button"
             onclick={() => draftStore.setField('golanBorderStance', 'DEPLOY_ARMOR')}
-            title="نشر الدروع: −20 تحدٍّ و−8 احتقان درعا والقنيطرة، لكن +25 توتر الجولان وكلفة 0.9T ل.س"
+            title="نشر الدروع: −20 تحدٍّ و−8 احتقان درعا والقنيطرة، لكن +25 توتر الجولان وكلفة 9.0B SP"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.golanBorderStance === 'DEPLOY_ARMOR' ? 'bg-umber-deep border-umber-border text-umber-crimson shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-umber-crimson">نشر الدروع</div>
@@ -433,7 +433,7 @@
             <div class="flex items-center gap-1 flex-wrap pt-1">
               <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−20 تحدٍّ</span>
               <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-crimson text-umber-glow font-mono font-bold text-[8px]">+25 توتر!</span>
-              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−0.9T ل.س</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−9.0B SP</span>
             </div>
           </button>
         </div>

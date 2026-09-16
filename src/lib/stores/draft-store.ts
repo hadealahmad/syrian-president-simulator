@@ -62,7 +62,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     const gov = gameState.governorates[draft.deminingPriorityId];
     if (gov && gov.mineSaturationPct > 8) {
       committedUSD += 20_000_000;
-      committedSYP += 800_000_000_000;
+      committedSYP += 8_000_000_000;
     }
   }
 
@@ -71,7 +71,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     const gov = gameState.governorates[draft.powerBoostGovId];
     if (gov && gov.dailyBlackoutHours > 2) {
       committedUSD += 10_000_000;
-      committedSYP += 300_000_000_000;
+      committedSYP += 3_000_000_000;
     }
   }
 
@@ -85,6 +85,10 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     else if (actId === 'CABINET_HEARING') committedPC -= 8;
     else if (actId === 'UNITY_SPEECH') committedPC -= 4;
     else if (actId === 'OPPOSITION_SEATS') committedPC -= 18;
+    else if (actId === 'REPUDIATE_IRAN_INFORMAL') committedPC -= 6;
+    else if (actId === 'REPUDIATE_IRAN_FORMAL') committedPC -= 12;
+    else if (actId === 'REPUDIATE_RUSSIA') committedPC -= 10;
+    else if (actId === 'REPUDIATE_PARIS') committedPC -= 8;
   }
 
   // 5. Oligarch Decisions
@@ -112,7 +116,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
   // 7. Expatriate Brain-Gain
   if (draft.expatriateBrainGainIncentive) {
     committedUSD += 20_000_000;
-    committedSYP += 350_000_000_000;
+    committedSYP += 3_500_000_000;
   }
 
   // 7b. Populist patronage (SYP/FX spent to buy political capital)

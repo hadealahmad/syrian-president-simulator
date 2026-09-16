@@ -31,7 +31,7 @@ console.log('\n=== TEST 2: Signing initializes principal + tracking ===');
   check('signed flag', loan.isSigned === true);
   check('remaining = disbursement', loan.remainingPrincipalUSD === 500_000_000, `got ${loan.remainingPrincipalUSD}`);
   check('signedTurn stamped', loan.signedTurn === s.turnNumber, `got ${loan.signedTurn}`);
-  check('debt stock +500M', after.macro.sovereignDebtUSD === 6_800_000_000 + 500_000_000, `got ${after.macro.sovereignDebtUSD}`);
+  check('debt stock +500M', after.macro.sovereignDebtUSD === 6_100_000_000 + 500_000_000, `got ${after.macro.sovereignDebtUSD}`);
   check('leverage -8', after.macro.sovereignLeverage === 65 - 8, `got ${after.macro.sovereignLeverage}`);
 }
 
@@ -71,7 +71,7 @@ console.log('\n=== TEST 5: Early repayment, highest-rate-first ===');
   const dir = getDefaultTurnDirectives();
   dir.signedLoanIds = ['loan_imf_wb', 'loan_gulf_swf', 'loan_eastern_credit']; // 500+400+350, PC 45/50
   const signed = executeTurnLifecycle(s, dir);
-  check('debt stock 8.05B', signed.macro.sovereignDebtUSD === 8_050_000_000, `got ${signed.macro.sovereignDebtUSD}`);
+  check('debt stock 8.05B', signed.macro.sovereignDebtUSD === 7_350_000_000, `got ${signed.macro.sovereignDebtUSD}`);
   const repay = getDefaultTurnDirectives();
   repay.extraDebtRepaymentUSD = 200_000_000;
   const after = executeTurnLifecycle(signed, repay);
@@ -81,7 +81,7 @@ console.log('\n=== TEST 5: Early repayment, highest-rate-first ===');
   check('eastern (4%) paid first: 150M left', eastern.remainingPrincipalUSD === 150_000_000, `got ${eastern.remainingPrincipalUSD}`);
   check('gulf untouched', gulf.remainingPrincipalUSD === 400_000_000, `got ${gulf.remainingPrincipalUSD}`);
   check('imf untouched', imf.remainingPrincipalUSD === 500_000_000, `got ${imf.remainingPrincipalUSD}`);
-  check('stock -200M', after.macro.sovereignDebtUSD === 8_050_000_000 - 200_000_000, `got ${after.macro.sovereignDebtUSD}`);
+  check('stock -200M', after.macro.sovereignDebtUSD === 7_350_000_000 - 200_000_000, `got ${after.macro.sovereignDebtUSD}`);
   check('audit paid 200M', after.lastTurnAudit!.debtRepaymentPaidUSD === 200_000_000, `got ${after.lastTurnAudit!.debtRepaymentPaidUSD}`);
   // leverage: 65 -8*3 = 41, +4 recovery = 45
   check('leverage 41+4=45', after.macro.sovereignLeverage === 45, `got ${after.macro.sovereignLeverage}`);

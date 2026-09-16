@@ -9,8 +9,8 @@
     return new Intl.NumberFormat('en-US').format(Math.round(num));
   }
 
-  function formatTrillion(syp: number): string {
-    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+  function formatBillion(syp: number): string {
+    const val = Number((syp / 1_000_000_000).toFixed(2));
     if (Object.is(val, -0) || val === 0) return '0.00';
     return val.toFixed(2);
   }
@@ -65,7 +65,7 @@
 
   const PROJECTED_STATS: { key: GeneralStatKey; labelAr: string; fmt: string }[] = [
     { key: 'politicalCapital', labelAr: 'الرصيد السياسي', fmt: 'points' },
-    { key: 'treasurySYP', labelAr: 'الخزينة العامة', fmt: 'trillion' },
+    { key: 'treasurySYP', labelAr: 'الخزينة العامة', fmt: 'billion' },
     { key: 'reservesUSD', labelAr: 'احتياطي النقد الأجنبي', fmt: 'mUSD' },
     { key: 'sovereignDebtUSD', labelAr: 'الدين السيادي الخارجي', fmt: 'bUSD' },
     { key: 'realWageUSD', labelAr: 'الأجر الحقيقي للموظف', fmt: 'usd' },
@@ -76,14 +76,14 @@
     { key: 'nationalRRI', labelAr: 'الاحتقان الوطني', fmt: 'per100' },
     { key: 'dailyPowerHours', labelAr: 'ساعات التغذية اليومية', fmt: 'hours' },
     { key: 'sovereignLeverage', labelAr: 'الرافعة السيادية', fmt: 'pct' },
-    { key: 'm2MoneySupplySYP', labelAr: 'المعروض النقدي', fmt: 'trillion' },
+    { key: 'm2MoneySupplySYP', labelAr: 'المعروض النقدي', fmt: 'billion' },
     { key: 'civilServiceHeadcount', labelAr: 'الملاك الوظيفي', fmt: 'headcount' },
-    { key: 'civilPayrollSYP', labelAr: 'كتلة الرواتب', fmt: 'trillion' },
+    { key: 'civilPayrollSYP', labelAr: 'كتلة الرواتب', fmt: 'billion' },
   ];
 
   const FMT_SUFFIX: Record<string, string> = {
     points: 'نقطة',
-    trillion: 'ل.س',
+    trillion: 'SP',
     per100: '/100',
     hours: 'س',
     headcount: 'نسمة',
@@ -94,7 +94,7 @@
       case 'pct': return `${v}%`;
       case 'points': return `${v}`;
       case 'per100': return `${v}`;
-      case 'trillion': return `${formatTrillion(v)}T`;
+      case 'billion': return `${formatBillion(v)}B`;
       case 'mUSD': return `$${(v / 1_000_000).toFixed(1)}M`;
       case 'bUSD': return `$${(v / 1_000_000_000).toFixed(2)}B`;
       case 'usd': return `$${Number.isInteger(v) ? v : v.toFixed(1)}`;
@@ -142,18 +142,18 @@
     const m = $gameStore.macro;
     const r = $previewRangesStore;
     rows.push({ section: 'مؤشرات كلية حالية' });
-    rows.push({ labelAr: 'السعر الرسمي للدولار', cur: formatNumber(m.officialRateSYP), suffix: 'ل.س' });
-    rows.push({ labelAr: 'سلة الغذاء الشهرية', cur: formatNumber(m.monthlyFoodBasketSYP), suffix: 'ل.س' });
-    rows.push({ labelAr: 'الراتب الاسمي للموظف', cur: formatNumber(m.civilServiceWageSYP), suffix: 'ل.س' });
+    rows.push({ labelAr: 'السعر الرسمي للدولار', cur: formatNumber(m.officialRateSYP), suffix: 'SP' });
+    rows.push({ labelAr: 'سلة الغذاء الشهرية', cur: formatNumber(m.monthlyFoodBasketSYP), suffix: 'SP' });
+    rows.push({ labelAr: 'الراتب الاسمي للموظف', cur: formatNumber(m.civilServiceWageSYP), suffix: 'SP' });
     rows.push({ labelAr: 'التضخم السنوي', cur: `${m.annualInflationPct}%` });
     rows.push({ labelAr: 'قدرة التوليد المتاحة', cur: formatNumber(m.gridCapacityMW), suffix: 'م.و' });
     rows.push({ section: 'التوقعات النطاقية للبروفة' });
     rows.push({ labelAr: 'كفاية الاحتياطي', cur: `${r.runwayMonthsEstimated}`, suffix: 'شهراً' });
-    rows.push({ labelAr: 'عجز الموازنة', cur: `${formatTrillion(r.deficitSYP)}T`, suffix: 'ل.س' });
+    rows.push({ labelAr: 'عجز الموازنة', cur: `${formatBillion(r.deficitSYP)}B`, suffix: 'SP' });
     rows.push({ labelAr: 'النطاق المرجح للصرف', cur: `${formatNumber(r.fxRateMin)} - ${formatNumber(r.fxRateMax)}` });
     rows.push({ labelAr: 'نطاق الأجر المتوقع', cur: `$${Math.round(r.realWageMin)} - $${Math.round(r.realWageMax)}` });
     rows.push({ labelAr: 'نطاق تغير الاحتقان', cur: `${signed(r.rriChangeMin)} .. ${signed(r.rriChangeMax)}` });
-    rows.push({ labelAr: 'الطباعة النقدية المطلوبة', cur: `${formatTrillion(r.requiresPrintingSYP)}T`, suffix: 'ل.س' });
+    rows.push({ labelAr: 'الطباعة النقدية المطلوبة', cur: `${formatBillion(r.requiresPrintingSYP)}B`, suffix: 'SP' });
     return rows;
   });
 

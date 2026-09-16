@@ -1,8 +1,9 @@
 import type { GameState, TurnDirectives, RevenueAudit } from './types';
+import { IRAN_OIL_COUPON_USD } from './constants';
 
 // Patronage economics: cash/FX spent to buy political capital.
-export const POPULIST_GRANT_COST_SYP = 750_000_000_000;
-export const CHARITY_FUND_COST_SYP = 250_000_000_000;
+export const POPULIST_GRANT_COST_SYP = 7_500_000_000;
+export const CHARITY_FUND_COST_SYP = 2_500_000_000;
 export const IMPORT_SURGE_COST_USD = 40_000_000;
 export const LOAN_TERMINATION_PC_EARNED = 6;
 export const LOAN_TERMINATION_LEVERAGE_EARNED = 4;
@@ -125,7 +126,7 @@ export function auditSemiannualBudget(
   // Oligarch Confiscated Wealth Inflows (USD)
   let oligarchCashInflowUSD = 0;
   let oligarchCashInflowSYP = 0;
-  let recurringSOEProfitSYP = 3_100_000_000_000; // Base SOE dividends
+  let recurringSOEProfitSYP = 31_000_000_000; // Base SOE dividends
 
   if (directives.oligarchDecisions && state.confiscatedAssets) {
     for (const asset of state.confiscatedAssets) {
@@ -146,7 +147,7 @@ export function auditSemiannualBudget(
   // Decree 16 Property Restitution vs Monetization
   if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
     oligarchCashInflowUSD += 120_000_000;
-    oligarchCashInflowSYP += 800_000_000_000;
+    oligarchCashInflowSYP += 8_000_000_000;
   }
 
   // Foreign Loan Disbursements
@@ -194,7 +195,7 @@ export function auditSemiannualBudget(
   if (directives.wheatProcurement === 'PREMIUM_INCENTIVE') {
     // Attractive domestic price secures harvest; slashes import requirement
     baseWheatImportUSD = 60_000_000;
-    wheatDomesticProcurementSYP = 450_000_000_000;
+    wheatDomesticProcurementSYP = 4_500_000_000;
   } else if (directives.wheatProcurement === 'SUBSIDIZED_LOW') {
     // Farmers smuggle harvest across border; import bill explodes
     baseWheatImportUSD = 240_000_000;
@@ -219,7 +220,7 @@ export function auditSemiannualBudget(
   const effectiveGridCapExUSD = gridCapExUSD * (1 - competenceWaste);
   macro.gridCapacityMW += Math.round((effectiveGridCapExUSD / 1_000_000) * 12);
 
-  // Sovereign debt service: flat legacy coupon on the pre-existing $6.8B stock
+  // Sovereign debt service: flat legacy coupon on the recognized $6.1B stock
   // (kept flat to preserve turn-1 balance) + semiannual interest on each signed
   // loan at its own rate. Service on a loan starts the turn AFTER signing.
   const LEGACY_DEBT_COUPON_USD = 45_000_000;
@@ -233,6 +234,11 @@ export function auditSemiannualBudget(
     }
   }
   const debtServiceUSD = LEGACY_DEBT_COUPON_USD + signedLoanServiceUSD;
+
+  // Iranian oil-credit coupon: flat $25M/turn while the side ledger carries a
+  // balance (voided permanently by formal repudiation). Kept as its own audit
+  // line so both modals can label it distinctly from legacy debt service.
+  const iranOilCouponUSD = (macro.iranOilDebtUSD ?? 0) > 0 ? IRAN_OIL_COUPON_USD : 0;
 
   // FX revenue forfeited to active sovereign mortgage concessions.
   let mortgageDrainUSD = 0;
@@ -268,7 +274,7 @@ export function auditSemiannualBudget(
     governorates[directives.deminingPriorityId].mineSaturationPct > 8
   );
   const emergencyDeminingUSD = isDeminingActive ? 20_000_000 : 0;
-  const deminingSYP = isDeminingActive ? 800_000_000_000 : 0;
+  const deminingSYP = isDeminingActive ? 8_000_000_000 : 0;
 
   // Power supply boost expenditure for a single targeted governorate
   const isPowerBoostActive = Boolean(
@@ -277,7 +283,7 @@ export function auditSemiannualBudget(
     governorates[directives.powerBoostGovId].dailyBlackoutHours > 2
   );
   const powerBoostUSD = isPowerBoostActive ? 10_000_000 : 0;
-  const powerBoostSYP = isPowerBoostActive ? 300_000_000_000 : 0;
+  const powerBoostSYP = isPowerBoostActive ? 3_000_000_000 : 0;
 
   // Provincial Strategic Projects
   let provincialProjectsCostUSD = 0;
@@ -301,6 +307,7 @@ export function auditSemiannualBudget(
     fuelImportUSD +
     gridCapExUSD +
     debtServiceUSD +
+    iranOilCouponUSD +
     mortgageDrainUSD +
     termination.totalPaidUSD +
     debtRepaymentPaidUSD +
@@ -317,20 +324,22 @@ export function auditSemiannualBudget(
   // ---------------------------------------------------------
   // Corporate Profit Tax (adjusted by player statutory rate slider 15% - 30%, baseline 22%)
   const corpRate = (directives.corporateTaxRate ?? 22) / 22;
-  const corporateTaxSYP = Math.round(2_400_000_000_000 * corpRate * complianceRate);
+  const corporateTaxSYP = Math.round(24_000_000_000 * corpRate * complianceRate);
 
   // Telecom Airtime Excise (adjusted by player excise slider 10% - 25%, baseline 15%)
   const telecomRate = (directives.telecomExciseRate ?? 15) / 15;
-  const telecomExciseSYP = Math.round(1_650_000_000_000 * telecomRate);
+  const telecomExciseSYP = Math.round(16_500_000_000 * telecomRate);
 
   // Fuel Surcharge
-  const fuelSurchargeSYP = 1_050_000_000_000;
+  const fuelSurchargeSYP = 10_500_000_000;
 
   // Utility Bills
-  const utilityBillsSYP = Math.round(1_100_000_000_000 * (macro.dailyPowerHours / 12) * complianceRate);
+  const utilityBillsSYP = Math.round(11_000_000_000 * (macro.dailyPowerHours / 12) * complianceRate);
 
-  // Central Bank Dollar Auction SYP proceeds (absorbing domestic currency from street)
-  const dollarAuctionProceedsSYP = Math.round(
+  // Central Bank Dollar Auction: TRUE ABSORPTION. The SYP collected from the
+  // street is destroyed (M2 falls in the turn manager), never credited to the
+  // treasury — killing the old double-benefit where it funded spending too.
+  const auctionAbsorbedSYP = Math.round(
     (directives.dollarAuctionUSD ?? 0) * (macro.parallelRateSYP * 0.95)
   );
 
@@ -340,7 +349,6 @@ export function auditSemiannualBudget(
     fuelSurchargeSYP +
     utilityBillsSYP +
     recurringSOEProfitSYP +
-    dollarAuctionProceedsSYP +
     oligarchCashInflowSYP;
 
   // ---------------------------------------------------------
@@ -358,12 +366,12 @@ export function auditSemiannualBudget(
   const baseWage = macro.civilServiceWageSYP * (1 + directives.wageBumpPercent / 100);
   const civilPayrollSYP = Math.round(activeHeadcount * baseWage * 6); // 6-month cycle
 
-  const militaryPayrollSYP = 2_800_000_000_000;
+  const militaryPayrollSYP = 28_000_000_000;
 
   // Food Subsidies
-  let subsidyCostSYP = 1_800_000_000_000;
-  if (directives.foodSubsidyLevel === 'GENEROUS') subsidyCostSYP = 2_600_000_000_000;
-  if (directives.foodSubsidyLevel === 'AUSTERE') subsidyCostSYP = 900_000_000_000;
+  let subsidyCostSYP = 18_000_000_000;
+  if (directives.foodSubsidyLevel === 'GENEROUS') subsidyCostSYP = 26_000_000_000;
+  if (directives.foodSubsidyLevel === 'AUSTERE') subsidyCostSYP = 9_000_000_000;
 
   // Ministry operational budgets
   let totalMinistryOpExSYP = 0;
@@ -373,13 +381,18 @@ export function auditSemiannualBudget(
   }
 
   // Expatriate Brain Gain Contracts
-  const brainGainCostSYP = directives.expatriateBrainGainIncentive ? 350_000_000_000 : 0;
+  const brainGainCostSYP = directives.expatriateBrainGainIncentive ? 3_500_000_000 : 0;
 
   // Populist patronage: one-shot grant + recurring charity fund, both SYP-funded
   const populistGrantSYP = directives.populistGrant ? POPULIST_GRANT_COST_SYP : 0;
   const charityFundSYP = directives.charityFundActive ? CHARITY_FUND_COST_SYP : 0;
 
-  const golanDrainSYP = directives.golanBorderStance === 'DEPLOY_ARMOR' ? 900_000_000_000 : 0;
+  const golanDrainSYP = directives.golanBorderStance === 'DEPLOY_ARMOR' ? 9_000_000_000 : 0;
+
+  // Overdraft interest: an overdrawn opening treasury pays 5%/turn on the
+  // negative balance. The overdraft stays legal (no forced printing), but the
+  // hole now digs itself deeper instead of sitting free.
+  const overdraftInterestSYP = Math.round(Math.max(0, -macro.treasurySYP) * 0.05);
 
   const expendedSYP =
     civilPayrollSYP +
@@ -389,6 +402,7 @@ export function auditSemiannualBudget(
     deminingSYP +
     powerBoostSYP +
     golanDrainSYP +
+    overdraftInterestSYP +
     wheatDomesticProcurementSYP +
     brainGainCostSYP +
     populistGrantSYP +
@@ -431,7 +445,10 @@ export function auditSemiannualBudget(
     netSYPDelta,
     seignioragePrintedSYP,
     debtServiceUSD,
+    iranOilCouponUSD,
     mortgageDrainUSD,
     debtRepaymentPaidUSD,
+    auctionAbsorbedSYP,
+    overdraftInterestSYP,
   };
 }

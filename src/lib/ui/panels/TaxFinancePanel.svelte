@@ -48,8 +48,8 @@
   );
 
   let auctionM = $derived($draftStore.dollarAuctionUSD / 1_000_000);
-  let auctionSypT = $derived(
-    Number(((auctionM * 1_000_000 * ($gameStore.macro.parallelRateSYP * 0.95)) / 1_000_000_000_000).toFixed(2))
+  let auctionSypB = $derived(
+    Number(((auctionM * 1_000_000 * ($gameStore.macro.parallelRateSYP * 0.95)) / 1_000_000_000).toFixed(2))
   );
   let auctionReliefPct = $derived(
     Math.min(25, Math.round((auctionM / 10) * 1.5))
@@ -105,13 +105,13 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +{Math.round((($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100)) / ($gameStore.macro.parallelRateSYP || 15000))} $/شهر
+        +{Math.round((($gameStore.macro.civilServiceWageSYP || 4_050) * ($draftStore.wageBumpPercent / 100)) / ($gameStore.macro.parallelRateSYP || 150))} $/شهر
       </span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
         -{Math.min(45, Math.round(($draftStore.wageBumpPercent / 25) * 2.8))} احتقان
       </span>
       <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
-        -{(((($gameStore.macro.civilServiceHeadcount ?? 1_400_000) * ($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100) * 6)) / 1_000_000_000_000).toFixed(2)}T ل.س
+        -{(((($gameStore.macro.civilServiceHeadcount ?? 1_400_000) * ($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100) * 6)) / 1_000_000_000).toFixed(2)}B SP
       </span>
     </div>
 
@@ -129,7 +129,7 @@
       <span>+400%</span>
     </div>
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.wage ? '' : 'hidden'}">
-      زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع متوسط الأجر الحقيقي لموظفي الدولة وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة ومخاطر عجز الموازنة.
+      زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع متوسط الأجر الحقيقي لموظفي الدولة وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بـSP ومخاطر عجز الموازنة.
     </div>
   </div>
 
@@ -236,7 +236,7 @@
           <button type="button" onclick={() => toggleExplainer("auction")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
             <GameIcon name="help" cls="w-4 h-4" />
           </button>
-          <span class="text-xs font-bold text-wheat-gold font-heading block">ضخ سيولة نقدية لكبح انهيار سعر الليرة</span>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">ضخ سيولة نقدية لكبح انهيار سعر SP</span>
         </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
@@ -249,7 +249,7 @@
         {auctionM === 0 ? '$0M (حماية الاحتياطي)' : `-\$${auctionM}M من الاحتياطي`}
       </span>
       <span class="px-1.5 py-0.2 rounded-full {auctionM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-mid' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
-        {auctionM === 0 ? 'سعر صرف حر دون استنزاف للاحتياطي' : `كبح تدهور الصرف بنسبة ~${auctionReliefPct}% (+${auctionSypT}T ل.س ممتصة)`}
+        {auctionM === 0 ? 'سعر صرف حر دون استنزاف للاحتياطي' : `كبح تدهور الصرف بنسبة ~${auctionReliefPct}% (+${auctionSypB}B SP ممتصة)`}
       </span>
     </div>
 
@@ -270,7 +270,7 @@
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.auction ? '' : 'hidden'}">
       {auctionM === 0
         ? 'الحالة المحايدة ($0M): صون احتياطي النقد الأجنبي بالكامل من الاستنزاف. يترك سعر الصرف الموازي يتحدد وفق قوى العرض والطلب لتجنب هدر الدولارات في معارك تثبيت غير مجدية.'
-        : `ضخ \$${auctionM}M في السوق الموازي لامتصاص نحو ${auctionSypT} تريليون ليرة سورية وتثبيت سعر الصرف وكبح جماح التضخم، على حساب رصيد احتياطي النقد الأجنبي.`}
+        : `ضخ \$${auctionM}M في السوق الموازي لامتصاص نحو ${auctionSypB}B SP وتثبيت سعر الصرف وكبح جماح التضخم، على حساب رصيد احتياطي النقد الأجنبي.`}
     </div>
   </div>
 
@@ -292,7 +292,7 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +{((($draftStore.corporateTaxRate - 10) * 0.08) + 0.90).toFixed(2)}T ل.س/دور
+        +{((($draftStore.corporateTaxRate - 10) * 0.8) + 9.0).toFixed(2)}B SP/دور
       </span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.corporateTaxRate > 25 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {$draftStore.corporateTaxRate > 25 ? 'يقلص الاستثمار' : 'يشجع الامتثال'}
@@ -313,7 +313,7 @@
       <span>35%</span>
     </div>
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.corp ? '' : 'hidden'}">
-      معدل الضريبة ({$draftStore.corporateTaxRate}%). رفعه يزيد إيرادات الخزينة بالليرة السورية لكن يقلص الاستثمار وقد يحفز التهرب الضريبي.
+      معدل الضريبة ({$draftStore.corporateTaxRate}%). رفعه يزيد إيرادات الخزينة بSP لكن يقلص الاستثمار وقد يحفز التهرب الضريبي.
     </div>
   </div>
 
@@ -335,7 +335,7 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +{((($draftStore.telecomExciseRate - 5) * 0.05) + 0.40).toFixed(2)}T ل.س/دور
+        +{((($draftStore.telecomExciseRate - 5) * 0.5) + 4.0).toFixed(2)}B SP/دور
       </span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.telecomExciseRate > 20 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {$draftStore.telecomExciseRate > 20 ? 'ضغط معيشي متصاعد' : 'عبء معتدل'}
@@ -356,7 +356,7 @@
       <span>30%</span>
     </div>
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.telecom ? '' : 'hidden'}">
-      رسم استهلاكي ({$draftStore.telecomExciseRate}%). جباية سريعة ومباشرة بالليرة للخزينة، لكن رفعه يثقل كاهل المواطنين ويزيد الاحتقان المعيشي.
+      رسم استهلاكي ({$draftStore.telecomExciseRate}%). جباية سريعة ومباشرة بـSP للخزينة، لكن رفعه يثقل كاهل المواطنين ويزيد الاحتقان المعيشي.
     </div>
   </div>
 
@@ -416,7 +416,7 @@
         </div>
         <div class="flex items-center gap-1 flex-wrap">
           <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$20M</span>
-          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.35T ل.س</span>
+          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-3.50B SP</span>
           <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+8% كفاءة</span>
           <span class="px-1.5 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+4 ثقة</span>
           {#if isBrainGainCoveredByFX && !brainGainOn}
@@ -456,7 +456,7 @@
           <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">صندوق الكرامة السيادي (إعانات أسر الشهداء)</span>
         </div>
         <div class="flex items-center gap-1 flex-wrap">
-          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.25T ل.س/دور</span>
+          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-2.50B SP/دور</span>
           <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+3 رصيد سياسي/دور</span>
           <span class="px-1.5 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+1 ثقة</span>
           {#if isCharityCoveredByFX && !charityOn}

@@ -167,6 +167,8 @@ export function evaluateRehearsalDirectives(
     rriChangeMin: -5,
     rriChangeMax: +8,
     requiresPrintingSYP: seigniorageNeeded,
+    debtServiceUSD: audit.debtServiceUSD,
+    iranOilCouponUSD: audit.iranOilCouponUSD,
   };
 }
 
@@ -186,6 +188,10 @@ export function simulateTurnTransitions(
     'TRIBAL_CUSTOMS_COUNCIL',
     'UNITY_SPEECH',
     'OPPOSITION_SEATS',
+    'REPUDIATE_IRAN_INFORMAL',
+    'REPUDIATE_IRAN_FORMAL',
+    'REPUDIATE_RUSSIA',
+    'REPUDIATE_PARIS',
   ];
 
   for (const actId of directives.activePoliticalActions || []) {
@@ -251,6 +257,58 @@ export function simulateTurnTransitions(
         next.ministries[minKeys[0]].isOpposition = true;
       }
       next.enactedDecrees.push('OPPOSITION_SEATS');
+    } else if (actId === 'REPUDIATE_IRAN_INFORMAL') {
+      // Free ticket: Tehran's $30B undocumented claim is declared odious fiction.
+      // No ledger exists, so nothing is voided — pure narrative PC.
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 6);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+      next.flags.Debt_Repudiated_Iran_Informal = 1;
+      next.enactedDecrees.push('REPUDIATE_IRAN_INFORMAL');
+    } else if (actId === 'REPUDIATE_IRAN_FORMAL') {
+      // Void the $7B oil-credit side ledger (coupon drain stops next audit).
+      // Blowback is eastern/southern disruption risk only — no investment lock.
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 12);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 3);
+      next.macro.iranOilDebtUSD = 0;
+      const suw = next.governorates['as_suwayda'];
+      if (suw) {
+        suw.prri = Math.min(100, suw.prri + 6);
+        suw.suwaydaSecessionProb = Math.min(100, (suw.suwaydaSecessionProb ?? 0) + 4);
+      }
+      for (const gid of ['hasakeh', 'deir_ez_zor']) {
+        const g = next.governorates[gid];
+        if (g) {
+          g.prri = Math.min(100, g.prri + 6);
+          g.tribalRageIndex = Math.min(100, (g.tribalRageIndex ?? 50) + 8);
+        }
+      }
+      next.flags.Debt_Repudiated_Iran_Formal = 1;
+      next.enactedDecrees.push('REPUDIATE_IRAN_FORMAL');
+    } else if (actId === 'REPUDIATE_RUSSIA') {
+      // Void $1.5B of recognized debt (real threshold relief).
+      // Blowback is coastal disruption risk only (base networks, Alawite anxiety).
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 10);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+      next.macro.sovereignDebtUSD = Math.max(0, next.macro.sovereignDebtUSD - 1_500_000_000);
+      for (const gid of ['latakia', 'tartus']) {
+        const g = next.governorates[gid];
+        if (g) {
+          g.prri = Math.min(100, g.prri + 6);
+          g.sectarianAnxiety = Math.min(100, g.sectarianAnxiety + 8);
+        }
+      }
+      next.flags.Debt_Repudiated_Russia = 1;
+      next.enactedDecrees.push('REPUDIATE_RUSSIA');
+    } else if (actId === 'REPUDIATE_PARIS') {
+      // Void $4.0B of recognized debt. No unrest — the price is financial:
+      // Western/Gulf loan windows shut (gated in PHASE 2), leverage -8,
+      // and technocrat panic costs civic trust.
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + 8);
+      next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 4);
+      next.macro.sovereignLeverage = Math.max(0, (next.macro.sovereignLeverage ?? 65) - 8);
+      next.macro.sovereignDebtUSD = Math.max(0, next.macro.sovereignDebtUSD - 4_600_000_000);
+      next.flags.Debt_Repudiated_Paris = 1;
+      next.enactedDecrees.push('REPUDIATE_PARIS');
     } else if (actId === 'MARTIAL_LAW') {
       const wasActive = currentState.flags?.Martial_Law_Active === 1;
       if (!wasActive) {
@@ -353,7 +411,7 @@ export function simulateTurnTransitions(
   }
 
   if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
-    next.macro.treasurySYP += 1_200_000_000_000;
+    next.macro.treasurySYP += 12_000_000_000;
     next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 8);
     Object.values(next.governorates).forEach((g) => {
       g.prri = Math.min(100, g.prri + 5);
@@ -367,12 +425,19 @@ export function simulateTurnTransitions(
     for (const loanId of directives.signedLoanIds) {
       const loan = next.foreignLoans.find((l) => l.id === loanId);
       if (loan && !loan.isSigned) {
+        // Paris repudiation shuts Western/Gulf windows: their world IS the Paris Club.
+        if (
+          next.flags?.Debt_Repudiated_Paris === 1 &&
+          (loanId === 'loan_imf_wb' || loanId === 'loan_gulf_swf')
+        ) {
+          continue;
+        }
         if (next.macro.politicalCapital >= loan.politicalCapitalCost) {
           loan.isSigned = true;
           loan.signedTurn = next.turnNumber;
           loan.remainingPrincipalUSD = loan.disbursementUSD;
           next.macro.reservesUSD += loan.disbursementUSD;
-          next.macro.sovereignDebtUSD = (next.macro.sovereignDebtUSD ?? 6_800_000_000) + loan.disbursementUSD;
+          next.macro.sovereignDebtUSD = (next.macro.sovereignDebtUSD ?? 6_100_000_000) + loan.disbursementUSD;
           next.macro.sovereignLeverage = Math.max(0, (next.macro.sovereignLeverage ?? 65) - 8);
           next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - loan.politicalCapitalCost);
         }
@@ -394,7 +459,7 @@ export function simulateTurnTransitions(
 
   // Expatriate Brain-Gain Initiative
   if (directives.expatriateBrainGainIncentive) {
-    if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 350_000_000_000, next.macro.parallelRateSYP)) {
+    if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 3_500_000_000, next.macro.parallelRateSYP)) {
       Object.values(next.ministries).forEach((m) => {
         m.competence = Math.min(100, m.competence + 8);
       });
@@ -493,7 +558,7 @@ export function simulateTurnTransitions(
   // Demining priority (only deployable where mine contamination is > 8% and affordable)
   if (directives.deminingPriorityId && next.governorates[directives.deminingPriorityId]) {
     const dGov = next.governorates[directives.deminingPriorityId];
-    if (dGov.mineSaturationPct > 8 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 800_000_000_000, next.macro.parallelRateSYP)) {
+    if (dGov.mineSaturationPct > 8 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 8_000_000_000, next.macro.parallelRateSYP)) {
       dGov.mineSaturationPct = Math.max(0, dGov.mineSaturationPct - 8);
       dGov.prri = Math.max(0, dGov.prri - 5);
       if (next.commissions && next.commissions['demining']) {
@@ -505,7 +570,7 @@ export function simulateTurnTransitions(
   // Power supply boost priority for a single governorate (only if blackout > 2 and affordable)
   if (directives.powerBoostGovId && next.governorates[directives.powerBoostGovId]) {
     const pGov = next.governorates[directives.powerBoostGovId];
-    if (pGov.dailyBlackoutHours > 2 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 10_000_000, 300_000_000_000, next.macro.parallelRateSYP)) {
+    if (pGov.dailyBlackoutHours > 2 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 10_000_000, 3_000_000_000, next.macro.parallelRateSYP)) {
       pGov.dailyBlackoutHours = Math.max(2, pGov.dailyBlackoutHours - 4);
       pGov.prri = Math.max(0, pGov.prri - 6);
       pGov.reconstructionScore = Math.min(1.0, Number((pGov.reconstructionScore + 0.03).toFixed(2)));
@@ -625,7 +690,7 @@ export function simulateTurnTransitions(
   // Central bank dollar auction M2 absorption and market stabilization
   if (directives.dollarAuctionUSD && directives.dollarAuctionUSD > 0) {
     const absorbedSYP = Math.round(directives.dollarAuctionUSD * (next.macro.parallelRateSYP * 0.95));
-    next.macro.m2MoneySupplySYP = Math.max(1_000_000_000_000, next.macro.m2MoneySupplySYP - Math.round(absorbedSYP * 0.40));
+    next.macro.m2MoneySupplySYP = Math.max(10_000_000_000, next.macro.m2MoneySupplySYP - Math.round(absorbedSYP * 0.40));
   }
 
   // Remittance Policy side-effects (Plan section 7.2)
@@ -822,14 +887,14 @@ export function calculateProjectedTurnSummary(
       0.5
     ),
     sovereignDebtUSD: makeStat(
-      currentState.macro.sovereignDebtUSD ?? 6_800_000_000,
-      projected.macro.sovereignDebtUSD ?? 6_800_000_000,
+      currentState.macro.sovereignDebtUSD ?? 6_100_000_000,
+      projected.macro.sovereignDebtUSD ?? 6_100_000_000,
       false, // Lower debt is beneficial
       1_000_000
     ),
     m2MoneySupplySYP: makeStat(
-      currentState.macro.m2MoneySupplySYP ?? 18_500_000_000_000,
-      projected.macro.m2MoneySupplySYP ?? 18_500_000_000_000,
+      currentState.macro.m2MoneySupplySYP ?? 185_000_000_000,
+      projected.macro.m2MoneySupplySYP ?? 185_000_000_000,
       false, // Lower money printing inflation is beneficial
       10_000_000_000
     ),

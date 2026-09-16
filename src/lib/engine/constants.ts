@@ -3,17 +3,28 @@ import type { GovernorateNode, MinistryProfile, CommissionState, ConfiscatedAsse
 export const INITIAL_YEAR = 2027;
 export const MAX_TURNS = 40;
 
+// ─── Sovereign debt recognition model (post-Assad starting position) ───────
+// Recognized stock (counts toward the $10B/$12B century thresholds):
+export const PARIS_DEBT_USD = 4_600_000_000;        // Paris-Club-style bilateral residue incl. $0.6B short-term arrears
+export const RUSSIA_DEBT_USD = 1_500_000_000;       // Formal Russian export-financing + arrears
+// Side ledger (serviced in cash, invisible to thresholds):
+export const IRAN_OIL_DEBT_USD = 7_000_000_000;     // Iranian oil-credit lines (Reuters civilian range)
+export const IRAN_OIL_COUPON_USD = 25_000_000;      // Flat per-turn service coupon
+// Display-only disputed claim (never booked, repudiation is pure narrative):
+export const IRAN_INFORMAL_CLAIM_USD = 30_000_000_000; // Tehran's $30-50B military top-up claim
+
 // Dual-Currency Macroeconomic Turn 1 Baselines
 export const BASELINE_MACRO = {
-  treasurySYP: 4_200_000_000_000,       // 4.20 Trillion SYP liquid cash
+  treasurySYP: 42_000_000_000,       // 42.0 Billion new SYP liquid cash
   reservesUSD: 320_000_000,             // $320M FX liquid reserves (~2.4 months import cover)
-  m2MoneySupplySYP: 18_500_000_000_000, // 18.5 Trillion SYP domestic M2 money supply
-  officialRateSYP: 13_500,              // Central Bank official peg
-  parallelRateSYP: 16_200,              // Free-market parallel street FX rate
-  monthlyFoodBasketSYP: 1_900_000,      // Minimum Expenditure Basket (MEB) for 5-person family
-  civilServiceWageSYP: 405_000,         // Base civil servant monthly wage ($25.00/mo)
+  m2MoneySupplySYP: 185_000_000_000, // 185 Billion new SYP domestic M2 money supply
+  officialRateSYP: 135,              // Central Bank official peg
+  parallelRateSYP: 162,              // Free-market parallel street FX rate
+  monthlyFoodBasketSYP: 19_000,      // Minimum Expenditure Basket (MEB) for 5-person family
+  civilServiceWageSYP: 4_050,         // Base civil servant monthly wage ($25.00/mo)
   annualInflationPct: 24.5,             // Annualized CPI inflation
-  sovereignDebtUSD: 6_800_000_000,      // Pre-existing external debt
+  sovereignDebtUSD: 6_100_000_000,      // Recognized stock: Paris $4.6B (incl. short-term arrears) + Russia $1.5B
+  iranOilDebtUSD: 7_000_000_000,        // Iranian oil-credit side ledger (serviced $25M/turn, outside thresholds)
   sovereignLeverage: 65,                // 0 - 100 (National autonomy)
   politicalCapital: 50,                 // 0 - 200 points (Presidential decree resource)
   civicTrust: 42,                       // 0 - 100 (Public confidence)
@@ -58,7 +69,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'انقطاع الكهرباء لنحو 20 ساعة يومياً وركام المحولات يعطل 140 منشأة نسيجية بالشيخ نجار ويهدد بهجرة المصنعين.',
       solutionDescriptionAr: 'استيراد قطع صيانة العنفات وتأهيل محولات الضغط العالي بالتعاون مع غرف الصناعة والقطاع الخاص.',
       costUSD: 75_000_000,
-      costSYP: 500_000_000_000,
+      costSYP: 5_000_000_000,
       costPoliticalCapital: 0,
       isExecuted: false,
       effectDescriptionAr: 'خفض ساعات التقنين بمقدار 8 ساعات، خفض مؤشر الشغب بـ 24 نقطة، وإصلاح 800 مليون دولار من الأضرار واستقطاب 25 ألف مهني.',
@@ -99,7 +110,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'استيعاب 2.1 مليون نازح مع انتشار الذخائر العنقودية غير المنفجرة في بساتين سراقب ومعرة النعمان وكساد زيت الزيتون.',
       solutionDescriptionAr: 'تأسيس ائتلاف تسويق وتصدير زيت الزيتون وإطلاق فرق متخصصة لتفكيك القنابل العنقودية في الأراضي الزراعية.',
       costUSD: 20_000_000,
-      costSYP: 300_000_000_000,
+      costSYP: 3_000_000_000,
       costPoliticalCapital: 5,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 15% من الذخائر العنقودية، خفض مؤشر الشغب بـ 15 نقطة، وتأمين مداخيل لـ 120 ألف أسرة مزارعة.',
@@ -140,7 +151,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'قلق موظفي الدولة الساحليين من الإقصاء الإداري، مع تفشي التهرب الجمركي وثغرات التهريب بأرصفة الحاويات.',
       solutionDescriptionAr: 'تركيب ماسحات إلكترونية شعاعية حديثة بميناء اللاذقية وتقديم ضمانات أمان وظيفي للأطباء والمعلمين وعمال الموانئ.',
       costUSD: 15_000_000,
-      costSYP: 250_000_000_000,
+      costSYP: 2_500_000_000,
       costPoliticalCapital: 10,
       isExecuted: false,
       effectDescriptionAr: 'خفض القلق الطائفي بـ 25 نقطة، خفض الشغب بـ 12 نقطة، ورفع كفاءة التدفقات السلعية والرسوم المرفئية بالدولار.',
@@ -182,7 +193,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'كساد ملايين أطنان الحمضيات الساحلية وتدني العوائد السيادية المرفئية نتيجة قيود التعاقدات البحرية السابقة.',
       solutionDescriptionAr: 'إطلاق خط شحن حاويات مبردة مدعوم للموانئ العربية وإعادة تدقيق رسوم تشغيل رصيف الحاويات لزيادة حصة الخزينة.',
       costUSD: 10_000_000,
-      costSYP: 200_000_000_000,
+      costSYP: 2_000_000_000,
       costPoliticalCapital: 10,
       isExecuted: false,
       effectDescriptionAr: 'تأمين تصريف إنتاج 60 ألف مزارع، خفض القلق بـ 15 نقطة، ورفد الخزينة بالسيولة الصعبة.',
@@ -224,7 +235,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: '60% تلوث بالألغام بالريف الشرقي يفتك برعاة الماشية، مع انسداد قنوات الري وتراجع إنتاج سكر وأعلاف سهل الغاب.',
       solutionDescriptionAr: 'تسيير كاسحات ألغام لفتح مسارات رعي آمنة لقطعان الأغنام وتطهير قنوات حوض العاصي وسهل الغاب.',
       costUSD: 25_000_000,
-      costSYP: 350_000_000_000,
+      costSYP: 3_500_000_000,
       costPoliticalCapital: 5,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 20% من الألغام، خفض مؤشر الشغب بـ 16 نقطة، وحماية 300 ألف رأس من أغنام العواس السورية.',
@@ -265,7 +276,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'تراجع كفاءة مصفاة النفط، واحتكاكات أمنية على مسارات شاحنات الترانزيت والوقود، وتوتر مجتمعي بالأحياء القديمة.',
       solutionDescriptionAr: 'صيانة كتل التقطير والتكسير في مصفاة حمص ونشر دوريات أمنية منضبطة لحماية مسار الترانزيت الدولي M5.',
       costUSD: 50_000_000,
-      costSYP: 450_000_000_000,
+      costSYP: 4_500_000_000,
       costPoliticalCapital: 5,
       isExecuted: false,
       effectDescriptionAr: 'توفير المشتقات النفطية، خفض الظلام بـ 4 ساعات، خفض الشغب بـ 18 نقطة، وخفض القلق الطائفي بـ 15 نقطة.',
@@ -307,7 +318,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: '70% تلوث بالذخائر في بساتين الغوطة وداريا مع بطء إزالة الأنقاض وشلل إعادة الإعمار السكني.',
       solutionDescriptionAr: 'تطبيق التوثيق العقاري الرقمي وفق المرسوم 16 ونشر كاسحات الألغام في المسارات الزراعية لحوض الغوطة.',
       costUSD: 35_000_000,
-      costSYP: 600_000_000_000,
+      costSYP: 6_000_000_000,
       costPoliticalCapital: 10,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 20% من حقول الألغام، خفض مؤشر الشغب بـ 18 نقطة، وإتاحة 45 ألف هكتار زراعي للخضار والمحاصيل.',
@@ -348,7 +359,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'شح مائي متكرر لحوض الفيجة، وتضخم إيجارات المساكن بنسبة 45% نتيجة تدفق الكوادر المهنية والنازحين للعاصمة.',
       solutionDescriptionAr: 'تجديد منظومات الضخ الهيدروليكية لنبع الفيجة وتحديد سقوف قانونية لإيجارات موظفي القطاع الحكومي والخدمي.',
       costUSD: 15_000_000,
-      costSYP: 400_000_000_000,
+      costSYP: 4_000_000_000,
       costPoliticalCapital: 15,
       isExecuted: false,
       effectDescriptionAr: 'استقرار ضخ مياه الشرب، خفض مؤشر الشغب بـ 14 نقطة، وتخفيف أعباء المعيشة عن الموظفين والكوادر.',
@@ -390,7 +401,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: '55% تلوث بالألغام على خط الهدنة، وتجريف الآبار الزراعية، مع مخاطر توغلات إسرائيلية في الحزام الأمني.',
       solutionDescriptionAr: 'نشر كاسحات ألغام بالتعاون مع قوة الأندوف (UNDOF) وإعادة حفر آبار المياه الجوفية لكافة قرى خط الهدنة.',
       costUSD: 12_000_000,
-      costSYP: 150_000_000_000,
+      costSYP: 1_500_000_000,
       costPoliticalCapital: 10,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 25% من الألغام الحدودية، خفض توتر الجولان بـ 20 نقطة، خفض الشغب بـ 15 نقطة، وعودة آمنة للمزارعين.',
@@ -435,7 +446,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'ضياع رسوم معبر نصيب لصالح شبكات التهريب وتصاعد التوتر العسكري على شريط الجولان وحوض اليرموك.',
       solutionDescriptionAr: 'تركيب بوابات جمركية رقمية بمعبر نصيب واستيعاب مقاتلي حوران المحليين ضمن قوة أمن حدود نظامية.',
       costUSD: 20_000_000,
-      costSYP: 250_000_000_000,
+      costSYP: 2_500_000_000,
       costPoliticalCapital: 15,
       isExecuted: false,
       effectDescriptionAr: 'رفع تحصيل نصيب إلى 80%، خفض تمرد درعا بـ 25 نقطة، خفض الشغب بـ 18 نقطة، وتأمين التبادل مع الأردن.',
@@ -480,7 +491,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'انقطاعات الكهرباء تدفع الفعاليات لمقاطعة الضرائب المركزية، مع توتر مسلح متجدد مع العشائر في صخور اللجاة.',
       solutionDescriptionAr: 'إنشاء محطة تحويل 66 ك.ف لتغذية قرى الجبل، ورعاية ميثاق شرف عشائري-درزي لضمان أمن طريق دمشق-السويداء.',
       costUSD: 15_000_000,
-      costSYP: 200_000_000_000,
+      costSYP: 2_000_000_000,
       costPoliticalCapital: 20,
       isExecuted: false,
       effectDescriptionAr: 'رفع اندماج السويداء بـ 40%، خفض احتمال الانفصال إلى 4%، إنهاء حصار الطرق، وخفض مؤشر الشغب بـ 20 نقطة.',
@@ -523,7 +534,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'توقف عنفات التوليد الكهرومائي بسد الطبقة، مع كثافة عبوات ناسفة ومخلفات بمحيط المنشآت الحضرية (65% تلوث).',
       solutionDescriptionAr: 'استيراد محاور دوارة ومحولات لسد الطبقة، وإرسال فرق روبوتية متخصصة لتفكيك الأفخاخ في مركز الرقة.',
       costUSD: 35_000_000,
-      costSYP: 300_000_000_000,
+      costSYP: 3_000_000_000,
       costPoliticalCapital: 5,
       isExecuted: false,
       effectDescriptionAr: 'توليد 250 ميغاواط كهرباء إضافية، خفض ساعات التقنين بـ 5 ساعات، وتطهير 20% من مخلفات الألغام والعبوات.',
@@ -564,7 +575,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: 'ازدواجية الإدارة مع الإدارة الذاتية، وتنازع تسعير صوامع الحبوب، وتذبذب توريد الغاز لمحطة السويدية الكهربائية.',
       solutionDescriptionAr: 'إبرام تسوية مالية مجزية لشراء كامل محصول القمح القاسي، وبروتوكول فني لتشغيل عنفات غاز رميلان والسويدية.',
       costUSD: 30_000_000,
-      costSYP: 500_000_000_000,
+      costSYP: 5_000_000_000,
       costPoliticalCapital: 15,
       isExecuted: false,
       effectDescriptionAr: 'تأمين 600 ألف طن قمح للاستهلاك الوطني، خفض الشغب بـ 18 نقطة، وخفض القلق القومي والمناطقي بـ 20 نقطة.',
@@ -606,7 +617,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       issueDescriptionAr: '75% تلوث بالألغام على ضفاف النهر، وتهديد العشائر بقطع خطوط نفط العمر وكونيكو حال عدم نيل حصة تنموية عادلة.',
       solutionDescriptionAr: 'تثبيت حصة 30% من عوائد حقول الفرات لبلديات المحافظة وتكثيف فرق الهندسة لتطهير حقول الحبوب بالميادين.',
       costUSD: 40_000_000,
-      costSYP: 400_000_000_000,
+      costSYP: 4_000_000_000,
       costPoliticalCapital: 15,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 25% من الألغام، خفض احتقان العشائر بـ 40 نقطة، خفض الشغب بـ 26 نقطة، وضمان تدفق 45 ألف برميل نفط.',
@@ -629,7 +640,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 45,
     corruption: 42,
-    allocatedBudgetSYP: 750_000_000_000,
+    allocatedBudgetSYP: 7_500_000_000,
     allocatedCapExUSD: 75_000_000,
   },
   economy: {
@@ -639,7 +650,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 52,
     corruption: 40,
-    allocatedBudgetSYP: 600_000_000_000,
+    allocatedBudgetSYP: 6_000_000_000,
     allocatedCapExUSD: 30_000_000,
   },
   disaster: {
@@ -649,7 +660,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 68,
     corruption: 20,
-    allocatedBudgetSYP: 400_000_000_000,
+    allocatedBudgetSYP: 4_000_000_000,
     allocatedCapExUSD: 35_000_000,
   },
   local_admin: {
@@ -659,7 +670,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 42,
     corruption: 48,
-    allocatedBudgetSYP: 600_000_000_000,
+    allocatedBudgetSYP: 6_000_000_000,
     allocatedCapExUSD: 15_000_000,
   },
   housing: {
@@ -669,7 +680,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 46,
     corruption: 50,
-    allocatedBudgetSYP: 500_000_000_000,
+    allocatedBudgetSYP: 5_000_000_000,
     allocatedCapExUSD: 35_000_000,
   },
   finance: {
@@ -679,7 +690,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 58,
     corruption: 36,
-    allocatedBudgetSYP: 750_000_000_000,
+    allocatedBudgetSYP: 7_500_000_000,
     allocatedCapExUSD: 15_000_000,
   },
   agriculture: {
@@ -689,7 +700,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 48,
     corruption: 40,
-    allocatedBudgetSYP: 450_000_000_000,
+    allocatedBudgetSYP: 4_500_000_000,
     allocatedCapExUSD: 20_000_000,
   },
   media: {
@@ -699,7 +710,7 @@ export const BASELINE_MINISTRIES: Record<string, MinistryProfile> = {
     isOpposition: false,
     competence: 50,
     corruption: 32,
-    allocatedBudgetSYP: 150_000_000_000,
+    allocatedBudgetSYP: 1_500_000_000,
     allocatedCapExUSD: 5_000_000,
   },
 };
@@ -756,11 +767,11 @@ export const BASELINE_CONFISCATED_ASSETS: ConfiscatedAsset[] = [
     category: 'TELECOM',
     ownerNameAr: 'رامي مخلوف والشبكات المالية التابعة',
     valuationUSD: 650_000_000,
-    valuationSYP: 10_500_000_000_000,
+    valuationSYP: 105_000_000_000,
     settlementYieldUSD: 350_000_000,
-    settlementYieldSYP: 4_000_000_000_000,
+    settlementYieldSYP: 40_000_000_000,
     liquidationYieldUSD: 520_000_000,
-    soeVenueSYPPerTurn: 600_000_000_000,
+    soeVenueSYPPerTurn: 6_000_000_000,
     status: 'PENDING',
   },
   {
@@ -769,11 +780,11 @@ export const BASELINE_CONFISCATED_ASSETS: ConfiscatedAsset[] = [
     category: 'INDUSTRY',
     ownerNameAr: 'محمد حمشو ومجموعة شركاته الصناعية',
     valuationUSD: 280_000_000,
-    valuationSYP: 4_500_000_000_000,
+    valuationSYP: 45_000_000_000,
     settlementYieldUSD: 150_000_000,
-    settlementYieldSYP: 1_800_000_000_000,
+    settlementYieldSYP: 18_000_000_000,
     liquidationYieldUSD: 220_000_000,
-    soeVenueSYPPerTurn: 280_000_000_000,
+    soeVenueSYPPerTurn: 2_800_000_000,
     status: 'PENDING',
   },
   {
@@ -782,11 +793,11 @@ export const BASELINE_CONFISCATED_ASSETS: ConfiscatedAsset[] = [
     category: 'REAL_ESTATE',
     ownerNameAr: 'تحالف أوليغارشيا التطوير العقاري المصادرة',
     valuationUSD: 400_000_000,
-    valuationSYP: 6_400_000_000_000,
+    valuationSYP: 64_000_000_000,
     settlementYieldUSD: 200_000_000,
-    settlementYieldSYP: 2_500_000_000_000,
+    settlementYieldSYP: 25_000_000_000,
     liquidationYieldUSD: 320_000_000,
-    soeVenueSYPPerTurn: 350_000_000_000,
+    soeVenueSYPPerTurn: 3_500_000_000,
     status: 'PENDING',
   },
   {
@@ -795,11 +806,11 @@ export const BASELINE_CONFISCATED_ASSETS: ConfiscatedAsset[] = [
     category: 'HOSPITALITY',
     ownerNameAr: 'سامر فوز وشبكات التوريد الغذائي والفندقي',
     valuationUSD: 140_000_000,
-    valuationSYP: 2_200_000_000_000,
+    valuationSYP: 22_000_000_000,
     settlementYieldUSD: 75_000_000,
-    settlementYieldSYP: 900_000_000_000,
+    settlementYieldSYP: 9_000_000_000,
     liquidationYieldUSD: 110_000_000,
-    soeVenueSYPPerTurn: 150_000_000_000,
+    soeVenueSYPPerTurn: 1_500_000_000,
     status: 'PENDING',
   },
 ];

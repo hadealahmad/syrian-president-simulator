@@ -17,14 +17,14 @@ function runPatronageTests() {
     const draft = getDefaultTurnDirectives();
     draft.populistGrant = true;
     const budget = calculateTurnBudget(state, draft);
-    assert(budget.committedSYP === 750_000_000_000, `preview commits 0.75T SYP (got ${budget.committedSYP})`);
+    assert(budget.committedSYP === 7_500_000_000, `preview commits 7.5B SYP (got ${budget.committedSYP})`);
     assert(budget.committedPC === -8, `preview earns 8 PC (got ${budget.committedPC})`);
     const after = executeTurnLifecycle(state, draft);
     assert(after.macro.politicalCapital === Math.min(200, pc0 + 8), `PC ${pc0} -> ${after.macro.politicalCapital}`);
     assert(after.macro.civicTrust >= trust0, 'trust did not fall');
     // Audit must carry the same SYP expenditure so rehearsal previews match
     const audit = auditSemiannualBudget(state, draft);
-    assert(audit.expendedSYP - auditSemiannualBudget(state, getDefaultTurnDirectives()).expendedSYP === 750_000_000_000, 'audit carries 0.75T grant cost');
+    assert(audit.expendedSYP - auditSemiannualBudget(state, getDefaultTurnDirectives()).expendedSYP === 7_500_000_000, 'audit carries 7.5B grant cost');
   }
 
   console.log('=== TEST 2: Charity fund (+3 PC/turn, persistent cost) ===');
@@ -34,7 +34,7 @@ function runPatronageTests() {
     const draft = getDefaultTurnDirectives();
     draft.charityFundActive = true;
     const budget = calculateTurnBudget(state, draft);
-    assert(budget.committedSYP === 250_000_000_000, 'preview commits 0.25T SYP');
+    assert(budget.committedSYP === 2_500_000_000, 'preview commits 2.5B SYP');
     assert(budget.committedPC === -3, 'preview earns 3 PC');
     const after = executeTurnLifecycle(state, draft);
     assert(after.macro.politicalCapital === Math.min(200, pc0 + 3), `PC ${pc0} -> ${after.macro.politicalCapital}`);
@@ -60,7 +60,7 @@ function runPatronageTests() {
   {
     const state = createInitialGameState(7);
     state.macro.treasurySYP = 0;
-    state.macro.reservesUSD = 1_000_000; // cannot cover 750B SYP via FX either
+    state.macro.reservesUSD = 1_000_000; // cannot cover 7.5B SYP via FX either
     const pc0 = state.macro.politicalCapital;
     const draft = getDefaultTurnDirectives();
     draft.populistGrant = true;

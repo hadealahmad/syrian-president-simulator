@@ -61,7 +61,7 @@ export function executeDollarAuction(
   const sypAbsorbed = auctionUSD * clearingRate;
   
   const newReservesUSD = macro.reservesUSD - auctionUSD;
-  const newM2SYP = Math.max(1_000_000_000_000, macro.m2MoneySupplySYP - sypAbsorbed);
+  const newM2SYP = Math.max(10_000_000_000, macro.m2MoneySupplySYP - sypAbsorbed);
   
   return { sypAbsorbed, newReservesUSD, newM2SYP };
 }
@@ -73,7 +73,7 @@ export function adjustOfficialPeg(
   macro: MacroeconomicState,
   newPegSYP: number
 ): { officialRateSYP: number; civicTrustDelta: number } {
-  const boundedPeg = Math.max(8_000, Math.min(macro.parallelRateSYP, newPegSYP));
+  const boundedPeg = Math.max(80, Math.min(macro.parallelRateSYP, newPegSYP));
   const adjustmentSpread = Math.abs(boundedPeg - macro.officialRateSYP);
   
   // Substantial devaluations cause minor short-term trust dips but improve remittance capture

@@ -20,8 +20,8 @@
     return (usd / 1_000_000).toFixed(1);
   }
 
-  function formatTrillion(syp: number): string {
-    const val = Number((syp / 1_000_000_000_000).toFixed(2));
+  function formatBillion(syp: number): string {
+    const val = Number((syp / 1_000_000_000).toFixed(2));
     if (Object.is(val, -0) || val === 0) return '0.00';
     return val.toFixed(2);
   }
@@ -42,6 +42,10 @@
     UNITY_SPEECH: 'خطاب المصالحة الوطنية والعهد المدني الشامل',
     OPPOSITION_SEATS: 'توسيع التشكيل الحكومي واستيعاب معارضة التكنوقراط',
     MARTIAL_LAW: 'إعلان حالة الطوارئ والأحكام العرفية',
+    REPUDIATE_IRAN_INFORMAL: 'إعلان بطلان المطالب الإيرانية غير الموثقة ($30B)',
+    REPUDIATE_IRAN_FORMAL: 'التنصل من خطوط الائتمان النفطية الإيرانية ($7B)',
+    REPUDIATE_RUSSIA: 'التنصل من الديون الروسية الرسمية ($1.5B)',
+    REPUDIATE_PARIS: 'التنصل من الديون الثنائية الباريسية ($4.6B)',
   };
 
   let deminingGov = $derived(
@@ -160,7 +164,7 @@
           <div class="p-1.5 bg-charcoal-surface border border-charcoal-mid">
             <span class="text-[10px] text-wheat-dark block">سيولة الخزينة المتبقية:</span>
             <span dir="ltr" class="font-bold font-mono {$budgetStore.remainingSYP < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">
-              {formatTrillion($budgetStore.remainingSYP)}T ل.س
+              {formatBillion($budgetStore.remainingSYP)}B SP
             </span>
             {#if $budgetStore.remainingSYP < 0}
               {#if $budgetStore.remainingUSD >= ((-$budgetStore.remainingSYP) / Math.max(1, $gameStore.macro.parallelRateSYP))}
@@ -194,7 +198,7 @@
           <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
             <span class="text-[10px] text-wheat-dark block mb-0.5">عجز الموازنة</span>
             <span dir="ltr" class="font-bold text-wheat-light font-mono">
-              {formatTrillion($previewRangesStore.deficitSYP)}T ل.س
+              {formatBillion($previewRangesStore.deficitSYP)}B SP
             </span>
           </div>
 
@@ -224,6 +228,25 @@
         </div>
       </div>
 
+      <!-- Standing automatic deductions (debt collection visibility) -->
+      <div class="p-3 bg-charcoal-surface border border-charcoal-mid rounded-none shrink-0 space-y-1.5">
+        <span class="text-xs text-wheat-gold font-bold font-heading block">
+          استقطاعات تلقائية تُحصّل هذا الدور:
+        </span>
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-wheat-dark">خدمة الدين المعترف به</span>
+          <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.debtServiceUSD)}M</span>
+        </div>
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-wheat-dark">القسط النفطي الإيراني</span>
+          {#if (($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1 || ($draftStore.activePoliticalActions ?? []).includes('REPUDIATE_IRAN_FORMAL'))}
+            <span class="font-bold text-forest-accent">مُسقط ✓ ($0.0M)</span>
+          {:else}
+            <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.iranOilCouponUSD)}M</span>
+          {/if}
+        </div>
+      </div>
+
       <!-- Action Items Ledger List (Scrollable) -->
       <div class="space-y-2 overflow-y-auto flex-1 pr-1 text-xs">
         {#if !hasAnyActions}
@@ -243,7 +266,7 @@
                 زيادة رواتب العاملين في الدولة: +{$draftStore.wageBumpPercent}%
               </span>
               <span class="text-[11px] text-wheat-dark">
-                الأثر: تعزيز القدرة الشرائية وامتصاص الاحتقان المعيشي، مع زيادة كتلة الرواتب الممولة بالليرة.
+                الأثر: تعزيز القدرة الشرائية وامتصاص الاحتقان المعيشي، مع زيادة كتلة الرواتب الممولة بـSP.
               </span>
             </div>
             <button
@@ -303,7 +326,7 @@
                 تسعير شراء القمح المحلي: {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'سعر تشجيعي مجزٍ للمزارعين' : 'شراء إلزامي بأسعار مدعومة منخفضة'}
               </span>
               <span class="text-[11px] text-wheat-dark">
-                {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'الأثر: تحفيز تسليم كامل المحصول للدولة وتخفيض فاتورة استيراد القمح بالدولار.' : 'الأثر: خفض نفقات الشراء بالليرة ولكن تسرب المحصول لشبكات التهريب الخارجية.'}
+                {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'الأثر: تحفيز تسليم كامل المحصول للدولة وتخفيض فاتورة استيراد القمح بالدولار.' : 'الأثر: خفض نفقات الشراء بـSP ولكن تسرب المحصول لشبكات التهريب الخارجية.'}
               </span>
             </div>
             <button
@@ -439,7 +462,7 @@
                 مزاد التدخل الدولاري للمصرف المركزي: ${$draftStore.dollarAuctionUSD / 1_000_000}M
               </span>
               <span class="text-[11px] text-wheat-dark">
-                الأثر: ضخ دولارات في السوق الموازي لكبح تدهور سعر صرف الليرة السورية.
+                الأثر: ضخ دولارات في السوق الموازي لكبح تدهور سعر صرف SP.
               </span>
             </div>
             <button
@@ -461,7 +484,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
-                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.35T ل.س</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-3.50B SP</span>
                 <span class="text-[11px] text-forest-accent mr-2">| الأثر: رفع كفاءة الوزارات (+8%) والثقة (+4)</span>
               </div>
             </div>
@@ -483,7 +506,7 @@
               </span>
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
-                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.75T ل.س</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-7.50B SP</span>
                 <span class="text-[11px] text-forest-accent mr-2">| الأثر: +8 رصيد سياسي و+2 ثقة وتهدئة الاحتقان (-2)</span>
               </div>
             </div>
@@ -505,7 +528,7 @@
               </span>
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
-                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.25T ل.س/دور</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-2.50B SP/دور</span>
                 <span class="text-[11px] text-forest-accent mr-2">| الأثر: +3 رصيد سياسي كل دور و+1 ثقة</span>
               </div>
             </div>
@@ -575,7 +598,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$20M</span>
-                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.8T ل.س</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-8.0B SP</span>
                 <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض مساحة الألغام بنسبة 8% من مساحة المحافظة وتأمين الأراضي الزراعية</span>
               </div>
             </div>
@@ -598,7 +621,7 @@
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] text-wheat-dark">الكلفة:</span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-$10M</span>
-                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-0.3T ل.س</span>
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">-3.0B SP</span>
                 <span class="text-[11px] text-forest-accent mr-2">| الأثر: خفض 4 ساعات ظلام إضافية وتهدئة الاحتقان الإقليمي</span>
               </div>
             </div>
@@ -624,7 +647,7 @@
                   -${item.project.costUSD / 1_000_000}M
                 </span>
                 <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-                  -{(item.project.costSYP / 1_000_000_000_000).toFixed(2)}T ل.س
+                  -{(item.project.costSYP / 1_000_000_000).toFixed(2)}B SP
                 </span>
                 {#if item.project.costPoliticalCapital > 0}
                   <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
@@ -671,7 +694,7 @@
                       +{nationalizePCEarned} رصيد سياسي
                     </span>
                     <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[10px]">
-                      +{(asset.soeVenueSYPPerTurn / 1_000_000_000_000).toFixed(2)}T ل.س/دور
+                      +{(asset.soeVenueSYPPerTurn / 1_000_000_000).toFixed(2)}B SP/دور
                     </span>
                     <span class="text-[11px] text-forest-accent mr-2">| الأثر: ملكية عامة للدولة وتوفير 8000 وظيفة إنتاجية</span>
                   {:else if action === 'FOREIGN_LIQUIDATION'}
@@ -706,7 +729,7 @@
                 <span class="text-[10px] text-amber-300 block font-mono">
                   ● حالة طوارئ مستمرة — تجميد للاحتجاجات وديبَف متواصل (-4% ثقة شعبية كل دور حتى الرفع)
                 </span>
-              {:else if ['ANTI_CORRUPTION_COMMISSION', 'PROPERTY_RESTITUTION_PORTAL', 'TRIBAL_CUSTOMS_COUNCIL', 'UNITY_SPEECH', 'OPPOSITION_SEATS'].includes(actId)}
+              {:else if ['ANTI_CORRUPTION_COMMISSION', 'PROPERTY_RESTITUTION_PORTAL', 'TRIBAL_CUSTOMS_COUNCIL', 'UNITY_SPEECH', 'OPPOSITION_SEATS', 'REPUDIATE_IRAN_INFORMAL', 'REPUDIATE_IRAN_FORMAL', 'REPUDIATE_RUSSIA', 'REPUDIATE_PARIS'].includes(actId)}
                 <span class="text-[10px] text-wheat-dark block font-mono">
                   مرسوم سيادي لمرة واحدة (سيصبح نافذاً دائماً بالقانون)
                 </span>

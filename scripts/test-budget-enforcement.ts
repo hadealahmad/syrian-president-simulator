@@ -10,7 +10,7 @@ function runBudgetTests() {
   let budget = calculateTurnBudget(state, draft);
   console.log('Initial PC:', budget.initialPC, 'Remaining PC:', budget.remainingPC);
   console.log('Initial USD ($M):', budget.initialUSD / 1_000_000, 'Remaining USD:', budget.remainingUSD / 1_000_000);
-  console.log('Initial SYP (T):', budget.initialSYP / 1_000_000_000_000, 'Remaining SYP:', budget.remainingSYP / 1_000_000_000_000);
+  console.log('Initial SYP (B):', budget.initialSYP / 1_000_000_000, 'Remaining SYP:', budget.remainingSYP / 1_000_000_000);
 
   if (budget.committedPC !== 0) throw new Error('Expected 0 initial committed PC');
   if (budget.committedUSD !== 35_000_000) throw new Error('Expected 35M initial committed USD for default gridCapExUSD');
@@ -29,16 +29,16 @@ function runBudgetTests() {
   if (budget.committedPC !== 15) throw new Error(`Expected 15 committed PC, got ${budget.committedPC}`);
 
   console.log('=== TEST 4: Demining & Power Boost Budget Deductions ===');
-  draft.deminingPriorityId = 'homs'; // costs 20M USD + 800B SYP
+  draft.deminingPriorityId = 'homs'; // costs 20M USD + 8B SYP
   draft.powerBoostGovId = 'damascus'; // costs 10M USD + 300B SYP
   budget = calculateTurnBudget(state, draft);
   console.log('Committed USD ($M):', budget.committedUSD / 1_000_000);
-  console.log('Committed SYP (T):', budget.committedSYP / 1_000_000_000_000);
+  console.log('Committed SYP (B):', budget.committedSYP / 1_000_000_000);
   if (budget.committedUSD !== 35_000_000 + 20_000_000 + 10_000_000) {
     throw new Error(`Expected 65M committed USD, got ${budget.committedUSD}`);
   }
-  if (budget.committedSYP !== 1_100_000_000_000) {
-    throw new Error(`Expected 1.1T committed SYP, got ${budget.committedSYP}`);
+  if (budget.committedSYP !== 11_000_000_000) {
+    throw new Error(`Expected 11B committed SYP, got ${budget.committedSYP}`);
   }
 
   console.log('=== TEST 5: Engine-Level Safeguard When PC Is Insufficient ===');
@@ -58,9 +58,9 @@ function runBudgetTests() {
   console.log('=== TEST 6: Engine-Level Safeguard When Reserves/Treasury Are Insufficient ===');
   const bankruptState = createInitialGameState(100);
   bankruptState.macro.reservesUSD = 5_000_000; // only $5M
-  bankruptState.macro.treasurySYP = 100_000_000_000; // only 0.1T
+  bankruptState.macro.treasurySYP = 10_000_000; // only 0.01B
   const deminingDirectives = getDefaultTurnDirectives();
-  deminingDirectives.deminingPriorityId = 'homs'; // requires 20M USD and 800B SYP
+  deminingDirectives.deminingPriorityId = 'homs'; // requires 20M USD and 8B SYP
   const stateAfterBankruptTurn = executeTurnLifecycle(bankruptState, deminingDirectives);
   console.log('Homs mine saturation on bankrupt state:', stateAfterBankruptTurn.governorates['homs'].mineSaturationPct);
   // Homs had 40%, should remain 40% because country couldn't afford demining

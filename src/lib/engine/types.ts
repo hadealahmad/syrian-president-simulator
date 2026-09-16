@@ -107,6 +107,13 @@ export interface MacroeconomicState {
   nationalRRI: number;
   sovereignDebtUSD: number;
   sovereignLeverage: number;
+  /**
+   * Recognized Iranian oil-credit stock (side ledger, serviced by a flat
+   * $25M/turn coupon). Kept OUTSIDE sovereignDebtUSD so the $10B/$12B
+   * century thresholds only see Paris + Russia + signed-loan debt.
+   * Voided permanently by the REPUDIATE_IRAN_FORMAL decree.
+   */
+  iranOilDebtUSD: number;
   gridCapacityMW: number;
   dailyPowerHours: number;
   // Dynamic Tax Compliance Index (0 - 100%)
@@ -243,10 +250,16 @@ export interface RevenueAudit {
   seignioragePrintedSYP: number;
   /** Semiannual debt service paid this turn (legacy coupon + signed-loan interest). */
   debtServiceUSD: number;
+  /** Flat $25M/turn Iranian oil-credit coupon (zero once formally repudiated). */
+  iranOilCouponUSD: number;
   /** FX revenue forfeited to active sovereign mortgages this turn. */
   mortgageDrainUSD: number;
   /** Voluntary principal repaid this turn. */
   debtRepaymentPaidUSD: number;
+  /** SYP destroyed by the dollar auction (true absorption — never enters treasury). */
+  auctionAbsorbedSYP: number;
+  /** 5% interest charged on an overdrawn (negative) opening treasury. */
+  overdraftInterestSYP: number;
 }
 
 export interface PredictivePreviewRanges {
@@ -259,6 +272,10 @@ export interface PredictivePreviewRanges {
   rriChangeMin: number;
   rriChangeMax: number;
   requiresPrintingSYP: number;
+  /** Projected legacy+signed-loan debt service (for the review-modal deductions row). */
+  debtServiceUSD: number;
+  /** Projected Iranian oil coupon (zero once formally repudiated). */
+  iranOilCouponUSD: number;
 }
 
 export interface ProjectedStat {
