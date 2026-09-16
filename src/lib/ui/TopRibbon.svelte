@@ -58,8 +58,8 @@
       data-tour="end-turn"
       role="button"
       tabindex="0"
-      onclick={() => uiStore.setTurnReviewModal(true)}
-      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.setTurnReviewModal(true); }}
+      onclick={() => { if ($uiStore.turnFlowStage === 'closed') uiStore.setTurnFlowStage('review'); }}
+      onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { if ($uiStore.turnFlowStage === 'closed') uiStore.setTurnFlowStage('review'); } }}
       class="row-span-2 h-full px-2 flex flex-col justify-center items-center text-center gap-0.5 bg-wheat-gold hover:bg-wheat-light border-r border-wheat-mid/40 border-b border-charcoal-mid cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-forest-deep/50 transition-colors min-w-0"
       title="مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها"
     >

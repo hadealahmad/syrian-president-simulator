@@ -4,15 +4,18 @@ export interface UIState {
   selectedGovernorateId: string | null;
   isMinistryDrawerOpen: boolean;
   isProvincialDrawerOpen: boolean;
-  isTurnSummaryModalOpen: boolean;
-  isTurnReviewModalOpen: boolean;
   isRestartModalOpen: boolean;
+  /** End-turn flow stage: review -> results (same modal) -> events (alert on
+      top, review recedes underneath) -> closed. */
+  turnFlowStage: 'closed' | 'review' | 'results' | 'events';
+  isSettingsOpen: boolean;
   tourCompleted: boolean;
   checklist: { decrees: boolean; province: boolean; endTurn: boolean };
   selectedStatForOptions: string | null;
   activeCommandPanel: string | null;
   commandPanelPinned: boolean;
   isStatsSidebarOpen: boolean;
+  showMigrationArrows: boolean;
 }
 
 const TOUR_KEY = 'president_guide_tour_v2';
@@ -29,15 +32,16 @@ function createUIStore() {
     selectedGovernorateId: null,
     isMinistryDrawerOpen: false,
     isProvincialDrawerOpen: false,
-    isTurnSummaryModalOpen: false,
-    isTurnReviewModalOpen: false,
     isRestartModalOpen: false,
+    turnFlowStage: 'closed',
+    isSettingsOpen: false,
     tourCompleted: checkTourSeen(),
     checklist: { decrees: false, province: false, endTurn: false },
     selectedStatForOptions: null,
     activeCommandPanel: null,
     commandPanelPinned: false,
     isStatsSidebarOpen: false,
+    showMigrationArrows: true,
   });
 
   return {
@@ -52,14 +56,14 @@ function createUIStore() {
         commandPanelPinned: id ? true : s.commandPanelPinned,
       }));
     },
-    setTurnSummaryModal: (open: boolean) => {
-      update((s) => ({ ...s, isTurnSummaryModalOpen: open }));
-    },
-    setTurnReviewModal: (open: boolean) => {
-      update((s) => ({ ...s, isTurnReviewModalOpen: open }));
+    setTurnFlowStage: (stage: UIState['turnFlowStage']) => {
+      update((s) => ({ ...s, turnFlowStage: stage }));
     },
     setRestartModal: (open: boolean) => {
       update((s) => ({ ...s, isRestartModalOpen: open }));
+    },
+    setSettingsOpen: (open: boolean) => {
+      update((s) => ({ ...s, isSettingsOpen: open }));
     },
     completeTour: () => {
       update((s) => ({ ...s, tourCompleted: true }));
@@ -91,6 +95,9 @@ function createUIStore() {
     toggleStatsSidebar: (open?: boolean) => {
       // Fully independent toggle: never opens/closes bottom panels.
       update((s) => ({ ...s, isStatsSidebarOpen: open ?? !s.isStatsSidebarOpen }));
+    },
+    setMigrationArrows: (show: boolean) => {
+      update((s) => ({ ...s, showMigrationArrows: show }));
     },
   };
 }

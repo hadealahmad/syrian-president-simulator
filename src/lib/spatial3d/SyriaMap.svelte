@@ -12,7 +12,240 @@
   let hoveredGovId = $state<string | null>(null);
   let hoveredStat = $state<{ govId: string; key: string } | null>(null);
 
-  // ── Theming: every color resolves live from CSS variables (app.css is the
+  // Ambient seasonal weather: a lightweight canvas particle engine behind the
+  // terrain. Winter = asterisk snowflakes drifting down with sway + slow spin;
+  // harvest = curved wind streaks sliding west-to-east. Fully randomized per
+  // particle; each recycles individually off-screen so there is no loop seam.
+  type WeatherMode = 'snow' | 'wind';
+  interface Flake {
+    x: number; y: number; r: number; speed: number;
+    swayAmp: number; swayFreq: number; phase: number;
+    alpha: number; rot: number; rotSpeed: number;
+  }
+  interface Streak {
+    x: number; y: number; len: number; bend: number; bend2: number;
+    speed: number; alpha: number; width: number;
+    phase: number; bobAmp: number; bobFreq: number;
+    waveAmp: number; waveLen: number; waveSpeed: number;
+  }
+
+  let weatherCanvas: HTMLCanvasElement | null = $state(null);
+  let weatherMode: WeatherMode = $state('wind');
+  let weatherShown = $state(true);
+  let flakes: Flake[] = [];
+  let streaks: Streak[] = [];
+  let gustT = 0;
+  let swapTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const seasonToMode = (s: string): WeatherMode => (s === 'H2_WINTER' ? 'snow' : 'wind');
+
+  function seedWeather(mode: WeatherMode, w: number, h: number): void {
+    if (mode === 'snow') {
+      flakes = Array.from({ length: 130 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: 1 + Math.random() * 2.2,
+        speed: 12 + Math.random() * 26,
+        swayAmp: 8 + Math.random() * 18,
+        swayFreq: 0.3 + Math.random() * 0.7,
+        phase: Math.random() * Math.PI * 2,
+        alpha: 0.25 + Math.random() * 0.45,
+        rot: Math.random() * Math.PI,
+        rotSpeed: (Math.random() - 0.5) * 0.8,
+      }));
+    } else {
+      streaks = Array.from({ length: 22 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        len: 80 + Math.random() * 130,
+        bend: 4 + Math.random() * 6,
+        bend2: 3 + Math.random() * 5,
+        speed: 22 + Math.random() * 30,
+        alpha: 0.10 + Math.random() * 0.12,
+        width: Math.random() < 0.65 ? 1 : 2,
+        phase: Math.random() * Math.PI * 2,
+        bobAmp: 4 + Math.random() * 10,
+        bobFreq: 0.4 + Math.random() * 0.8,
+        waveAmp: 2 + Math.random() * 2.5,
+        waveLen: 90 + Math.random() * 60,
+        waveSpeed: 35 + Math.random() * 45,
+      }));
+    }
+  }
+
+  // Sampled S-curve with a ripple traveling eastward along its length: the
+  // static cubic gives the body, the moving phase gives the wave.
+  function streakPoint(s: Streak, t: number, time: number): [number, number] {
+    const u = 1 - t;
+    const gx = s.x + s.len * t;
+    const baseY =
+      u * u * u * s.y +
+      3 * u * u * t * (s.y - s.bend) +
+      3 * u * t * t * (s.y + s.bend2) +
+      t * t * t * (s.y + s.bend * 0.25);
+    const ph = ((gx - time * s.waveSpeed) / s.waveLen) * Math.PI * 2 + s.phase;
+    return [gx, baseY + s.waveAmp * Math.sin(ph)];
+  }
+
+  function drawFlake(ctx: CanvasRenderingContext2D, f: Flake, x: number): void {
+    ctx.save();
+    ctx.translate(x, f.y);
+    ctx.rotate(f.rot);
+    ctx.globalAlpha = f.alpha;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < 3; i++) {
+      const a = (i * Math.PI) / 3;
+      ctx.moveTo(-f.r * Math.cos(a), -f.r * Math.sin(a));
+      ctx.lineTo(f.r * Math.cos(a), f.r * Math.sin(a));
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Canvas lifecycle: fit on resize, rAF loop (paused when hidden), one
+  // static frame for reduced motion.
+  $effect(() => {
+    const canvas = weatherCanvas;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const reduced =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let w = 0;
+    let h = 0;
+    let raf = 0;
+    let last = 0;
+    let alive = true;
+
+    const fit = (): void => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const rect = canvas.getBoundingClientRect();
+      w = Math.max(1, Math.round(rect.width));
+      h = Math.max(1, Math.round(rect.height));
+      canvas.width = Math.round(rect.width * dpr);
+      canvas.height = Math.round(rect.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seedWeather(weatherMode, w, h);
+    };
+
+    const paint = (): void => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.lineCap = 'round';
+      if (weatherMode === 'snow') {
+        for (const f of flakes) drawFlake(ctx, f, f.x + Math.sin(f.phase) * f.swayAmp);
+      } else {
+        // Sampled filaments: the static cubic body plus a ripple traveling
+        // eastward along the line. Tapered ends via a lengthwise gradient.
+        const SEGS = 22;
+        for (const s of streaks) {
+          const grad = ctx.createLinearGradient(s.x, 0, s.x + s.len, 0);
+          grad.addColorStop(0, 'rgba(255,255,255,0)');
+          grad.addColorStop(0.3, `rgba(255,255,255,${s.alpha})`);
+          grad.addColorStop(0.7, `rgba(255,255,255,${s.alpha})`);
+          grad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = s.width;
+          ctx.beginPath();
+          for (let i = 0; i <= SEGS; i++) {
+            const [px, py] = streakPoint(s, i / SEGS, gustT);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+    };
+
+    const step = (t: number): void => {
+      if (!alive) return;
+      const dt = Math.min(0.05, (t - last) / 1000 || 0);
+      last = t;
+      if (weatherMode === 'snow') {
+        for (const f of flakes) {
+          f.phase += dt * f.swayFreq;
+          f.y += f.speed * dt;
+          f.rot += f.rotSpeed * dt;
+          if (f.y > h + 6) {
+            f.y = -6;
+            f.x = Math.random() * w;
+          }
+        }
+      } else {
+        gustT += dt;
+        for (const s of streaks) {
+          // Per-streak gusts + gentle vertical meander over the base eastward run.
+          const gust = 0.7 + 0.5 * (0.5 + 0.5 * Math.sin(gustT * 0.6 + s.phase));
+          s.x += s.speed * gust * dt;
+          s.y += Math.sin(gustT * s.bobFreq + s.phase) * s.bobAmp * dt;
+          if (s.x - s.len > w) {
+            s.x = -s.len;
+            s.y = Math.random() * h;
+          }
+          if (s.y < -20) s.y = h + 20;
+          else if (s.y > h + 20) s.y = -20;
+        }
+      }
+      paint();
+      raf = requestAnimationFrame(step);
+    };
+
+    const onVisibility = (): void => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      } else if (!raf) {
+        last = performance.now();
+        raf = requestAnimationFrame(step);
+      }
+    };
+
+    // Sync canvas mode with the game season on mount (get(): one-shot read —
+    // a $gameStore read here would resubscribe this whole effect to every
+    // state change and needlessly reseed the particles).
+    weatherMode = seasonToMode(get(gameStore).season);
+    fit();
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(canvas);
+    document.addEventListener('visibilitychange', onVisibility);
+    if (reduced) {
+      paint();
+    } else {
+      last = performance.now();
+      raf = requestAnimationFrame(step);
+    }
+    return () => {
+      alive = false;
+      cancelAnimationFrame(raf);
+      document.removeEventListener('visibilitychange', onVisibility);
+      ro.disconnect();
+    };
+  });
+
+  // Season change: fade out, swap particle set, fade back in.
+  $effect(() => {
+    const mode = seasonToMode($gameStore.season);
+    if (mode === weatherMode) return;
+    weatherShown = false;
+    if (swapTimer) clearTimeout(swapTimer);
+    swapTimer = setTimeout(() => {
+      weatherMode = mode;
+      const canvas = weatherCanvas;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        seedWeather(mode, Math.max(1, Math.round(rect.width)), Math.max(1, Math.round(rect.height)));
+      }
+      weatherShown = true;
+    }, 450);
+    return () => {
+      if (swapTimer) clearTimeout(swapTimer);
+    };
+  });
   // single source of truth; `themes.ts` only reads them back). `themeId` is
   // read inside `mapCss` so a theme switch repaints the whole canvas.
   let themeId = $state('default');
@@ -38,6 +271,9 @@
     };
   });
 
+  // ── Theming: every color resolves live from CSS variables (app.css is the
+  // single source of truth; `themes.ts` only reads them back). `themeId` is
+  // read inside `mapCss` so a theme switch repaints the whole canvas.
   // Sovereign border strokes (SyID identity); fills come from the health ramp.
   function syidStrokes(): { charcoalBorder: string; hoverStroke: string; selectedStroke: string } {
     return {
@@ -176,12 +412,12 @@
 
   // --- Internal migration arrows (gov-to-gov, no external migration) ---
   // ON by default, including on a fresh game: a restart drops turnNumber, so
-  // detect that transition and switch the toggle back on.
-  let showMigration = $state(true);
+  // detect that transition and switch the toggle back on. The toggle itself
+  // lives with the guide/settings buttons (FloatingCommandDeck).
   let lastSeenTurn = $state(0);
   $effect(() => {
     const t = $gameStore.turnNumber;
-    if (lastSeenTurn > 0 && t < lastSeenTurn) showMigration = true;
+    if (lastSeenTurn > 0 && t < lastSeenTurn) uiStore.setMigrationArrows(true);
     lastSeenTurn = t;
   });
   const MIGRATION_MIN_PEOPLE = 1000;
@@ -333,6 +569,15 @@
   <!-- Faint Tactical Coordinate Grid Background -->
   <div class="absolute inset-0 opacity-[0.04] pointer-events-none bg-[radial-gradient(var(--map-grid)_1px,transparent_1px)] [background-size:24px_24px]"></div>
 
+  <!-- Ambient seasonal weather behind the terrain (canvas particles,
+       pointer-transparent, hidden for reduced motion). Snow in H2_WINTER,
+       curved west-to-east wind streaks in H1_HARVEST. -->
+  <canvas
+    bind:this={weatherCanvas}
+    class="absolute inset-0 w-full h-full pointer-events-none motion-reduce:hidden transition-opacity duration-500 {weatherShown ? 'opacity-100' : 'opacity-0'}"
+    aria-hidden="true"
+  ></canvas>
+
   <!-- 2D Sovereign Vector Map (SVG) -->
   <svg
     viewBox={SYRIA_2D_VIEWBOX}
@@ -414,7 +659,7 @@
     </g>
 
     <!-- Internal migration arrows: solid = past turns combined, dashed = predicted next turn -->
-    {#if showMigration}
+    {#if $uiStore.showMigrationArrows}
       <g class="pointer-events-none">
         {#each migrationData.arrows as arrow (arrow.fromId + '>' + arrow.toId)}
           {@const fromName = govNameArById.get(arrow.fromId) ?? arrow.fromId}
@@ -499,24 +744,5 @@
       {/each}
     </g>
   </svg>
-
-  <!-- Migration overlay toggle (Arabic): person with arrow to top-right -->
-  <div class="absolute top-2 right-2 font-arabic">
-    <button
-      type="button"
-      onclick={() => (showMigration = !showMigration)}
-      aria-pressed={showMigration}
-      aria-label="تبديل أسهم النزوح"
-      class="flex items-center gap-1.5 text-[10px] px-2 py-1 bg-(--map-ink)/85 border transition-colors cursor-pointer gloss-hover {showMigration ? 'border-(--map-selected-stroke) text-(--map-cream)' : 'border-(--map-toggle-off) text-(--map-toggle-off-text) opacity-60 hover:opacity-100 hover:border-(--map-selected-stroke)'}"
-    >
-      <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
-        <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />
-        <path d="M0.8 13.4c0-3.1 1.7-5 3.7-5s3.7 1.9 3.7 5" fill="currentColor" />
-        <path d="M7.8 9.6 L12.4 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-        <path d="M9.7 5 H12.4 V7.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
-      <span>أسهم النزوح</span>
-    </button>
-  </div>
 
 </div>

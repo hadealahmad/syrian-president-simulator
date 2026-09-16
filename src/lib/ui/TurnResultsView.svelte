@@ -1,6 +1,11 @@
 <script lang="ts">
   import { gameStore } from '../stores/game-store';
-  import { uiStore } from '../stores/ui-store';
+  import GameIcon from './GameIcon.svelte';
+
+  /** Results phase of the end-turn modal: closing audit for the committed
+      turn. Rendered inside TurnReviewModal so review -> results swaps in
+      place without closing or moving the modal. */
+  let { onContinue }: { onContinue: () => void } = $props();
 
   function formatNumber(num: number): string {
     return new Intl.NumberFormat('en-US').format(Math.round(num));
@@ -23,32 +28,21 @@
   let provincesInRevoltCount = $derived(
     Object.values($gameStore.governorates).filter((g) => g.tier === 'REVOLT').length
   );
-
-  function handleDismiss(): void {
-    uiStore.setTurnSummaryModal(false);
-  }
 </script>
 
-{#if $uiStore.isTurnSummaryModalOpen && audit}
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
-  >
-    <div
-      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col max-h-[85vh] overflow-y-auto"
-    >
-      <!-- Header -->
-      <div class="border-b border-charcoal-mid pb-3">
-        <div class="flex items-center gap-2">
-          <span class="w-2.5 h-2.5 bg-wheat-gold rounded-none"></span>
-          <h2 class="text-base font-bold text-wheat-light font-heading">
-            تقرير الإغلاق المالي للنصف سنوي — الدور {String($gameStore.turnNumber - 1).padStart(2, '0')}
-          </h2>
-        </div>
-        <p class="text-[11px] text-wheat-dark mt-1">
-          بيان الحسابات الختامية الصادر عن مصرف سورية المركزي ووزارة المالية
-        </p>
+<div class="flex flex-col flex-1 min-h-0">
+  {#if audit}
+    <!-- Header -->
+    <div class="border-b border-charcoal-mid pb-3 shrink-0">
+      <div class="flex items-center gap-2">
+        <GameIcon name="chart" cls="w-5 h-5 shrink-0 text-status-ok" />
+        <h2 class="text-base font-bold text-wheat-light font-heading">
+          تقرير الإغلاق المالي للنصف سنوي — الدور {String($gameStore.turnNumber - 1).padStart(2, '0')}
+        </h2>
       </div>
+    </div>
 
+    <div class="flex-1 min-h-0 overflow-y-auto space-y-5 py-4 pr-1">
       <!-- Financial Ledger -->
       <div class="space-y-2">
         <h3 class="text-xs text-wheat-gold font-semibold block font-heading">الميزان المالي للدولة:</h3>
@@ -158,16 +152,20 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer Action -->
-      <div class="pt-2 flex justify-end">
-        <button
-          onclick={handleDismiss}
-          class="px-5 py-2.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep font-bold text-xs border border-wheat-gold transition-colors cursor-pointer rounded-none font-heading shadow-md"
-        >
-          متابعة المهام الرئاسية للدور الجديد
-        </button>
-      </div>
     </div>
-  </div>
-{/if}
+
+    <!-- Footer Action -->
+    <div class="pt-3 border-t border-charcoal-mid flex justify-start shrink-0">
+      <button
+        onclick={onContinue}
+        class="px-5 py-2.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep font-bold text-xs border border-wheat-gold transition-colors cursor-pointer rounded-none font-heading shadow-md gloss-hover"
+      >
+        متابعة المهام الرئاسية للدور الجديد
+      </button>
+    </div>
+  {:else}
+    <div class="flex-1 flex items-center justify-center text-wheat-dark text-sm">
+      لا يوجد تقرير إغلاق متاح لهذا الدور.
+    </div>
+  {/if}
+</div>

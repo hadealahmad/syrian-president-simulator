@@ -4,6 +4,7 @@
   import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
   import { STAT_NAMES_AR, panelHasRelated } from './panels/shared';
+  import { governorateShape } from '../spatial3d/syria-2d-paths';
   import EmergencyPanel from './panels/EmergencyPanel.svelte';
   import DecreesPanel from './panels/DecreesPanel.svelte';
   import TaxFinancePanel from './panels/TaxFinancePanel.svelte';
@@ -23,6 +24,9 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
   ] as const;
 
   let active = $derived($uiStore.activeCommandPanel);
+  // Provincial button shows the selected governorate's map shape (Damascus
+  // fallback), like the stats sidebar cards — not the generic castle glyph.
+  let provShape = $derived(governorateShape($uiStore.selectedGovernorateId));
   let statsOpen = $derived($uiStore.isStatsSidebarOpen);
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
@@ -140,7 +144,11 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
           aria-pressed={isActive}
           aria-disabled={isLocked}
         >
-          <GameIcon name={btn.icon} cls="{isDone ? 'w-5 h-5' : 'w-7 h-7'} shrink-0" />
+          {#if btn.id === 'provincial'}
+            <svg viewBox={provShape.vb} class="{isDone ? 'w-5 h-5' : 'w-7 h-7'} shrink-0" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={provShape.d} fill="currentColor" /></svg>
+          {:else}
+            <GameIcon name={btn.icon} cls="{isDone ? 'w-5 h-5' : 'w-7 h-7'} shrink-0" />
+          {/if}
           <span class="{isDone ? 'text-[8px]' : 'text-[9.5px]'} font-bold font-heading leading-tight text-center px-0.5">{btn.labelAr}</span>
           {#if selectedStat && panelHasRelated(selectedStat, btn.id)}
             <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-wheat-gold animate-pulse"></span>

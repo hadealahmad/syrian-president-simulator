@@ -7,16 +7,15 @@
   import GameIcon from './GameIcon.svelte';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
-  let settingsOpen = $state(false);
   let themesOpen = $state(false);
 
   function closeSettings(): void {
-    settingsOpen = false;
+    uiStore.setSettingsOpen(false);
     themesOpen = false;
   }
 
   function openSettings(): void {
-    settingsOpen = true;
+    uiStore.setSettingsOpen(true);
     themesOpen = false;
   }
 
@@ -61,7 +60,7 @@
   <button
     onclick={openSettings}
     aria-haspopup="dialog"
-    aria-expanded={settingsOpen}
+    aria-expanded={$uiStore.isSettingsOpen}
     aria-label="الإعدادات"
     title="الإعدادات — لعبة جديدة، تحديث، المظهر"
     class="relative h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none group"
@@ -71,9 +70,25 @@
     {/if}
     <GameIcon name="gear" cls="w-4 h-4 shrink-0 text-wheat-dark group-hover:text-wheat-gold transition-colors" />
   </button>
+
+  <!-- Migration arrows overlay toggle -->
+  <button
+    onclick={() => uiStore.setMigrationArrows(!$uiStore.showMigrationArrows)}
+    aria-pressed={$uiStore.showMigrationArrows}
+    aria-label="تبديل أسهم النزوح"
+    title="تبديل أسهم النزوح"
+    class="h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none {$uiStore.showMigrationArrows ? 'border-wheat-mid/60 text-wheat-gold' : 'border-charcoal-mid text-wheat-dark hover:text-wheat-gold'}"
+  >
+    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" class="w-4 h-4 shrink-0">
+      <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />
+      <path d="M0.8 13.4c0-3.1 1.7-5 3.7-5s3.7 1.9 3.7 5" fill="currentColor" />
+      <path d="M7.8 9.6 L12.4 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+      <path d="M9.7 5 H12.4 V7.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+  </button>
 </div>
 
-{#if settingsOpen}
+{#if $uiStore.isSettingsOpen}
   <div class="fixed inset-0 z-50 flex items-center justify-center p-4 select-none font-arabic">
     <button
       class="absolute inset-0 bg-black/25 cursor-default"
@@ -135,7 +150,7 @@
               aria-label="رجوع إلى الإعدادات"
               class="h-6 w-6 flex items-center justify-center text-wheat-dark hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 gloss-hover transition-colors cursor-pointer"
             >
-              <GameIcon name="return-arrow" cls="w-4 h-4 shrink-0" />
+              <GameIcon name="arrow-right" cls="w-4 h-4 shrink-0" />
             </button>
             <span class="text-base font-bold text-wheat-light font-heading">المظهر</span>
           </div>

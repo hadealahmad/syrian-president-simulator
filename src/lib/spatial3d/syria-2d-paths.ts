@@ -154,3 +154,23 @@ export const SYRIA_2D_GOVERNORATES: Syria2DGovernorate[] = [
     ]
   }
 ];
+
+// Cropped mini-shape for UI chrome (hub button, panel headings): the
+// governorate path fitted to its own bounding box, Damascus fallback when
+// nothing (valid) is selected. Same crop math as the stats sidebar cards.
+export function governorateShape(id: string | null | undefined): { d: string; vb: string } {
+  const g =
+    SYRIA_2D_GOVERNORATES.find((x) => x.id === id) ??
+    SYRIA_2D_GOVERNORATES.find((x) => x.id === 'damascus') ??
+    SYRIA_2D_GOVERNORATES[0];
+  const nums = g.path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [0, 0, 0, 0];
+  const xs = nums.filter((_, i) => i % 2 === 0);
+  const ys = nums.filter((_, i) => i % 2 === 1);
+  const pad = 14;
+  const x0 = Math.min(...xs);
+  const y0 = Math.min(...ys);
+  return {
+    d: g.path,
+    vb: `${x0 - pad} ${y0 - pad} ${Math.max(...xs) - x0 + pad * 2} ${Math.max(...ys) - y0 + pad * 2}`,
+  };
+}

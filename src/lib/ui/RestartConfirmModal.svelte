@@ -7,12 +7,16 @@
     uiStore.setRestartModal(false);
   }
 
+  function handleBackToSettings(): void {
+    uiStore.setRestartModal(false);
+    uiStore.setSettingsOpen(true);
+  }
+
   function handleConfirmRestart(): void {
     gameStore.restart();
     draftStore.reset();
     uiStore.selectGovernorate(null);
-    uiStore.setTurnReviewModal(false);
-    uiStore.setTurnSummaryModal(false);
+    uiStore.setTurnFlowStage('closed');
     uiStore.setRestartModal(false);
   }
 </script>
@@ -35,14 +39,14 @@
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
           <h2 class="text-base font-bold text-wheat-light font-heading">
-            تأكيد إعادة تشغيل المحاكاة
+            تأكيد إعادة التشغيل
           </h2>
         </div>
       </div>
 
       <!-- Warning -->
       <p class="text-sm text-wheat-light leading-relaxed">
-        سيؤدي هذا الإجراء إلى مسح كافة البيانات المحفوظة في المتصفح محلياً.
+        ستفقد كلّ التقدم الذي أجريته في اللعبة.
       </p>
 
       <!-- Action Buttons -->
@@ -53,6 +57,13 @@
           class="w-full py-2.5 px-4 bg-forest-mid hover:bg-forest-surface text-wheat-light font-bold text-xs border border-charcoal-mid hover:border-wheat-mid/60 gloss-hover transition-colors cursor-pointer rounded-none font-heading text-center"
         >
           إلغاء ومتابعة اللعبة
+        </button>
+        <button
+          type="button"
+          onclick={handleBackToSettings}
+          class="w-full py-2.5 px-4 bg-forest-mid hover:bg-forest-surface text-wheat-light font-bold text-xs border border-charcoal-mid hover:border-wheat-mid/60 gloss-hover transition-colors cursor-pointer rounded-none font-heading text-center"
+        >
+          عودة إلى الإعدادات
         </button>
         <button
           type="button"

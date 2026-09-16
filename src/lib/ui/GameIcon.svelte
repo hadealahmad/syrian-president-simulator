@@ -51,6 +51,7 @@
     'emotion-sad-fill': { body: '<path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10a9.96 9.96 0 0 1-1.065 4.496a2 2 0 0 0-.398-.775l-.123-.135L19 14.172l-1.414 1.414l-.117.127a2 2 0 0 0 1.679 3.282A9.97 9.97 0 0 1 12 22C6.477 22 2 17.523 2 12S6.477 2 12 2m0 13c-1.38 0-2.63.56-3.534 1.463l-.166.174l.945.86C10.035 17.182 10.982 17 12 17c.905 0 1.754.144 2.486.396l.269.1l.945-.86A5 5 0 0 0 12 15m-3.5-5a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3m7 0a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3"/>', vb: '0 0 24 24' },
     'palette': { body: '<path fill="currentColor" d="M256 32a224 224 0 1 1 0 448 224 224 0 1 1 0-448zM330 298a52 52 0 1 0 0 104 52 52 0 1 0 0-104zM160 144a26 26 0 1 1 0 52 26 26 0 1 1 0-52zM250 96a26 26 0 1 1 0 52 26 26 0 1 1 0-52zM342 122a26 26 0 1 1 0 52 26 26 0 1 1 0-52z"/>', vb: '0 0 512 512' },
     'download': { body: '<path fill="currentColor" d="M216 32h80v176h64L256 336 152 208h64zM64 384h64v32h256v-32h64v64a16 16 0 0 1-16 16H80a16 16 0 0 1-16-16z"/>', vb: '0 0 512 512' },
+    'arrow-right': { body: '<path fill="currentColor" d="M96 232h208v-56l112 80-112 80v-56H96z"/>', vb: '0 0 512 512' },
   };
 
   let { name = "flame", cls = "w-6 h-6", x = undefined, y = undefined, size = undefined, color = undefined, outline = undefined }: { name?: string; cls?: string; x?: number; y?: number; size?: number; color?: string; outline?: string } = $props();

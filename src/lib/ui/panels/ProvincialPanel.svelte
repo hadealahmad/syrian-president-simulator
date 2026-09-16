@@ -5,6 +5,7 @@
   import GameIcon from '../GameIcon.svelte';
   import ToggleSwitch from '../ToggleSwitch.svelte';
   import { BASELINE_GOVERNORATES } from '../../engine/constants';
+  import { governorateShape } from '../../spatial3d/syria-2d-paths';
   import { isProvincialActionRelated as isProvincialActionRelatedShared, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
 
   function parseEffectPills(effectStr: string): { text: string; isNegative: boolean }[] {
@@ -31,6 +32,9 @@
   // Default to the capital when nothing is selected so the panel always
   // shows a governorate dossier instead of an empty placeholder.
   let selectedId = $derived($uiStore.selectedGovernorateId ?? 'damascus');
+  // Heading shows the selected governorate's map shape (Damascus fallback),
+  // like the stats sidebar cards — not the generic castle glyph.
+  let provShape = $derived(governorateShape(selectedId));
   let node = $derived(selectedId ? $gameStore.governorates[selectedId] : null);
   // Governorates that never needed demining (baseline contamination at or
   // below the deployable threshold) get no demining card at all.
@@ -101,7 +105,7 @@
 
 <div class="space-y-3">
   <div class="flex items-center gap-2 border-b border-charcoal-mid pb-2">
-    <GameIcon name="castle" cls="w-5 h-5 text-wheat-gold shrink-0" />
+    <svg viewBox={provShape.vb} class="w-5 h-5 shrink-0 text-wheat-gold" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={provShape.d} fill="currentColor" /></svg>
     <h3 class="text-sm font-bold text-wheat-light font-heading">{node?.nameAr ?? 'القيادة الإقليمية'}</h3>
   </div>
 

@@ -4,6 +4,7 @@
   import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
+  import TurnResultsView from './TurnResultsView.svelte';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -12,18 +13,8 @@
     getOligarchNationalizePCEarned,
   } from '../engine/oligarch-helpers';
 
-  function formatNumber(num: number): string {
-    return new Intl.NumberFormat('en-US').format(Math.round(num));
-  }
-
   function formatMillionUSD(usd: number): string {
     return (usd / 1_000_000).toFixed(1);
-  }
-
-  function formatBillion(syp: number): string {
-    const val = Number((syp / 1_000_000_000).toFixed(2));
-    if (Object.is(val, -0) || val === 0) return '0.00';
-    return val.toFixed(2);
   }
 
   const SOUTHERN_POLICY_NAMES_AR: Record<string, string> = {
@@ -109,122 +100,48 @@
     if (isOverBudget) return;
     gameStore.commitTurn($draftStore);
     draftStore.advanceToNextTurn();
-    uiStore.setTurnReviewModal(false);
-    // Show the post-turn closing audit, unless the turn ended the game
-    // (FailStateModal takes over in that case).
-    if (!get(gameStore).isGameOver) {
-      uiStore.setTurnSummaryModal(true);
+    // Results swap in place inside this same modal — no close, no move —
+    // unless the turn ended the game (FailStateModal takes over instead).
+    if (get(gameStore).isGameOver) {
+      uiStore.setTurnFlowStage('closed');
+    } else {
+      uiStore.setTurnFlowStage('results');
+    }
+  }
+
+  function handleContinueToNewTurn(): void {
+    // Events (if any were drawn) take over as the alert modal on top while
+    // this modal recedes underneath; otherwise the flow simply closes.
+    if (($gameStore.activeEvents?.length ?? 0) > 0) {
+      uiStore.setTurnFlowStage('events');
+    } else {
+      uiStore.setTurnFlowStage('closed');
     }
   }
 
   function handleClose(): void {
-    uiStore.setTurnReviewModal(false);
+    uiStore.setTurnFlowStage('closed');
   }
 </script>
 
-{#if $uiStore.isTurnReviewModalOpen}
+{#if $uiStore.turnFlowStage !== 'closed'}
+  <div class="fixed inset-0 z-40 bg-black/25" aria-hidden="true" onclick={handleClose}></div>
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >
     <div
-      class="w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col max-h-[90vh]"
+      class="pointer-events-auto h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-green shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col overflow-hidden transition-all duration-500 ease-out {$uiStore.turnFlowStage === 'events' ? 'scale-[0.93] -translate-x-12 pointer-events-none' : ''}"
+      aria-hidden={$uiStore.turnFlowStage === 'events'}
+      inert={$uiStore.turnFlowStage === 'events'}
     >
+    {#if $uiStore.turnFlowStage === 'review'}
       <!-- Header -->
       <div class="border-b border-charcoal-mid pb-3 shrink-0">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="w-3 h-3 bg-wheat-gold rounded-none"></span>
-            <h2 class="text-base font-bold text-wheat-light font-heading">
-              مراجعة وتثبيت القرارات الرئاسية — الدور {String($gameStore.turnNumber).padStart(2, '0')}
-            </h2>
-          </div>
-          <button
-            onclick={handleClose}
-            class="text-wheat-dark hover:text-wheat-light text-sm px-2 py-1 bg-charcoal-surface hover:bg-forest-surface border border-charcoal-mid rounded-none transition-colors cursor-pointer"
-          >
-            <GameIcon name="cross-mark" cls="w-3.5 h-3.5 shrink-0" />
-          </button>
-        </div>
-        <p class="text-xs text-wheat-dark mt-1">
-          يرجى تدقيق القرارات والسياسات المعتمدة أدناه قبل المصادقة النهائية وإحالتها للتنفيذ الميداني.
-        </p>
-
-        <!-- Live Budget Remaining Bar -->
-        <div class="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-charcoal-mid/80 text-[11px]">
-          <div class="p-1.5 bg-charcoal-surface border border-charcoal-mid">
-            <span class="text-[10px] text-wheat-dark block">الرصيد السياسي المتبقي:</span>
-            <span class="font-bold font-mono text-wheat-gold">{$budgetStore.remainingPC} رصيد سياسي</span>
-          </div>
-          <div class="p-1.5 bg-charcoal-surface border border-charcoal-mid">
-            <span class="text-[10px] text-wheat-dark block">احتياطي النقد المتبقي:</span>
-            <span class="font-bold font-mono {$budgetStore.remainingUSD < 0 ? 'text-umber-crimson' : 'text-forest-accent'}">
-              ${formatMillionUSD($budgetStore.remainingUSD)}M
-            </span>
-          </div>
-          <div class="p-1.5 bg-charcoal-surface border border-charcoal-mid">
-            <span class="text-[10px] text-wheat-dark block">سيولة الخزينة المتبقية:</span>
-            <span dir="ltr" class="font-bold font-mono {$budgetStore.remainingSYP < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">
-              {formatBillion($budgetStore.remainingSYP)}B SP
-            </span>
-            {#if $budgetStore.remainingSYP < 0}
-              {#if $budgetStore.remainingUSD >= ((-$budgetStore.remainingSYP) / Math.max(1, $gameStore.macro.parallelRateSYP))}
-                <span class="text-[8.5px] text-forest-accent block font-heading mt-0.5">مغطى بالاحتياطي الأجنبي</span>
-              {:else}
-                <span class="text-[8.5px] text-umber-crimson block font-heading mt-0.5">عجز يتجاوز الاحتياطي الأجنبي</span>
-              {/if}
-            {/if}
-          </div>
-        </div>
-
-        <!-- Budget Deficit Warning Alert -->
-        {#if isOverBudget}
-          <div class="mt-2 p-2 bg-umber-deep border border-umber-crimson text-umber-crimson text-xs flex items-center justify-between">
-            <div class="flex items-center gap-1.5 font-bold">
-              <span class="w-2 h-2 bg-umber-crimson"></span>
-              <span>تجاوز حدود النقد الأجنبي أو الرصيد السياسي! لا يمكن إنهاء الدور دون تعديل القرارات.</span>
-            </div>
-            <span class="font-mono text-[10px]">عجز سيادي</span>
-          </div>
-        {/if}
-      </div>
-
-      <!-- Turn Forecast Projection Card -->
-      <div class="p-3 bg-charcoal-surface border border-charcoal-mid rounded-none shrink-0 space-y-2">
-        <span class="text-xs text-wheat-gold font-bold font-heading block">
-          توقعات المؤشرات المالية الكبرى للدور القادم:
-        </span>
-        <div class="grid grid-cols-4 gap-2 text-center text-xs">
-          <!-- Deficit -->
-          <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block mb-0.5">عجز الموازنة</span>
-            <span dir="ltr" class="font-bold text-wheat-light font-mono">
-              {formatBillion($previewRangesStore.deficitSYP)}B SP
-            </span>
-          </div>
-
-          <!-- Estimated Runway -->
-          <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block mb-0.5">مدى كفاية الاحتياطي</span>
-            <span class="font-bold font-mono {$previewRangesStore.runwayMonthsEstimated <= 6 ? 'text-umber-crimson' : 'text-forest-accent'}">
-              {$previewRangesStore.runwayMonthsEstimated} شهراً
-            </span>
-          </div>
-
-          <!-- Parallel FX Rate Range -->
-          <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block mb-0.5">سعر الصرف الموازي المرجح</span>
-            <span class="font-bold text-wheat-light font-mono">
-              {formatNumber($previewRangesStore.fxRateMin)} - {formatNumber($previewRangesStore.fxRateMax)}
-            </span>
-          </div>
-
-          <!-- Real Wage Range -->
-          <div class="p-2 bg-forest-mid border border-charcoal-mid rounded-none">
-            <span class="text-[10px] text-wheat-dark block mb-0.5">أجر الموظف الحقيقي المتوقع</span>
-            <span class="font-bold font-mono text-wheat-gold">
-              ${Math.round($previewRangesStore.realWageMin)} - ${Math.round($previewRangesStore.realWageMax)}
-            </span>
-          </div>
+        <div class="flex items-center gap-2">
+          <GameIcon name="hourglass" cls="w-5 h-5 shrink-0 text-status-ok" />
+          <h2 class="text-base font-bold text-wheat-light font-heading">
+            مراجعة وتثبيت القرارات الرئاسية — الدور {String($gameStore.turnNumber).padStart(2, '0')}
+          </h2>
         </div>
       </div>
 
@@ -248,7 +165,7 @@
       </div>
 
       <!-- Action Items Ledger List (Scrollable) -->
-      <div class="space-y-2 overflow-y-auto flex-1 pr-1 text-xs">
+      <div class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1 text-xs">
         {#if !hasAnyActions}
           <div class="p-8 text-center bg-charcoal-surface border border-charcoal-mid rounded-none text-wheat-dark space-y-2">
             <p class="font-heading text-sm text-wheat-light">لم يتم اعتماد أي قرارات أو تعديل في السياسات لهذا الدور</p>
@@ -774,23 +691,26 @@
       </div>
 
       <!-- Footer & Final Action -->
-      <div class="border-t border-charcoal-mid pt-3 flex items-center justify-between shrink-0">
-        <button
-          onclick={handleClose}
-          class="px-4 py-2 border border-charcoal-mid text-wheat-dark hover:text-wheat-light bg-forest-mid hover:bg-charcoal-surface text-xs rounded-none transition-colors cursor-pointer"
-        >
-          مواصلة تعديل القرارات
-        </button>
-
+      <div class="border-t border-charcoal-mid pt-3 flex items-center gap-3 shrink-0">
         <button
           disabled={isOverBudget}
           onclick={handleConfirmEndTurn}
-          class="px-6 py-2.5 text-xs font-bold border transition-colors rounded-none flex items-center gap-2 {isOverBudget ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed opacity-60' : 'bg-forest-surface hover:bg-wheat-gold text-wheat-gold hover:text-forest-deep border-wheat-mid shadow-lg cursor-pointer'}"
+          class="flex-1 px-6 py-2.5 text-xs font-bold border transition-colors rounded-none flex items-center justify-center gap-2 font-heading {isOverBudget ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark cursor-not-allowed opacity-60' : 'bg-wheat-gold hover:bg-wheat-light text-forest-deep border-wheat-gold shadow-lg cursor-pointer gloss-hover'}"
         >
+          <GameIcon name="check-mark" cls="w-4 h-4 shrink-0" />
           <span>تأكيد المراسيم وإنهاء الدور</span>
-          <span class="font-mono text-[10px]">←</span>
+        </button>
+
+        <button
+          onclick={handleClose}
+          class="flex-1 px-4 py-2.5 bg-charcoal-surface hover:bg-forest-mid text-wheat-dark hover:text-wheat-light text-xs rounded-none transition-colors cursor-pointer border border-charcoal-mid hover:border-wheat-mid/60 gloss-hover font-heading text-center"
+        >
+          مواصلة تعديل القرارات
         </button>
       </div>
+    {:else}
+      <TurnResultsView onContinue={handleContinueToNewTurn} />
+    {/if}
     </div>
   </div>
 {/if}

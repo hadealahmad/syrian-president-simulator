@@ -1,6 +1,12 @@
 <script lang="ts">
   import { gameStore } from '../stores/game-store';
+  import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
+  import {
+    SUSPENDED_CARD_CLASS,
+    SUSPENDED_CONTENT_CLASS,
+    SUSPENDED_ICON,
+  } from './panels/shared';
 
   function formatMillionUSD(usd: number): string {
     return (usd / 1_000_000).toFixed(1);
@@ -34,6 +40,22 @@
   let currentEvent = $derived(
     $gameStore.activeEvents.length > 0 ? $gameStore.activeEvents[0] : null
   );
+
+  // Alert stage of the end-turn flow: visible on top of the receded review
+  // modal ('events'), or standalone on resume when events are pending and no
+  // flow is open ('closed'). Never pops over review/results mid-flow.
+  let showEventsModal = $derived(
+    currentEvent !== null &&
+      ($uiStore.turnFlowStage === 'events' || $uiStore.turnFlowStage === 'closed')
+  );
+
+  $effect(() => {
+    // Last event resolved while the alert sits on top: retire the whole flow
+    // (the receded review modal underneath unmounts with it).
+    if ($uiStore.turnFlowStage === 'events' && !currentEvent) {
+      uiStore.setTurnFlowStage('closed');
+    }
+  });
 
   // Dynamically evaluate whether each option is affordable with the current political credit and reserves
   let evaluatedOptions = $derived(
@@ -100,33 +122,24 @@
   }
 }} />
 
-{#if currentEvent}
+{#if showEventsModal && currentEvent}
+  <div class="fixed inset-0 z-[60] bg-black/25" aria-hidden="true"></div>
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic pointer-events-auto"
+    class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >
     <div
-      class="relative w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-[0_20px_50px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col rounded-none text-wheat-light"
+      class="pointer-events-auto relative h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light modal-enter"
     >
-      <!-- Telex Header -->
-      <div class="px-6 py-3.5 bg-forest-mid border-b border-charcoal-mid flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="px-2.5 py-0.5 bg-umber-deep border border-umber-border text-umber-crimson text-[11px] font-bold rounded-none font-heading">
-            برقية استخبارية طارئة
-          </span>
-          <span class="text-xs text-wheat-mid font-mono">
-            {currentEvent.category === 'SOUTHERN' ? 'الجبهة الجنوبية' : 'غرفة الأزمات المركزية'}
-          </span>
-        </div>
-        <span class="text-xs text-wheat-gold font-medium font-heading">{currentEvent.sourceAr}</span>
-      </div>
-
       <!-- Content -->
-      <div class="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
+      <div class="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
+        <div class="border-b border-charcoal-mid pb-3 shrink-0">
+          <div class="flex items-center gap-2">
+            <GameIcon name="siren" cls="w-5 h-5 shrink-0 text-umber-crimson" />
+            <h2 class="text-base font-bold text-wheat-light font-heading">{currentEvent.titleAr}</h2>
+          </div>
+        </div>
         <div>
-          <h2 class="text-base font-bold text-wheat-light mb-2 font-heading">{currentEvent.titleAr}</h2>
-          <p class="text-xs text-wheat-light leading-relaxed bg-charcoal-surface p-3.5 border border-charcoal-mid rounded-none">
-            {currentEvent.descriptionAr}
-          </p>
+          <p class="text-xs text-wheat-light leading-relaxed">{currentEvent.descriptionAr}</p>
         </div>
 
         <!-- Default/Incapacity Alert Card when No Options can be chosen -->
@@ -153,29 +166,20 @@
 
         <!-- Options -->
         <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-wheat-dark font-semibold block font-heading">خيارات الاستجابة الرئاسية:</span>
-            <div class="flex items-center gap-1.5 text-[11px] font-mono text-wheat-mid">
-              <span>الرصيد السياسي المتاح:</span>
-              <span class="text-wheat-gold font-bold">{$gameStore.macro.politicalCapital} نقطة</span>
-            </div>
-          </div>
-
           {#each evaluatedOptions as opt}
             <div
-              class="p-4 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-mid border-charcoal-mid hover:border-wheat-mid/60' : 'bg-charcoal-surface/80 border-charcoal-mid/60'}"
+              role="button"
+              tabindex={opt.canChoose ? 0 : -1}
+              aria-label={opt.labelAr}
+              aria-disabled={!opt.canChoose}
+              onclick={() => handleSelectOption(opt)}
+              onkeydown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && opt.canChoose) { e.preventDefault(); handleSelectOption(opt); } }}
+              class="p-4 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-mid border-charcoal-mid hover:border-wheat-mid/60 cursor-pointer gloss-hover' : 'bg-charcoal-surface/80 border-charcoal-mid/60'} {opt.canChoose ? '' : SUSPENDED_CARD_CLASS}"
             >
-              <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start justify-between gap-4 {opt.canChoose ? '' : SUSPENDED_CONTENT_CLASS}">
                 <div class="space-y-1.5 flex-1">
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-bold text-wheat-light font-heading">{opt.labelAr}</h3>
-                    {#if !opt.canChoose}
-                      <span class="px-1.5 py-0.2 bg-umber-deep border border-umber-border text-umber-crimson text-[9px] font-bold font-mono">
-                        غير متاح
-                      </span>
-                    {/if}
-                  </div>
-                  <p class="text-xs text-wheat-dark">{opt.descriptionAr}</p>
+                  <h3 class="text-sm font-bold text-wheat-gold font-heading mb-1">{opt.labelAr}</h3>
+                  <p class="text-xs text-wheat-light leading-relaxed">{opt.descriptionAr} {opt.customEffectAr}</p>
 
                   <!-- Cost & Effect Tags with Red/Green Pills -->
                   <div class="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
@@ -204,10 +208,6 @@
                         -{opt.costPC} نقطة رصيد سياسي
                       </span>
                     {/if}
-                    <span class="text-forest-accent font-medium">
-                      {opt.customEffectAr}
-                    </span>
-
                     {#if opt.governorateEffects && opt.governorateEffects.length > 0}
                       <div class="flex flex-wrap items-center gap-1.5 pt-1.5 w-full">
                         {#each opt.governorateEffects as eff}
@@ -259,15 +259,12 @@
                     </div>
                   {/if}
                 </div>
-
-                <button
-                  disabled={!opt.canChoose}
-                  onclick={() => handleSelectOption(opt)}
-                  class="px-5 py-2 text-xs font-bold shrink-0 border transition-colors rounded-none {opt.canChoose ? 'bg-forest-surface hover:bg-wheat-gold text-wheat-light hover:text-forest-deep border-wheat-mid shadow-md cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-50'}"
-                >
-                  اعتماد الخيار
-                </button>
               </div>
+              {#if !opt.canChoose}
+                <span class="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                  <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
+                </span>
+              {/if}
             </div>
           {/each}
         </div>
@@ -279,109 +276,74 @@
           class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 select-none font-arabic"
         >
           <div
-            class="w-full max-w-lg bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light"
+            class="h-[56vh] aspect-[3/4] max-w-[90%] bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light overflow-y-auto"
           >
             <!-- Confirmation Header -->
             <div class="border-b border-charcoal-mid pb-3">
               <div class="flex items-center gap-2">
-                <span class="w-3 h-3 bg-wheat-gold rounded-none shrink-0"></span>
+                <GameIcon name="check-mark" cls="w-5 h-5 shrink-0 text-wheat-gold" />
                 <h3 class="text-base font-bold text-wheat-light font-heading">
-                  تأكيد الأمر الرئاسي الصادر
+                  تأكيد الخيار
                 </h3>
               </div>
-              <p class="text-xs text-wheat-dark mt-1">
-                يرجى مراجعة تفاصيل الاستجابة السيادية قبل اعتمادها رسمياً
-              </p>
             </div>
 
             <!-- Selected Option Summary Box -->
-            <div class="p-4 bg-forest-surface border border-charcoal-mid space-y-2.5">
-              <h4 class="text-sm font-bold text-wheat-gold font-heading">
-                {selectedOptionForConfirm.labelAr}
-              </h4>
+            <div class="space-y-2.5">
+              <h3 class="text-sm font-bold text-wheat-light font-heading">{selectedOptionForConfirm.labelAr}</h3>
               <p class="text-xs text-wheat-light leading-relaxed">
-                {selectedOptionForConfirm.descriptionAr}
+                {selectedOptionForConfirm.descriptionAr} {selectedOptionForConfirm.customEffectAr}
               </p>
 
-              <!-- Cost & Impact Pills -->
-              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-charcoal-mid/60 text-[11px]">
-                {#if selectedOptionForConfirm.costUSD > 0}
-                  <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-umber-deep border border-umber-border text-umber-crimson">
-                    -${formatMillionUSD(selectedOptionForConfirm.costUSD)}M من الاحتياطي
-                  </span>
-                {:else if selectedOptionForConfirm.costUSD < 0}
-                  <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
-                    +${formatMillionUSD(-selectedOptionForConfirm.costUSD)}M سيولة أجنبية
-                  </span>
-                {/if}
-
-                {#if selectedOptionForConfirm.costSYP > 0}
-                  <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-umber-deep border border-umber-border text-umber-crimson">
-                    -{formatBillionSYP(selectedOptionForConfirm.costSYP)}B SP
-                  </span>
-                {:else if selectedOptionForConfirm.costSYP < 0}
-                  <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-forest-mid border border-forest-accent/60 text-forest-accent">
-                    +{formatBillionSYP(-selectedOptionForConfirm.costSYP)}B SP
-                  </span>
-                {/if}
-
+              <!-- Before / after snapshot for this decision -->
+              <div class="pt-2 border-t border-charcoal-mid/60 text-[11px] space-y-1.5">
+                <span class="text-wheat-dark font-heading block">القيم قبل القرار وبعده:</span>
                 {#if selectedOptionForConfirm.costPC > 0}
-                  <span class="px-2 py-0.5 rounded-full font-mono text-[10px] font-bold bg-charcoal-surface border border-charcoal-light text-wheat-mid">
-                    -{selectedOptionForConfirm.costPC} نقطة رصيد سياسي
-                  </span>
+                  <div class="flex items-center justify-between font-mono">
+                    <span class="text-wheat-dark">الرصيد السياسي</span>
+                    <span dir="ltr">
+                      <span class="text-wheat-light font-bold">{Math.round($gameStore.macro.politicalCapital)}</span>
+                      <span class="text-wheat-dark"> ← </span>
+                      <span class="font-bold text-umber-crimson">{Math.round($gameStore.macro.politicalCapital - selectedOptionForConfirm.costPC)}</span>
+                    </span>
+                  </div>
                 {/if}
-
-                <span class="text-forest-accent font-medium">
-                  {selectedOptionForConfirm.customEffectAr}
-                </span>
-
-                {#if selectedOptionForConfirm.governorateEffects && selectedOptionForConfirm.governorateEffects.length > 0}
-                  <div class="flex flex-wrap items-center gap-1.5 pt-1.5 w-full">
-                    {#each selectedOptionForConfirm.governorateEffects as eff}
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-charcoal-deep border border-wheat-gold/60 text-[10px] text-wheat-light font-mono">
-                        <span class="text-wheat-gold font-bold font-heading">{getGovName(eff.governorateId)}:</span>
-                        {#if eff.customSummaryAr}
-                          <span>{eff.customSummaryAr}</span>
-                        {:else}
-                          {#if eff.prri !== undefined}
-                            <span class={eff.prri > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
-                              {eff.prri > 0 ? `+${eff.prri}` : eff.prri} احتقان
-                            </span>
-                          {/if}
-                          {#if eff.dailyBlackoutHours !== undefined}
-                            <span class={eff.dailyBlackoutHours > 0 ? "text-umber-crimson font-bold" : "text-forest-accent font-bold"}>
-                              {eff.dailyBlackoutHours > 0 ? `+${eff.dailyBlackoutHours}` : eff.dailyBlackoutHours} سا تقنين
-                            </span>
-                          {/if}
-                        {/if}
-                      </span>
-                    {/each}
+                {#if selectedOptionForConfirm.costUSD !== 0}
+                  <div class="flex items-center justify-between font-mono">
+                    <span class="text-wheat-dark">احتياطي النقد الأجنبي</span>
+                    <span dir="ltr">
+                      <span class="text-wheat-light font-bold">${formatMillionUSD($gameStore.macro.reservesUSD)}M</span>
+                      <span class="text-wheat-dark"> ← </span>
+                      <span class="font-bold {selectedOptionForConfirm.costUSD > 0 ? 'text-umber-crimson' : 'text-forest-accent'}">${formatMillionUSD($gameStore.macro.reservesUSD - selectedOptionForConfirm.costUSD)}M</span>
+                    </span>
+                  </div>
+                {/if}
+                {#if selectedOptionForConfirm.costSYP !== 0}
+                  <div class="flex items-center justify-between font-mono">
+                    <span class="text-wheat-dark">سيولة الخزينة</span>
+                    <span dir="ltr">
+                      <span class="text-wheat-light font-bold">{formatBillionSYP($gameStore.macro.treasurySYP)}B SP</span>
+                      <span class="text-wheat-dark"> ← </span>
+                      <span class="font-bold {selectedOptionForConfirm.costSYP > 0 ? 'text-umber-crimson' : 'text-forest-accent'}">{formatBillionSYP($gameStore.macro.treasurySYP - selectedOptionForConfirm.costSYP)}B SP</span>
+                    </span>
                   </div>
                 {/if}
               </div>
             </div>
 
-            <!-- Warning note -->
-            <div class="text-[11px] text-wheat-dark leading-relaxed flex items-start gap-2 bg-charcoal-surface/70 p-2.5 border border-charcoal-mid">
-              <GameIcon name="checked-shield" cls="w-4 h-4 text-wheat-gold shrink-0 mt-0.5" />
-              <span>
-                عند تأكيد هذا الخيار، سيتم إنفاذ الأمر الرئاسي وخصم التكاليف من الموازنة واختتام معالجة هذه البرقية الطارئة.
-              </span>
-            </div>
-
             <!-- Action Buttons -->
-            <div class="flex items-center justify-end gap-3 pt-2">
-              <button
-                onclick={() => { selectedOptionForConfirm = null; }}
-                class="px-4 py-2.5 bg-forest-mid hover:bg-forest-surface text-wheat-mid hover:text-wheat-light border border-charcoal-mid transition-colors text-xs font-bold cursor-pointer font-heading"
-              >
-                تراجع واختيار آخر
-              </button>
+            <div class="border-t border-charcoal-mid pt-3 flex items-center gap-3">
               <button
                 onclick={handleExecuteConfirmedOption}
-                class="px-6 py-2.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep border border-wheat-mid font-bold text-xs shadow-lg transition-all cursor-pointer font-heading active:translate-y-0.5"
+                class="flex-1 px-6 py-2.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep border border-wheat-mid font-bold text-xs shadow-lg transition-all cursor-pointer gloss-hover font-heading active:translate-y-0.5 text-center"
               >
                 تأكيد واعتماد القرار
+              </button>
+              <button
+                onclick={() => { selectedOptionForConfirm = null; }}
+                class="flex-1 px-4 py-2.5 bg-forest-mid hover:bg-forest-surface text-wheat-mid hover:text-wheat-light border border-charcoal-mid hover:border-wheat-mid/60 transition-colors text-xs font-bold cursor-pointer gloss-hover font-heading text-center"
+              >
+                تراجع واختيار آخر
               </button>
             </div>
           </div>
@@ -397,15 +359,16 @@
             class="w-full max-w-lg bg-forest-deep border-2 border-umber-crimson shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light"
           >
             <div class="border-b border-charcoal-mid pb-3">
-              <div class="flex items-center gap-2 text-umber-crimson">
-                <span class="w-3 h-3 bg-umber-crimson rounded-none shrink-0"></span>
-                <h3 class="text-base font-bold font-heading">
+              <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-umber-crimson shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+                <h3 class="text-base font-bold text-wheat-light font-heading">
                   تأكيد تحمل العقوبة الكارثية
                 </h3>
               </div>
-              <p class="text-xs text-wheat-dark mt-1">
-                تحذير سيادي من الآثار المدمرة للتخلف عن معالجة الأزمة
-              </p>
             </div>
 
             <div class="p-4 bg-umber-deep/80 border border-umber-border text-xs leading-relaxed space-y-2 text-wheat-light">
@@ -419,18 +382,18 @@
               </div>
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-2">
-              <button
-                onclick={() => { isConfirmingPenalty = false; }}
-                class="px-4 py-2.5 bg-forest-mid hover:bg-forest-surface text-wheat-mid hover:text-wheat-light border border-charcoal-mid transition-colors text-xs font-bold cursor-pointer font-heading"
-              >
-                تراجع
-              </button>
+            <div class="border-t border-charcoal-mid pt-3 flex items-center gap-3">
               <button
                 onclick={handleExecutePenalty}
-                class="px-6 py-2.5 bg-umber-mid hover:bg-umber-crimson text-wheat-light border border-umber-border font-bold text-xs shadow-lg transition-all cursor-pointer font-heading active:translate-y-0.5"
+                class="flex-1 px-6 py-2.5 bg-umber-mid hover:bg-umber-crimson text-wheat-light border border-umber-border hover:border-wheat-mid/60 font-bold text-xs shadow-lg transition-all cursor-pointer gloss-hover font-heading active:translate-y-0.5 text-center"
               >
                 تأكيد تحمل العقوبة
+              </button>
+              <button
+                onclick={() => { isConfirmingPenalty = false; }}
+                class="flex-1 px-4 py-2.5 bg-forest-mid hover:bg-forest-surface text-wheat-mid hover:text-wheat-light border border-charcoal-mid hover:border-wheat-mid/60 transition-colors text-xs font-bold cursor-pointer gloss-hover font-heading text-center"
+              >
+                تراجع
               </button>
             </div>
           </div>

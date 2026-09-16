@@ -7,11 +7,11 @@
   import StatsSidebar from './lib/ui/StatsSidebar.svelte';
   import TurnReviewModal from './lib/ui/TurnReviewModal.svelte';
   import EventModal from './lib/ui/EventModal.svelte';
-  import TurnSummaryModal from './lib/ui/TurnSummaryModal.svelte';
   import FailStateModal from './lib/ui/FailStateModal.svelte';
   import CenturyReport from './lib/ui/CenturyReport.svelte';
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
   import GuideTour from './lib/ui/GuideTour.svelte';
+  import RotatePrompt from './lib/ui/RotatePrompt.svelte';
   import VersionUpdateBanner from './lib/ui/VersionUpdateBanner.svelte';
   import { uiStore } from './lib/stores/ui-store';
   import { hasSeenTour, startGuideTour } from './lib/ui/guide-tour';
@@ -48,9 +48,9 @@
   <!-- Intelligence & Crisis Modals -->
   <TurnReviewModal />
   <EventModal />
-  <TurnSummaryModal />
   <FailStateModal />
   <CenturyReport />
   <RestartConfirmModal />
   <GuideTour />
+  <RotatePrompt />
 </main>
