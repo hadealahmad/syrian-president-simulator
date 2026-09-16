@@ -57,21 +57,21 @@
 
   let canAffordBrainGain = $derived(
     $draftStore.expatriateBrainGainIncentive ||
-    $budgetStore.canAffordWithFxCoverage(20_000_000, 350_000_000_000)
+    $budgetStore.canAffordWithFxCoverage(20_000_000, 3_500_000_000)
   );
   let isBrainGainCoveredByFX = $derived(
     !$draftStore.expatriateBrainGainIncentive &&
-    $budgetStore.isCoveredByFX(20_000_000, 350_000_000_000)
+    $budgetStore.isCoveredByFX(20_000_000, 3_500_000_000)
   );
 
   // Populist patronage affordability (SYP-funded, FX backstop allowed)
   let canAffordCharity = $derived(
     $draftStore.charityFundActive ||
-    $budgetStore.canAffordWithFxCoverage(0, 250_000_000_000)
+    $budgetStore.canAffordWithFxCoverage(0, 2_500_000_000)
   );
   let isCharityCoveredByFX = $derived(
     !$draftStore.charityFundActive &&
-    $budgetStore.isCoveredByFX(0, 250_000_000_000)
+    $budgetStore.isCoveredByFX(0, 2_500_000_000)
   );
 
   // Decree-style box states for the two persistent toggles

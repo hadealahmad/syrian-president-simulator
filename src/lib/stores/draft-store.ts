@@ -158,7 +158,9 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
   const parallelRate = Math.max(1, gameState.macro.parallelRateSYP || 14000);
 
   const usdNeededToCoverSYP = (costSYP: number): number => {
-    const sypShortfall = Math.max(0, costSYP - remainingSYP);
+    // Mirrors canAffordDirectiveCost: only the new cost needs FX backing,
+    // not the accumulated overdraft.
+    const sypShortfall = Math.max(0, costSYP - Math.max(0, remainingSYP));
     return sypShortfall / parallelRate;
   };
 

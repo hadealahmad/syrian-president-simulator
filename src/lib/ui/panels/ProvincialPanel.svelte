@@ -44,7 +44,7 @@
 
   let isSelectedForDemining = $derived($draftStore.deminingPriorityId === selectedId);
   let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);  let canAffordDemining = $derived(
-    $budgetStore.canAffordWithFxCoverage(20_000_000, 800_000_000_000)
+    $budgetStore.canAffordWithFxCoverage(20_000_000, 8_000_000_000)
   );
   let isDeminingCoveredByFX = $derived(
     $budgetStore.isCoveredByFX(20_000_000, 800_000_000_000)
@@ -53,7 +53,7 @@
   let isSelectedForPowerBoost = $derived($draftStore.powerBoostGovId === selectedId);
   let canDeployPowerBoost = $derived(node ? node.dailyBlackoutHours > 2 : false);
   let canAffordPowerBoost = $derived(
-    $budgetStore.canAffordWithFxCoverage(10_000_000, 300_000_000_000)
+    $budgetStore.canAffordWithFxCoverage(10_000_000, 3_000_000_000)
   );
   let isPowerBoostCoveredByFX = $derived(
     $budgetStore.isCoveredByFX(10_000_000, 300_000_000_000)

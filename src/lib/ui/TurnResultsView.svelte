@@ -86,6 +86,9 @@
             <span dir="ltr" class="text-sm font-bold {$gameStore.macro.treasurySYP < 0 ? 'text-umber-crimson' : 'text-wheat-light'} font-mono">
               {formatBillionSYP($gameStore.macro.treasurySYP)}B SP
             </span>
+            <span class="text-[10px] block font-mono text-wheat-dark">
+              محصّل <span dir="ltr">{formatBillionSYP(audit.grossCapturedSYP)}B</span> − مصروف <span dir="ltr">{formatBillionSYP(audit.expendedSYP)}B</span> = الصافي <span dir="ltr" class={audit.netSYPDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}>{audit.netSYPDelta >= 0 ? '+' : ''}{formatBillionSYP(audit.netSYPDelta)}B</span> هذا الدور
+            </span>
             {#if $gameStore.macro.treasurySYP < 0}
               <span class="text-[10px] text-umber-crimson block font-heading">
                 عجز مالي متراكم على الخزينة العامة

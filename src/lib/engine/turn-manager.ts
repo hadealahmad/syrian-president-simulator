@@ -72,8 +72,12 @@ export function canAffordDirectiveCost(
   parallelRate: number
 ): boolean {
   if (costUSD > reservesUSD) return false;
-  if (treasurySYP >= costSYP) return true;
-  const sypShortfall = costSYP - treasurySYP;
+  // Softened: only the NEW cost needs FX backing, not the whole accumulated
+  // overdraft. A negative treasury no longer multiplies the coverage bar —
+  // the overdraft itself stays legal and keeps accruing 5%/turn interest.
+  const usableSYP = Math.max(0, treasurySYP);
+  if (usableSYP >= costSYP) return true;
+  const sypShortfall = costSYP - usableSYP;
   const usdNeededForSYP = sypShortfall / Math.max(1, parallelRate);
   return reservesUSD >= costUSD + usdNeededForSYP;
 }

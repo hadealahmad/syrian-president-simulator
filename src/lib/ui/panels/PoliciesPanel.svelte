@@ -37,7 +37,7 @@
         <span class="font-bold text-[10.5px]">تقشف</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+15 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+8.00B توفير</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+9.00B توفير</span>
         </div>
       </button>
 
@@ -59,7 +59,7 @@
         <span class="font-bold text-[10.5px]">موسع</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-12 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-1.20T كلفة</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-8.00B كلفة</span>
         </div>
       </button>
     </div>
@@ -100,9 +100,9 @@
       >
         <span class="font-bold text-[10.5px]">شطب الوهمي</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+4.50B توفير</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+8.50B توفير</span>
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-5 فساد</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+4 احتقان</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+7 احتقان</span>
         </div>
       </button>
 
@@ -144,8 +144,8 @@
       >
         <span class="font-bold text-[10.5px]">سعر إلزامي</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+5.00B توفير</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+8 احتقان</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+$60M استيراد</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+6 احتقان</span>
         </div>
       </button>
 
@@ -167,13 +167,13 @@
         <span class="font-bold text-[10.5px]">علاوة تحفيز</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">توريد 100%</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-6.00B كلفة</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-4.50B كلفة</span>
         </div>
       </button>
     </div>
     <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.wheat ? '' : 'hidden'}">
       {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
-        <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بـSP، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
+        <span class="text-amber-300 font-medium">الأثر:</span> لا يخفّض نفقات الخزينة بـSP، بل يرفع فاتورة استيراد القمح بالدولار (+$60M) لأن المزارعين يهرّبون المحصول ويتراجع المخزون التمويني.
       {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
         <span class="text-forest-accent font-medium">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بـSP.
       {:else}
