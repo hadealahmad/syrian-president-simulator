@@ -110,7 +110,7 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
       <!-- Filter-clear chip docked at the row's right end, done-button scale -->
       <button
         onclick={() => uiStore.closeStatRelatedOptions()}
-        class="w-[52px] h-[52px] flex flex-col items-center justify-center gap-0.5 bg-forest-surface/95 border border-wheat-gold/80 text-wheat-gold shadow-2xl backdrop-blur-sm cursor-pointer transition-all active:scale-95 rounded-none shrink-0"
+        class="w-[52px] h-[52px] flex flex-col items-center justify-center gap-0.5 bg-forest-surface/95 border border-wheat-gold/80 text-wheat-gold shadow-2xl backdrop-blur-sm cursor-pointer gloss-hover transition-all active:scale-95 rounded-none shrink-0"
         title="إلغاء التصفية واستعادة تفاعل كافة الخيارات: {STAT_NAMES_AR[selectedStat] || selectedStat}"
         aria-label="إلغاء التصفية"
       >
@@ -131,10 +131,10 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
           class="{isDone ? 'w-[52px] h-[52px]' : 'w-[68px] h-[68px]'} flex flex-col items-center justify-center gap-1 bg-forest-deep/95 border shadow-2xl backdrop-blur-sm rounded-none transition-all active:scale-95 {isLocked
             ? 'border-charcoal-mid text-wheat-dark opacity-40 grayscale cursor-not-allowed'
             : isDone
-              ? 'border-charcoal-mid text-wheat-dark saturate-50 opacity-70 hover:opacity-100 hover:text-wheat-gold hover:border-wheat-mid/60 cursor-pointer'
+              ? 'border-charcoal-mid text-wheat-dark saturate-50 opacity-70 hover:opacity-100 hover:text-wheat-gold hover:border-wheat-mid/60 cursor-pointer gloss-hover'
               : `cursor-pointer ${isActive
                 ? 'border-wheat-gold text-wheat-gold -translate-y-1'
-                : 'border-charcoal-mid text-wheat-mid hover:text-wheat-gold hover:border-wheat-mid/70'}`}"
+                : 'border-charcoal-mid text-wheat-mid hover:text-wheat-gold hover:border-wheat-mid/70 gloss-hover'}`}"
           title={isLocked ? 'تُفتح الأصول في الدور الثالث' : btn.labelAr}
           aria-label={btn.labelAr}
           aria-pressed={isActive}

@@ -50,7 +50,7 @@
 
 <header
   data-tour="treasury"
-  class="fixed top-0 z-20 h-[84px] bg-forest-deep border-b border-charcoal-mid shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
+  class="fixed top-0 z-20 h-[84px] bg-forest-deep shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <div class="h-full w-full min-w-[660px] grid grid-cols-6 grid-rows-2 bg-forest-deep">
     <!-- End Turn: spans both rows, one column wide -->
@@ -60,7 +60,7 @@
       tabindex="0"
       onclick={() => uiStore.setTurnReviewModal(true)}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.setTurnReviewModal(true); }}
-      class="row-span-2 h-full px-2 flex flex-col justify-center items-center text-center gap-0.5 bg-wheat-gold hover:bg-wheat-light border-r border-wheat-mid/40 cursor-pointer transition-colors min-w-0"
+      class="row-span-2 h-full px-2 flex flex-col justify-center items-center text-center gap-0.5 bg-wheat-gold hover:bg-wheat-light border-r border-wheat-mid/40 border-b border-charcoal-mid cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-forest-deep/50 transition-colors min-w-0"
       title="مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها"
     >
       <span class="relative inline-block leading-none">
@@ -83,7 +83,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('politicalCapital')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('politicalCapital'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-y-transparent {selectedStat === 'politicalCapital' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.politicalCapital}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -117,7 +117,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('treasurySYP')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('treasurySYP'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-y-transparent {selectedStat === 'treasurySYP' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.treasurySYP}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -158,7 +158,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('reservesUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('reservesUSD'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-y-transparent {selectedStat === 'reservesUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.reservesUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -200,7 +200,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('sovereignDebtUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('sovereignDebtUSD'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-y-transparent {selectedStat === 'sovereignDebtUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.sovereignDebtUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -234,7 +234,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('taxCompliancePct')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('taxCompliancePct'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-y-transparent {selectedStat === 'taxCompliancePct' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.taxCompliancePct}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -270,7 +270,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('parallelRate')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('parallelRate'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-charcoal-mid {selectedStat === 'parallelRate' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.parallelRate}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -304,7 +304,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civilServiceWageUSD')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civilServiceWageUSD'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-charcoal-mid {selectedStat === 'civilServiceWageUSD' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.civilServiceWageUSD}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -340,7 +340,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('systemicCorruption')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('systemicCorruption'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-charcoal-mid {selectedStat === 'systemicCorruption' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.systemicCorruption}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -376,7 +376,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('civicTrust')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('civicTrust'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-charcoal-mid {selectedStat === 'civicTrust' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.civicTrust}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
@@ -411,7 +411,7 @@
       tabindex="0"
       onclick={() => uiStore.openStatRelatedOptions('unrestIndex')}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") uiStore.openStatRelatedOptions('unrestIndex'); }}
-      class="h-full flex flex-row items-stretch text-center cursor-pointer hover:bg-forest-surface hover:ring-1 hover:ring-wheat-mid/50 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
+      class="h-full flex flex-row items-stretch text-center cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-wheat-mid/70 transition-all rounded-none border-r border-charcoal-mid/60 min-w-0 border-y border-charcoal-mid {selectedStat === 'unrestIndex' ? 'bg-forest-surface ring-2 ring-wheat-gold shadow-md' : ''}"
       title={STAT_EXPLAINERS_AR.unrestIndex}
     >
       <div class="flex items-center justify-center aspect-square h-full shrink-0">

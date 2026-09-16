@@ -337,3 +337,35 @@
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-forest-accent);
 }
+
+/* Hover sweep (top-ribbon tiles, end-turn button, command-hub buttons).
+   Rebuild of the uiverse "shaggy-eel-44" concept (Itskrish01): a full-cover
+   horizontal sheen band traveling across on hover — transparent edges, soft
+   tinted center — over 0.7s ease-out. Adapted to the theming engine: the tint
+   reads var(--color-charcoal-white) (white in every theme so far) instead of
+   a hardcoded white, and the travel is mirrored right-to-left for our RTL
+   page (the original sweeps left-to-right). Only the sweep is adopted — no
+   scale/rotate/shadow changes, so the gold-ring hover language stays intact.
+   The host needs no extra markup — this class supplies positioning,
+   clipping, and the traveling layer. */
+.gloss-hover {
+  position: relative;
+  overflow: hidden;
+}
+.gloss-hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, transparent, rgb(from var(--color-charcoal-white) r g b / 0.12) 50%, transparent);
+  transform: translateX(100%);
+  transition: transform 0.7s ease-out;
+  pointer-events: none;
+}
+.gloss-hover:hover::before {
+  transform: translateX(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gloss-hover::before {
+    display: none;
+  }
+}
