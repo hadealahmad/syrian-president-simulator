@@ -24,51 +24,40 @@
     aria-modal="true"
   >
     <div
-      class="w-full max-w-md bg-forest-deep/95 border-2 border-umber-crimson shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
+      class="w-[min(72vw,230px)] min-w-[200px] min-h-[280px] aspect-[3/4] overflow-y-auto bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
     >
       <!-- Header -->
-      <div class="border-b border-charcoal-mid pb-3 space-y-1">
+      <div class="border-b border-charcoal-mid pb-3">
         <div class="flex items-center gap-2">
-          <span class="w-3 h-3 bg-umber-crimson rounded-none"></span>
-          <h2 class="text-base font-bold text-wheat-light font-heading">
-            تأكيد إعادة تشغيل المحاكاة
-          </h2>
-        </div>
-        <p class="text-xs text-wheat-dark font-medium">
-          إعادة ضبط الولاية الرئاسية وبدء إدارة الدولة من الدور 01
-        </p>
-      </div>
-
-      <!-- Sovereign Warning Box -->
-      <div class="p-3.5 bg-forest-surface border border-charcoal-mid text-xs space-y-2 leading-relaxed text-wheat-mid rounded-none">
-        <div class="flex items-start gap-2">
-          <svg class="w-4 h-4 text-umber-crimson shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+          <svg class="w-5 h-5 text-umber-crimson shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
             <line x1="12" y1="9" x2="12" y2="13" />
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
-          <span class="text-wheat-light font-bold">
-            تحذير سيادي:
-          </span>
+          <h2 class="text-base font-bold text-wheat-light font-heading">
+            تأكيد إعادة تشغيل المحاكاة
+          </h2>
         </div>
-        <p class="text-[11px] text-wheat-mid pr-6">
-          سيؤدي هذا الإجراء إلى مسح كافة البيانات المحفوظة في المتصفح محلياً، وإلغاء كافة المراسيم والمشاريع الاقتصادية المعتمدة، والعودة إلى نقطة انطلاق المحاكاة في النصف الأول من عام 2026.
-        </p>
       </div>
 
+      <!-- Warning -->
+      <p class="text-sm text-wheat-light leading-relaxed">
+        سيؤدي هذا الإجراء إلى مسح كافة البيانات المحفوظة في المتصفح محلياً.
+      </p>
+
       <!-- Action Buttons -->
-      <div class="flex items-center justify-end gap-3 pt-2">
+      <div class="flex flex-col items-stretch gap-2.5 pt-0">
         <button
           type="button"
           onclick={handleCancel}
-          class="flex-1 py-2.5 px-4 bg-forest-mid hover:bg-forest-surface text-wheat-light font-bold text-xs border border-charcoal-mid hover:border-wheat-mid transition-colors cursor-pointer rounded-none font-heading text-center"
+          class="w-full py-2.5 px-4 bg-forest-mid hover:bg-forest-surface text-wheat-light font-bold text-xs border border-charcoal-mid hover:border-wheat-mid/60 gloss-hover transition-colors cursor-pointer rounded-none font-heading text-center"
         >
           إلغاء ومتابعة اللعبة
         </button>
         <button
           type="button"
           onclick={handleConfirmRestart}
-          class="flex-1 py-2.5 px-4 bg-umber-crimson hover:bg-red-700 text-wheat-light font-bold text-xs border border-umber-border shadow-lg transition-colors cursor-pointer rounded-none font-heading text-center"
+          class="w-full py-2.5 px-4 bg-danger-button hover:bg-red-700 text-wheat-light font-bold text-xs border border-danger-button hover:border-wheat-mid/60 gloss-hover shadow-lg transition-colors cursor-pointer rounded-none font-heading text-center"
         >
           تأكيد إعادة البدء
         </button>

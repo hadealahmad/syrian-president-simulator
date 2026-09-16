@@ -507,7 +507,7 @@
       onclick={() => (showMigration = !showMigration)}
       aria-pressed={showMigration}
       aria-label="تبديل أسهم النزوح"
-      class="flex items-center gap-1.5 text-[10px] px-2 py-1 bg-(--map-ink)/85 border transition-colors cursor-pointer {showMigration ? 'border-(--map-selected-stroke) text-(--map-cream)' : 'border-(--map-toggle-off) text-(--map-toggle-off-text) opacity-60 hover:opacity-100'}"
+      class="flex items-center gap-1.5 text-[10px] px-2 py-1 bg-(--map-ink)/85 border transition-colors cursor-pointer gloss-hover {showMigration ? 'border-(--map-selected-stroke) text-(--map-cream)' : 'border-(--map-toggle-off) text-(--map-toggle-off-text) opacity-60 hover:opacity-100 hover:border-(--map-selected-stroke)'}"
     >
       <svg width="13" height="13" viewBox="0 0 14 14" aria-hidden="true">
         <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />

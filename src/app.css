@@ -125,6 +125,11 @@
   /* Bright warm glow for warning text on deep-red surfaces */
   --color-umber-glow: #fbbf24;
 
+  /* Deep danger-action red for confirm-destructive resting fill + border.
+     Initialized to the status-danger shade in each theme, but an independent
+     token so destructive buttons can be retuned without touching alerts. */
+  --color-danger-button: #ce1126;
+
   /* ==========================================================================
      STATUS PALETTE (semantic states — prefer these over raw amber/red)
      ========================================================================== */
@@ -239,6 +244,7 @@
   --color-umber-border: #525252;
   --color-umber-crimson: #ff2b2b;
   --color-umber-glow: #ffe600;
+  --color-danger-button: #ff0000;
   --color-status-ok: #00e600;
   --color-status-warn: #ffe600;
   --color-status-danger: #ff0000;
@@ -336,6 +342,22 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-forest-accent);
+}
+
+/* Striped modal frames (shared system — reuse for future modals, one variant
+   per dialog, do not restyle per-modal): bold 3px diagonal dashes; the base
+   sets thickness, each variant only swaps the colorway. Every color is a
+   theme var so all themes follow (gold reads yellow, crimson reads pure red
+   in mono). Pair with the global zero-radius reset. */
+.modal-frame-stripes {
+  border: 3px solid transparent;
+  border-image-slice: 1;
+}
+.modal-frame-gold {
+  border-image-source: repeating-linear-gradient(-45deg, var(--color-wheat-gold) 0 7px, var(--color-forest-mid) 7px 14px);
+}
+.modal-frame-red {
+  border-image-source: repeating-linear-gradient(-45deg, var(--color-umber-crimson) 0 7px, var(--color-umber-mid) 7px 14px);
 }
 
 /* Hover sweep (top-ribbon tiles, end-turn button, command-hub buttons).
