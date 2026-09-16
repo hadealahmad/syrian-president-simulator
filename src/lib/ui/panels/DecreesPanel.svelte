@@ -3,6 +3,7 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
+  import ToggleSwitch from '../ToggleSwitch.svelte';
   import { DECREES, DECREE_PC_COSTS, isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText, type PoliticalDecreeItem } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
@@ -49,6 +50,9 @@
         : 'opacity-20 pointer-events-none select-none grayscale'
       : 'pointer-events-auto opacity-100';
   }
+
+  const CADENCE_PILL_CLASS =
+    'absolute top-1 left-1 px-1.5 py-px rounded-full bg-charcoal-surface/90 border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8px] pointer-events-none';
 </script>
 
 <div class="space-y-3">
@@ -75,10 +79,12 @@
           <button
             onclick={() => openModal(dec)}
             title={canAffordDec ? dec.titleAr : pcShortageText(costPC, $budgetStore.remainingPC)}
-            class="flex flex-row items-stretch text-start border bg-forest-deep/60 cursor-pointer transition-all {canAffordDec ? 'border-charcoal-mid hover:border-wheat-mid/70 hover:bg-forest-surface' : SUSPENDED_CARD_CLASS} {dimClass(dec.id)} {isActive ? 'ring-2 ring-wheat-gold/80' : ''}"
+            class="relative flex flex-row items-stretch text-start border bg-forest-deep/60 cursor-pointer transition-all {canAffordDec ? 'border-charcoal-mid hover:border-wheat-mid/70 hover:bg-forest-surface' : SUSPENDED_CARD_CLASS} {dimClass(dec.id)} {isActive ? 'ring-2 ring-wheat-gold/80' : ''}"
           >
-            <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {canAffordDec ? '' : SUSPENDED_CONTENT_CLASS}">
+            <span class="{CADENCE_PILL_CLASS}">مرة واحدة</span>
+            <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 pt-5 {canAffordDec ? '' : SUSPENDED_CONTENT_CLASS}">
               <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">{dec.titleAr}</span>
+              <span class="text-[10px] text-wheat-dark block leading-snug">{dec.descAr}</span>
               <span class="flex items-center gap-1 flex-wrap">
                 {#each dec.effectsAr.filter((fx) => fx.scope === 'national') as fx}
                   <span
@@ -122,13 +128,14 @@
         {@const isActive = $draftStore.activePoliticalActions.includes(dec.id)}
         {@const costPC = DECREE_PC_COSTS[dec.id] || 0}
         {@const canAffordDec = isActive || costPC <= $budgetStore.remainingPC}
-        <button
-          onclick={() => openModal(dec)}
+        <div
           title={canAffordDec ? dec.titleAr : pcShortageText(costPC, $budgetStore.remainingPC)}
-          class="flex flex-row items-stretch text-start border bg-forest-deep/60 cursor-pointer transition-all {canAffordDec ? 'border-charcoal-mid hover:border-wheat-mid/70 hover:bg-forest-surface' : SUSPENDED_CARD_CLASS} {dimClass(dec.id)} {isActive ? 'ring-2 ring-wheat-gold/80' : ''}"
+          class="relative flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isActive ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordDec ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS} {dimClass(dec.id)}"
         >
-          <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {canAffordDec ? '' : SUSPENDED_CONTENT_CLASS}">
+          <span class="{CADENCE_PILL_CLASS}">كل دور</span>
+          <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 pt-5 {canAffordDec ? '' : SUSPENDED_CONTENT_CLASS}">
             <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">{dec.titleAr}</span>
+            <span class="text-[10px] text-wheat-dark block leading-snug">{dec.descAr}</span>
             <span class="flex items-center gap-1 flex-wrap">
               {#each dec.effectsAr.filter((fx) => fx.scope === 'national') as fx}
                 <span
@@ -144,23 +151,32 @@
                   <span class="font-bold">−</span>{costPC} رصيد سياسي
                 </span>
               {/if}
-              {#if isActive}
-                <span class="w-2 h-2 rounded-full bg-wheat-gold animate-pulse shrink-0"></span>
-              {/if}
             </span>
+          </div>
+          <div class="flex items-center px-2">
+            <ToggleSwitch
+              checked={isActive}
+              disabled={!isActive && !canAffordDec}
+              label={dec.titleAr}
+              onchange={() => {
+                if (isActive || canAffordDec) draftStore.togglePoliticalAction(dec.id);
+              }}
+            />
           </div>
           {#if !canAffordDec}
             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
               <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
             </div>
           {/if}
-        </button>
+        </div>
       {/each}
       <!-- Populist grant: one-shot SYP bonus, housed with decrees -->
       <div
-        class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {grantActive ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordGrant ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS} {dimClass('populistGrant')}"
+        title={!grantActive && !canAffordGrant ? 'موقوف مؤقتاً: ميزانية غير كافية (0.75T ل.س)' : 'منحة شعبية استثنائية'}
+        class="relative flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {grantActive ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordGrant ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS} {dimClass('populistGrant')}"
       >
-        <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {grantActive || canAffordGrant ? '' : SUSPENDED_CONTENT_CLASS}">
+        <span class="{CADENCE_PILL_CLASS}">كل دور</span>
+        <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 pt-5 {grantActive || canAffordGrant ? '' : SUSPENDED_CONTENT_CLASS}">
           <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">منحة شعبية استثنائية</span>
           <span class="flex items-center gap-1 flex-wrap">
             <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−0.75T ل.س</span>
@@ -169,15 +185,14 @@
           </span>
         </div>
         <div class="flex items-center px-2">
-          <button
+          <ToggleSwitch
+            checked={grantActive}
             disabled={!grantActive && !canAffordGrant}
-            onclick={() => {
-              if (grantActive || canAffordGrant) draftStore.setField('populistGrant', !grantActive);
+            label="منحة شعبية استثنائية"
+            onchange={(next) => {
+              if (next ? canAffordGrant : true) draftStore.setField('populistGrant', next);
             }}
-            class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {grantActive ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordGrant ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-          >
-            {grantActive ? 'مُعتمد' : !canAffordGrant ? 'ميزانية غير كافية' : 'اعتماد'}
-          </button>
+          />
         </div>
         {#if !grantActive && !canAffordGrant}
           <div class="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -190,23 +190,14 @@
           <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">-1 سا تقنين / -2 احتقان</span>
         </div>
       </div>
-      <button
+      <ToggleSwitch
+        checked={$draftStore.importSurge}
         disabled={!$draftStore.importSurge && !canAffordSurge}
-        onclick={() => {
-          if ($draftStore.importSurge || canAffordSurge) {
-            draftStore.setField('importSurge', !$draftStore.importSurge);
-          }
+        label="دفعة استيراد إغاثية طارئة"
+        onchange={(next) => {
+          if (next ? canAffordSurge : true) draftStore.setField('importSurge', next);
         }}
-        class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.importSurge ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordSurge ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-      >
-        {#if $draftStore.importSurge}
-          مُعتمدة
-        {:else if !canAffordSurge}
-          احتياطي غير كافٍ
-        {:else}
-          اعتماد
-        {/if}
-      </button>
+      />
     </div>
 
     <!-- Sovereign mortgages grid -->
@@ -254,16 +245,11 @@
       >
         <div class="flex items-center justify-between gap-2">
           <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{dec.titleAr}</span>
-          <div class="flex items-center gap-2 shrink-0">
-            <span class="text-[10px] {isActive ? 'text-forest-accent font-bold' : 'text-wheat-dark'}">
-              {isActive ? 'مُفعّل' : 'مُعطّل'}
-            </span>
-            <ToggleSwitch
-              checked={isActive}
-              label="إعلان حالة الطوارئ"
-              onchange={() => draftStore.togglePoliticalAction(dec.id)}
-            />
-          </div>
+          <ToggleSwitch
+            checked={isActive}
+            label="إعلان حالة الطوارئ"
+            onchange={() => draftStore.togglePoliticalAction(dec.id)}
+          />
         </div>
         <span class="flex items-center gap-1 flex-wrap">
           {#each dec.effectsAr.filter((fx) => fx.scope === 'national') as fx}

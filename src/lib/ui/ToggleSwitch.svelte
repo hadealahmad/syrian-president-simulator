@@ -27,7 +27,7 @@
 >
   <span
     class="absolute top-[2px] h-[18px] w-[18px] rounded-full transition-all {checked
-      ? 'left-[22px] bg-forest-accent shadow'
-      : 'left-[2px] bg-wheat-dark'}"
+      ? 'left-[2px] bg-forest-accent shadow'
+      : 'left-[22px] bg-wheat-dark'}"
   ></span>
 </button>
