@@ -127,6 +127,16 @@
             </span>
           </button>
 
+          <a
+            href="https://www.youtube.com/channel/UCQkqyo2DYRee_1qlHZ1M6Dg/join"
+            target="_blank"
+            rel="noreferrer"
+            class="h-12 flex items-center justify-center gap-2 px-3 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-center transition-colors cursor-pointer gloss-hover"
+          >
+            <GameIcon name="brand-youtube" cls="w-4 h-4 shrink-0 text-umber-crimson" />
+            <span class="text-xs font-bold text-wheat-light font-heading">ادعمني مالياً</span>
+          </a>
+
           <button
             onclick={updateGame}
             aria-label="تحديث اللعبة — فرض إعادة التحميل"
@@ -140,6 +150,27 @@
               </span>
             {/if}
           </button>
+
+          <div class="flex items-center justify-center gap-2">
+            <a
+              href="https://github.com/hadealahmad"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub: hadealahmad"
+              class="h-9 w-9 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer gloss-hover"
+            >
+              <GameIcon name="brand-github" cls="w-4 h-4 shrink-0" />
+            </a>
+            <a
+              href="https://x.com/hadealahmad"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Twitter: @hadealahmad"
+              class="h-9 w-9 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer gloss-hover"
+            >
+              <GameIcon name="brand-x" cls="w-4 h-4 shrink-0" />
+            </a>
+          </div>
         </div>
       {:else}
         <!-- Themes panel (back returns to the main settings menu) -->
