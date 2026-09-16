@@ -3,8 +3,9 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
+  import ToggleSwitch from '../ToggleSwitch.svelte';
   import { BASELINE_GOVERNORATES } from '../../engine/constants';
-  import { isProvincialActionRelated as isProvincialActionRelatedShared } from './shared';
+  import { isProvincialActionRelated as isProvincialActionRelatedShared, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
 
   function parseEffectPills(effectStr: string): { text: string; isNegative: boolean }[] {
     if (!effectStr) return [];
@@ -38,8 +39,7 @@
   );
 
   let isSelectedForDemining = $derived($draftStore.deminingPriorityId === selectedId);
-  let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);
-  let canAffordDemining = $derived(
+  let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);  let canAffordDemining = $derived(
     $budgetStore.canAffordWithFxCoverage(20_000_000, 800_000_000_000)
   );
   let isDeminingCoveredByFX = $derived(
@@ -54,6 +54,23 @@
   let isPowerBoostCoveredByFX = $derived(
     $budgetStore.isCoveredByFX(10_000_000, 300_000_000_000)
   );
+
+  // Barrier-blocker states (mirrors the decrees/emergency/assets treatment)
+  let demBlocked = $derived(canDeployDemining && !isSelectedForDemining && !canAffordDemining);
+  let powerBlocked = $derived(canDeployPowerBoost && !isSelectedForPowerBoost && !canAffordPowerBoost);
+
+  // Positive-metric projections (cleared land / power hours), previewing the
+  // post-turn value live while the toggle is on (mirrors engine clamps)
+  let projMine = $derived(
+    node ? (isSelectedForDemining ? Math.max(0, node.mineSaturationPct - 8) : node.mineSaturationPct) : 0
+  );
+  let clearedPct = $derived(Math.round(100 - projMine));
+  let demCurrent = $derived(node ? Math.round(100 - node.mineSaturationPct) : 0);
+  let projBlackout = $derived(
+    node ? (isSelectedForPowerBoost ? Math.max(2, node.dailyBlackoutHours - 4) : node.dailyBlackoutHours) : 0
+  );
+  let powerHrs = $derived(Number((24 - projBlackout).toFixed(1)));
+  let powerCurrent = $derived(node ? Number((24 - node.dailyBlackoutHours).toFixed(1)) : 0);
 
   let isProjectCommitted = $derived(
     Boolean(node?.strategicProject && $draftStore.provincialProjects.includes(node.strategicProject.id))
@@ -181,59 +198,63 @@
     <!-- Mine Clearance Directive (hidden where never needed; resolved notice once cleared) -->
     {#if neededDeminingFromStart}
     <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('demining') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-xs font-bold text-wheat-gold font-heading block">توجيه فرق نزع الألغام</h3>
-            {#if isSelectedForDemining}
-              <span class="text-[9px] px-1.5 py-0.2 bg-forest-surface text-wheat-gold border border-wheat-gold font-mono font-bold">-8% تلوث</span>
+      {#if canDeployDemining}
+      <div
+        title={demBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($20M / 0.8T ل.س)' : 'توجيه فرق نزع الألغام'}
+        class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isSelectedForDemining ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordDemining ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
+      >
+        <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {demBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span title="قابل لإعادة التفعيل كل دور"><GameIcon name="cycle" cls="w-4 h-4 text-forest-accent shrink-0" /></span>
+            <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">توجيه فرق نزع الألغام</span>
+          </div>
+          <span class="text-[10px] text-wheat-dark block">تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة</span>
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$20M</span>
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.8T ل.س</span>
+            <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">-8% تلوث</span>
+            {#if isDeminingCoveredByFX && !isSelectedForDemining}
+              <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
+                مغطى بالنقد الأجنبي
+              </span>
             {/if}
           </div>
-          <span class="text-[11px] text-wheat-dark">
-            {canDeployDemining ? 'تطهير الحقول الزراعية ومحاور الطرق من المخلفات المتفجرة' : 'الأراضي مؤمنة، المساحة الملغومة منخفضة (أقل من 8% من المساحة)'}
-          </span>
+          <div class="space-y-0.5">
+            <div class="flex justify-between items-center text-[8.5px] font-mono">
+              <span class="text-wheat-dark">الأراضي المطهّرة</span>
+              <span class="text-forest-accent font-bold">
+                {clearedPct}%{#if isSelectedForDemining} <span class="text-wheat-gold">(+8 متوقع)</span>{/if}
+              </span>
+            </div>
+            <div class="relative h-1.5 bg-charcoal-surface border border-charcoal-mid">
+              <div class="absolute inset-y-0 right-0 h-full bg-forest-accent transition-all" style="width: {Math.max(0, Math.min(100, demCurrent))}%"></div>
+              {#if isSelectedForDemining && clearedPct > demCurrent}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold transition-all"
+                  style="right: {Math.max(0, Math.min(100, demCurrent))}%; width: {Math.max(0, Math.min(100, clearedPct - demCurrent))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="تحسن متوقع +{clearedPct - demCurrent}%"
+                ></div>
+              {/if}
+            </div>
+          </div>
         </div>
-        {#if canDeployDemining}
-        <button
-          onclick={() => {
-            if (selectedId && (isSelectedForDemining || (canDeployDemining && canAffordDemining))) {
-              draftStore.setField('deminingPriorityId', isSelectedForDemining ? null : selectedId);
-            }
-          }}
-          disabled={!isSelectedForDemining && (!canDeployDemining || !canAffordDemining)}
-          class="px-3 py-1.5 text-xs font-bold border transition-colors rounded-none {isSelectedForDemining ? 'bg-wheat-gold text-forest-deep border-wheat-gold cursor-pointer' : (canDeployDemining && canAffordDemining) ? 'bg-charcoal-surface hover:bg-forest-surface text-wheat-light border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
-        >
-          {#if isSelectedForDemining}
-            أولوية معتمدة (إلغاء)
-          {:else if !canAffordDemining}
-            ميزانية غير كافية ($20M / 0.8T)
-          {:else if isDeminingCoveredByFX}
-            تطهير (بتغطية النقد الأجنبي)
-          {:else}
-            تعيين كأولوية تطهير
-          {/if}
-        </button>
+        <div class="flex items-center px-2">
+          <ToggleSwitch
+            checked={isSelectedForDemining}
+            disabled={!isSelectedForDemining && !canAffordDemining}
+            label="توجيه فرق نزع الألغام"
+            onchange={(next) => {
+              if (selectedId && (next ? canAffordDemining : true)) {
+                draftStore.setField('deminingPriorityId', next ? selectedId : null);
+              }
+            }}
+          />
+        </div>
+        {#if demBlocked}
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
+          </div>
         {/if}
-      </div>
-      {#if canDeployDemining}
-      <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1 flex-wrap gap-1">
-        <div class="flex items-center gap-1.5">
-          <span class="text-wheat-dark">الكلفة:</span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-            -$20M
-          </span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-            -0.8T ل.س
-          </span>
-          {#if isDeminingCoveredByFX && !isSelectedForDemining}
-            <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-              مغطى بالنقد الأجنبي
-            </span>
-          {/if}
-        </div>
-        <span class="font-mono {node.mineSaturationPct > 8 ? 'text-wheat-gold' : 'text-forest-accent'}">
-          المساحة الملغومة: {node.mineSaturationPct}% من المساحة
-        </span>
       </div>
       {:else}
       <div class="border-t border-charcoal-mid/80 pt-2 text-[11px] font-bold text-forest-accent leading-relaxed">
@@ -245,58 +266,62 @@
 
     <!-- Power Supply Boost Priority Directive -->
     <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('power') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-      <div class="flex items-center justify-between">
-        <div>
-          <div class="flex items-center gap-1.5">
-            <h3 class="text-xs font-bold text-wheat-gold font-heading block">أولوية تعزيز التغذية والكهرباء</h3>
-            {#if isSelectedForPowerBoost}
-              <span class="text-[9px] px-1.5 py-0.2 bg-forest-surface text-wheat-gold border border-wheat-gold font-mono font-bold">+4 س كهرباء</span>
+      <div
+        title={powerBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($10M / 0.3T ل.س)' : 'أولوية تعزيز التغذية والكهرباء'}
+        class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isSelectedForPowerBoost ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordPowerBoost ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
+      >
+        <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {powerBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span title="قابل لإعادة التفعيل كل دور"><GameIcon name="cycle" cls="w-4 h-4 text-forest-accent shrink-0" /></span>
+            <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">أولوية تعزيز التغذية والكهرباء</span>
+          </div>
+          <span class="text-[10px] text-wheat-dark block">محولات طوارئ وصيانة خطوط التوتر وتهدئة (-6)</span>
+          <div class="flex items-center gap-1 flex-wrap">
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$10M</span>
+            <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.3T ل.س</span>
+            <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">-4 س ظلام</span>
+            {#if isPowerBoostCoveredByFX && !isSelectedForPowerBoost}
+              <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
+                مغطى بالنقد الأجنبي
+              </span>
             {/if}
           </div>
-          <span class="text-[11px] text-wheat-dark">
-            {canDeployPowerBoost ? 'محولات طوارئ وصيانة خطوط التوتر، خفض 4 ساعات ظلام، وتهدئة (-6)' : 'ساعات التغذية مستقرة بالحد الأقصى (ساعتان ظلام فقط)'}
-          </span>
+          <div class="space-y-0.5">
+            <div class="flex justify-between items-center text-[8.5px] font-mono">
+              <span class="text-wheat-dark">ساعات التغذية</span>
+              <span class="text-forest-accent font-bold">
+                {powerHrs} س/يوم{#if isSelectedForPowerBoost} <span class="text-wheat-gold">(+4 متوقع)</span>{/if}
+              </span>
+            </div>
+            <div class="relative h-1.5 bg-charcoal-surface border border-charcoal-mid">
+              <div class="absolute inset-y-0 right-0 h-full bg-forest-accent transition-all" style="width: {Math.max(0, Math.min(100, (powerCurrent / 24) * 100))}%"></div>
+              {#if isSelectedForPowerBoost && powerHrs > powerCurrent}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold transition-all"
+                  style="right: {Math.max(0, Math.min(100, (powerCurrent / 24) * 100))}%; width: {Math.max(0, Math.min(100, ((powerHrs - powerCurrent) / 24) * 100))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="تحسن متوقع +{Number((powerHrs - powerCurrent).toFixed(1))} س/يوم"
+                ></div>
+              {/if}
+            </div>
+          </div>
         </div>
-        <button
-          onclick={() => {
-            if (selectedId && (isSelectedForPowerBoost || (canDeployPowerBoost && canAffordPowerBoost))) {
-              draftStore.setField('powerBoostGovId', isSelectedForPowerBoost ? null : selectedId);
-            }
-          }}
-          disabled={!isSelectedForPowerBoost && (!canDeployPowerBoost || !canAffordPowerBoost)}
-          class="px-3 py-1.5 text-xs font-bold border transition-colors rounded-none {isSelectedForPowerBoost ? 'bg-wheat-gold text-forest-deep border-wheat-gold cursor-pointer' : (canDeployPowerBoost && canAffordPowerBoost) ? 'bg-charcoal-surface hover:bg-forest-surface text-wheat-light border-charcoal-light cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
-        >
-          {#if isSelectedForPowerBoost}
-            أولوية كهرباء معتمدة (إلغاء)
-          {:else if !canDeployPowerBoost}
-            الشبكة مستقرة
-          {:else if !canAffordPowerBoost}
-            ميزانية غير كافية ($10M / 0.3T)
-          {:else if isPowerBoostCoveredByFX}
-            تعزيز الكهرباء (بتغطية النقد الأجنبي)
-          {:else}
-            تعزيز جهود الكهرباء
-          {/if}
-        </button>
-      </div>
-      <div class="flex justify-between items-center text-[10px] text-wheat-mid border-t border-charcoal-mid/80 pt-1 flex-wrap gap-1">
-        <div class="flex items-center gap-1.5">
-          <span class="text-wheat-dark">الكلفة:</span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-            -$10M
-          </span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-            -0.3T ل.س
-          </span>
-          {#if isPowerBoostCoveredByFX && !isSelectedForPowerBoost}
-            <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-              مغطى بالنقد الأجنبي
-            </span>
-          {/if}
+        <div class="flex items-center px-2">
+          <ToggleSwitch
+            checked={isSelectedForPowerBoost}
+            disabled={!isSelectedForPowerBoost && (!canDeployPowerBoost || !canAffordPowerBoost)}
+            label="أولوية تعزيز التغذية والكهرباء"
+            onchange={(next) => {
+              if (selectedId && (next ? canDeployPowerBoost && canAffordPowerBoost : true)) {
+                draftStore.setField('powerBoostGovId', next ? selectedId : null);
+              }
+            }}
+          />
         </div>
-        <span class="font-mono {node.dailyBlackoutHours > 12 ? 'text-umber-crimson' : 'text-wheat-light'}">
-          الظلام الحالي: {node.dailyBlackoutHours} س/يوم
-        </span>
+        {#if powerBlocked}
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
+          </div>
+        {/if}
       </div>
     </div>
 
@@ -308,37 +333,58 @@
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'HISTORIC_ACCORD')}
+            title="وفاق السهل والجبل: +18 اندماج، −15 انفصال، −25 غضب عشائري، تهدئة السويداء ودرعا، +6 ثقة شعبية"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'HISTORIC_ACCORD' ? 'bg-forest-surface border-forest-accent text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-forest-accent">الوفاق التاريخي</div>
-            <div class="text-[8.5px] text-wheat-dark leading-snug">وفاق السهل والجبل (+18 اندماج)</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">وفاق السهل والجبل وتهدئة المحافظتين</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+18 اندماج</span>
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−15 انفصال</span>
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+6 ثقة</span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'LOCAL_VOUCHERS')}
+            title="دعم مقنن وهدنة هادئة: +4 اندماج، −5 انفصال (الوضع الافتراضي، دون كلفة)"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'LOCAL_VOUCHERS' ? 'bg-forest-surface border-wheat-gold text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-wheat-gold">قسائم الإغاثة</div>
-            <div class="text-[8.5px] text-wheat-dark leading-snug">دعم مقنن وهدنة هادئة (+4 اندماج)</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">دعم مقنن وهدنة هادئة (افتراضي)</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+4 اندماج</span>
+              <span class="px-1 py-px rounded-full bg-forest-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8px]">دون كلفة</span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'UNCONDITIONAL_AID')}
+            title="مساعدات مفتوحة: −10 انفصال لكن +20 غضب عشائري في اللجاة (مكاسب محدودة بسقف +55 اندماج)"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'UNCONDITIONAL_AID' ? 'bg-forest-surface border-amber-500 text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-amber-300">مساعدات مفتوحة</div>
-            <div class="text-[8.5px] text-wheat-dark leading-snug">تهدئة عاجلة واستفزاز البدو</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">تهدئة عاجلة بثمن عشائري</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−10 انفصال</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">+20 غضب البدو</span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'BLOCKADE')}
+            title="الحصار الأمني: +30 انفصال، تمرد مسلح في السويداء ودرعا، −10 ثقة شعبية"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'BLOCKADE' ? 'bg-umber-deep border-umber-border text-umber-crimson shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-umber-crimson">الحصار الأمني</div>
-            <div class="text-[8.5px] text-wheat-dark leading-snug">عزل وتصعيد (+30 انفصال)</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">عزل وتصعيد خطير</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-crimson text-umber-glow font-mono font-bold text-[8px]">+30 انفصال</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">تمرد −10 ثقة</span>
+            </div>
           </button>
         </div>
       </div>
@@ -351,25 +397,44 @@
           <button
             type="button"
             onclick={() => draftStore.setField('golanBorderStance', 'RESTRAINT')}
+            title="ضبط النفس (مجاني): −15 توتر الجولان، لكن +18 تحدٍّ درعاوي و+10 احتقان في درعا"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.golanBorderStance === 'RESTRAINT' ? 'bg-forest-surface border-forest-accent text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-forest-accent">ضبط النفس</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">تهدئة الجولان مجاناً</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−15 توتر</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">+18 تحدٍّ</span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('golanBorderStance', 'LOCAL_GENDARMERIE')}
+            title="درك محلي: −8 تحدٍّ درعاوي، +5% تحصيل نصيب، +5 توتر الجولان (توازن آمن)"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.golanBorderStance === 'LOCAL_GENDARMERIE' ? 'bg-forest-surface border-wheat-gold text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-wheat-gold">درك محلي</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">أمن محلي وإيراد معابر</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−8 تحدٍّ</span>
+              <span class="px-1 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+5% نصيب</span>
+            </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('golanBorderStance', 'DEPLOY_ARMOR')}
+            title="نشر الدروع: −20 تحدٍّ و−8 احتقان درعا والقنيطرة، لكن +25 توتر الجولان وكلفة 0.9T ل.س"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.golanBorderStance === 'DEPLOY_ARMOR' ? 'bg-umber-deep border-umber-border text-umber-crimson shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-umber-crimson">نشر الدروع</div>
+            <div class="text-[8.5px] text-wheat-dark leading-snug">قوة نارية بثمن سيادي</div>
+            <div class="flex items-center gap-1 flex-wrap pt-1">
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−20 تحدٍّ</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-crimson text-umber-glow font-mono font-bold text-[8px]">+25 توتر!</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−0.9T ل.س</span>
+            </div>
           </button>
         </div>
       </div>

@@ -192,8 +192,8 @@ export function isProvincialActionRelated(selectedStat: string | null, actionKey
 // Mirrors the dimming logic so a dot means "this panel has visible cards".
 export const PANEL_OPTION_KEYS: Record<string, string[]> = {
   emergency: ['loans', 'mortgages', 'loanTermination', 'importSurge'],
-  decrees: [],
-  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain', 'populistGrant', 'charityFund'],
+  decrees: ['populistGrant'],
+  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain', 'charityFund'],
   assets: ['oligarchs'],
   policies: ['foodSubsidyLevel', 'workforceStrategy', 'wheatProcurement', 'dieselSmuggling'],
   stats: [],
@@ -255,6 +255,19 @@ export function isOptionRelated(selectedStat: string | null, optionKey: string):
     default:
       return false;
   }
+}
+
+// Temporarily-suspended option treatment (insufficient PC/funds): dashed umber
+// border, dimmed content, and a centered barrier-glyph overlay spanning the
+// whole box. Applied consistently across the decrees, emergency and assets
+// panels so an unaffordable option is instantly recognizable, while the card
+// stays clickable where a details modal exists (overlay is pointer-transparent).
+export const SUSPENDED_CARD_CLASS =
+  'relative border-dashed border-umber-border/70';
+export const SUSPENDED_CONTENT_CLASS = 'opacity-35 saturate-50';
+export const SUSPENDED_ICON = 'barrier';
+export function pcShortageText(costPC: number, remainingPC: number): string {
+  return `موقوف مؤقتاً: يتطلب ${costPC} رصيد (المتاح ${remainingPC})`;
 }
 
 // How-it-works explanations for stats (shown in topbar + stats-table tooltips).

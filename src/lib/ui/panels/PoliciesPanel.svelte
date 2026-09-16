@@ -3,10 +3,6 @@
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
   import {
-    SUBSIDY_NAMES_AR,
-    WORKFORCE_NAMES_AR,
-    WHEAT_NAMES_AR,
-    SMUGGLING_NAMES_AR,
     isOptionRelated,
   } from './shared';
 
@@ -21,14 +17,9 @@
 
   <!-- 2. Food Subsidies Tier -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'foodSubsidyLevel') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex justify-between items-start">
-      <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">مستوى الدعم التمويني والخبز</span>
-        <span class="text-[11px] text-wheat-dark">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
-      </div>
-      <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-        {SUBSIDY_NAMES_AR[$draftStore.foodSubsidyLevel || 'STANDARD'] ?? ($draftStore.foodSubsidyLevel || 'اعتيادي')}
-      </span>
+    <div>
+      <span class="text-xs font-bold text-wheat-gold font-heading block">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
+      <span class="text-[11px] text-wheat-dark">مستوى الدعم التمويني والخبز</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -64,7 +55,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 border-b border-charcoal-mid/50">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
       {#if $draftStore.foodSubsidyLevel === 'AUSTERE'}
         <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة الليرة، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
       {:else if $draftStore.foodSubsidyLevel === 'GENEROUS'}
@@ -77,14 +68,9 @@
 
   <!-- 3. State Workforce Policy -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'workforceStrategy') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex justify-between items-start">
-      <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">إعادة هيكلة ملاك الدولة والتوظيف</span>
-        <span class="text-[11px] text-wheat-dark">إدارة الوظائف الحكومية والبطالة المقنعة</span>
-      </div>
-      <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-        {WORKFORCE_NAMES_AR[$draftStore.workforceStrategy || 'MAINTAIN'] ?? ($draftStore.workforceStrategy || 'تثبيت الملاك')}
-      </span>
+    <div>
+      <span class="text-xs font-bold text-wheat-gold font-heading block">إدارة الوظائف الحكومية والبطالة المقنعة</span>
+      <span class="text-[11px] text-wheat-dark">إعادة هيكلة ملاك الدولة والتوظيف</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -122,7 +108,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 border-b border-charcoal-mid/50">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
       {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
         <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
       {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
@@ -135,14 +121,9 @@
 
   <!-- 4. Wheat Pricing -->
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'wheatProcurement') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex justify-between items-start">
-      <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">تسعير شراء القمح المحلي من المزارعين</span>
-        <span class="text-[11px] text-wheat-dark">ضمان الأمن الغذائي واستلام محصول القمح السوري</span>
-      </div>
-      <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-        {WHEAT_NAMES_AR[$draftStore.wheatProcurement || 'MARKET_PARITY'] ?? ($draftStore.wheatProcurement || 'سعر عادل')}
-      </span>
+    <div>
+      <span class="text-xs font-bold text-wheat-gold font-heading block">تسعير شراء القمح المحلي من المزارعين</span>
+      <span class="text-[11px] text-wheat-dark">ضمان الأمن الغذائي واستلام محصول القمح السوري</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -178,7 +159,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 border-b border-charcoal-mid/50">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
       {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
         <span class="text-amber-300 font-medium">الأثر:</span> خفض نفقات شراء القمح بالليرة، لكن يدفع المزارعين لتهريب المحصول وتراجع المخزون التمويني.
       {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
@@ -191,14 +172,9 @@
 
   <!-- 5. Diesel Smuggling Control -->
   <div class="py-2.5 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'dieselSmuggling') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex justify-between items-start">
-      <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">مكافحة تهريب المشتقات النفطية</span>
-        <span class="text-[11px] text-wheat-dark">ضبط المازوت والفيول لدعم محطات التوليد</span>
-      </div>
-      <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold text-[10px] font-mono font-bold">
-        {SMUGGLING_NAMES_AR[$draftStore.dieselSmuggling || 'STANDARD'] ?? ($draftStore.dieselSmuggling || 'رقابة اعتيادية')}
-      </span>
+    <div>
+      <span class="text-xs font-bold text-wheat-gold font-heading block">مكافحة تهريب المشتقات النفطية</span>
+      <span class="text-[11px] text-wheat-dark">ضبط المازوت والفيول لدعم محطات التوليد</span>
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -234,7 +210,7 @@
         </div>
       </button>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 border-b border-charcoal-mid/50">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
       {#if $draftStore.dieselSmuggling === 'CRACKDOWN'}
         <span class="text-forest-accent font-medium">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
       {:else if $draftStore.dieselSmuggling === 'PERMISSIVE'}

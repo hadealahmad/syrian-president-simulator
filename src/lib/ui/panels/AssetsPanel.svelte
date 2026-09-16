@@ -3,7 +3,7 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
-  import { isOptionRelated, formatM, formatTrillion, ASSET_STATUS_AR } from './shared';
+  import { isOptionRelated, formatM, formatTrillion, ASSET_STATUS_AR, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText } from './shared';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -33,8 +33,7 @@
   </div>
 
   <!-- Section: Confiscated Assets & War Wealth -->
-  <div class="space-y-2 pt-2 border-t border-charcoal-mid">
-    <span class="text-xs font-bold text-wheat-gold font-heading block">الأصول المصادرة وثروات الحرب</span>
+  <div class="space-y-2">
     <div class="space-y-2">
       {#each orderedAssets as asset}
         {@const decision = $draftStore.oligarchDecisions[asset.id] || asset.status}
@@ -49,7 +48,6 @@
           <div class="flex justify-between items-start">
             <div>
               <span class="text-xs font-bold text-wheat-gold font-heading block">{asset.titleAr}</span>
-              <span class="text-wheat-dark text-[10px]">المالك: {asset.ownerNameAr}</span>
             </div>
             <span class="font-mono text-wheat-gold text-xs font-bold">${formatM(asset.valuationUSD)}M</span>
           </div>
@@ -65,18 +63,25 @@
                     draftStore.setOligarchDecision(asset.id, 'SETTLEMENT_80_20');
                   }
                 }}
-                class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-                title="تسوية 80/20: تحصيل 80% كاش (+${formatM(settlementIncomeUSD)}M$)، كلفة {settlementPCCost} رصيد سياسي، +2 ثقة"
+                class="relative p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'SETTLEMENT_80_20' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordSettlement ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : `bg-charcoal-surface text-wheat-dark cursor-not-allowed ${SUSPENDED_CARD_CLASS}`}"
+                title={canAffordSettlement ? `تسوية 80/20: تحصيل 80% كاش (+$${formatM(settlementIncomeUSD)}M$)، كلفة {settlementPCCost} رصيد سياسي، +2 ثقة` : pcShortageText(settlementPCCost, $budgetStore.remainingPC)}
               >
-                <span class="font-bold text-[10px]">تسوية 80/20</span>
-                <div class="flex items-center gap-1 flex-wrap justify-center">
-                  <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
-                    +${formatM(settlementIncomeUSD)}M
-                  </span>
-                  <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
-                    -{settlementPCCost} رصيد سياسي
-                  </span>
+                <div class="flex flex-col items-center justify-between gap-1 w-full {decision === 'SETTLEMENT_80_20' || canAffordSettlement ? '' : SUSPENDED_CONTENT_CLASS}">
+                  <span class="font-bold text-[10px]">تسوية 80/20</span>
+                  <div class="flex items-center gap-1 flex-wrap justify-center">
+                    <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
+                      +${formatM(settlementIncomeUSD)}M
+                    </span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
+                      -{settlementPCCost} رصيد سياسي
+                    </span>
+                  </div>
                 </div>
+                {#if decision !== 'SETTLEMENT_80_20' && !canAffordSettlement}
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <GameIcon name={SUSPENDED_ICON} cls="w-8 h-8 text-umber-glow opacity-90 drop-shadow-lg" />
+                  </div>
+                {/if}
               </button>
 
               <!-- Option 2: Nationalize SOE -->
@@ -112,18 +117,25 @@
                     draftStore.setOligarchDecision(asset.id, 'FOREIGN_LIQUIDATION');
                   }
                 }}
-                class="p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-                title="تصفية خارجية: بيع سريع بالدولار بخصم 40% (+${formatM(liquidationIncomeUSD)}M$)، كلفة {liquidationPCCost} رصيد سياسي، -4 ثقة"
+                class="relative p-1.5 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 {decision === 'FOREIGN_LIQUIDATION' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold' : canAffordLiquidation ? 'bg-forest-mid border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-charcoal-light cursor-pointer' : `bg-charcoal-surface text-wheat-dark cursor-not-allowed ${SUSPENDED_CARD_CLASS}`}"
+                title={canAffordLiquidation ? `تصفية خارجية: بيع سريع بالدولار بخصم 40% (+$${formatM(liquidationIncomeUSD)}M$)، كلفة {liquidationPCCost} رصيد سياسي، -4 ثقة` : pcShortageText(liquidationPCCost, $budgetStore.remainingPC)}
               >
-                <span class="font-bold text-[10px]">تصفية خارجية</span>
-                <div class="flex items-center gap-1 flex-wrap justify-center">
-                  <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
-                    +${formatM(liquidationIncomeUSD)}M
-                  </span>
-                  <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
-                    -{liquidationPCCost} رصيد سياسي
-                  </span>
+                <div class="flex flex-col items-center justify-between gap-1 w-full {decision === 'FOREIGN_LIQUIDATION' || canAffordLiquidation ? '' : SUSPENDED_CONTENT_CLASS}">
+                  <span class="font-bold text-[10px]">تصفية خارجية</span>
+                  <div class="flex items-center gap-1 flex-wrap justify-center">
+                    <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">
+                      +${formatM(liquidationIncomeUSD)}M
+                    </span>
+                    <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">
+                      -{liquidationPCCost} رصيد سياسي
+                    </span>
+                  </div>
                 </div>
+                {#if decision !== 'FOREIGN_LIQUIDATION' && !canAffordLiquidation}
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <GameIcon name={SUSPENDED_ICON} cls="w-8 h-8 text-umber-glow opacity-90 drop-shadow-lg" />
+                  </div>
+                {/if}
               </button>
             </div>
           {:else}

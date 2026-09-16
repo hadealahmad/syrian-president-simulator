@@ -3,9 +3,16 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
-  import { isOptionRelated, STAT_EXPLAINERS_AR } from './shared';
+  import ToggleSwitch from '../ToggleSwitch.svelte';
+  import { isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  // Collapsible per-card explainers (help icon before each title)
+  let openExplainers = $state<Record<string, boolean>>({});
+  function toggleExplainer(key: string): void {
+    openExplainers[key] = !openExplainers[key];
+  }
 
   // Grid CapEx has an independent policy envelope of $0M to $80M
   const maxCapEx = 80;
@@ -58,14 +65,6 @@
   );
 
   // Populist patronage affordability (SYP-funded, FX backstop allowed)
-  let canAffordGrant = $derived(
-    $draftStore.populistGrant ||
-    $budgetStore.canAffordWithFxCoverage(0, 750_000_000_000)
-  );
-  let isGrantCoveredByFX = $derived(
-    !$draftStore.populistGrant &&
-    $budgetStore.isCoveredByFX(0, 750_000_000_000)
-  );
   let canAffordCharity = $derived(
     $draftStore.charityFundActive ||
     $budgetStore.canAffordWithFxCoverage(0, 250_000_000_000)
@@ -74,6 +73,12 @@
     !$draftStore.charityFundActive &&
     $budgetStore.isCoveredByFX(0, 250_000_000_000)
   );
+
+  // Decree-style box states for the two persistent toggles
+  let brainGainOn = $derived($draftStore.expatriateBrainGainIncentive);
+  let brainGainBlocked = $derived(!brainGainOn && !canAffordBrainGain);
+  let charityOn = $derived($draftStore.charityFundActive);
+  let charityBlocked = $derived(!charityOn && !canAffordCharity);
 </script>
 
 <div class="space-y-3">
@@ -86,8 +91,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'wageBumpPercent') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">زيادة أجور العاملين في الدولة (+{$draftStore.wageBumpPercent}%)</span>
-        <span class="text-[10px] text-forest-accent">يمتص الاحتقان المعيشي ويرفع القدرة الشرائية</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("wage")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">زيادة أجور العاملين في الدولة (+{$draftStore.wageBumpPercent}%)</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-[10px]">
         +{$draftStore.wageBumpPercent}%
@@ -95,7 +104,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">الأثر المباشر:</span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
         +{Math.round((($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100)) / ($gameStore.macro.parallelRateSYP || 15000))} $/شهر
       </span>
@@ -117,10 +125,10 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>0% (تقشف وتثبيت)</span>
-      <span>+400% (امتصاص الاحتقان)</span>
+      <span>0%</span>
+      <span>+400%</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.wage ? '' : 'hidden'}">
       زيادة الرواتب بنسبة +{$draftStore.wageBumpPercent}% ترفع متوسط الأجر الحقيقي لموظفي الدولة وتمتص الاحتقان الشعبي، مقابل زيادة كتلة الرواتب بالليرة ومخاطر عجز الموازنة.
     </div>
   </div>
@@ -129,8 +137,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'remittanceCaptureSpread') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">هامش اقتطاع الحوالات للمصرف المركزي ({$draftStore.remittanceCaptureSpread}%)</span>
-        <span class="text-[10px] text-wheat-dark">التحكم في تسليم الحوالات الخارجية للمواطنين</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("remit")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">هامش اقتطاع الحوالات للمصرف المركزي ({$draftStore.remittanceCaptureSpread}%)</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-[10px]">
         {$draftStore.remittanceCaptureSpread}%
@@ -138,7 +150,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">الأثر المالي:</span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.remittanceCaptureSpread > 15 ? 'bg-amber-900/60 border border-amber-600/60 text-amber-300' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
         +${remittanceCapturedM}M دولار/دور
       </span>
@@ -157,12 +168,10 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>5% (جذب الدولار)</span>
-      <span class="text-wheat-gold">10% (محايد)</span>
-      <span>15% (سقف آمن)</span>
-      <span class="text-amber-400">25% (طوارئ: +${remittanceCapturedM}M)</span>
+      <span>5%</span>
+      <span>25%</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.remit ? '' : 'hidden'}">
       {$draftStore.remittanceCaptureSpread <= 15
         ? `نسبة اقتطاع اعتيادية (${$draftStore.remittanceCaptureSpread}%). تحقق جباية دولارية بقيمة +${remittanceCapturedM}M للخزينة عبر القنوات المصرفية الرسمية بأمان ودون إثارة مقاطعة المغتربين.`
         : `اقتطاع طوارئ استثنائي (${$draftStore.remittanceCaptureSpread}%): يوفر للمصرف المركزي سيولة دولارية إنقاذية ضخمة تصل إلى +${remittanceCapturedM}M كاش لإنقاذ الاحتياطي ومنع العجز عن سداد الديون واستيراد القمح والفيول، مقابل كلفة مقبولة على الثقة الشعبية ونشاط الصرافة غير النظامي.`}
@@ -173,8 +182,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'gridCapExUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">الاستثمار الرأسمالي لشبكة الكهرباء</span>
-        <span class="text-[10px] text-wheat-dark">تأهيل محطات التوليد والشبكات القومية</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("grid")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">تأهيل محطات التوليد والشبكات القومية</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
         ${gridCapExM}M
@@ -182,7 +195,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">المردود المتوقع:</span>
       <span class="px-1.5 py-0.2 rounded-full {gridCapExM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-dark' : 'bg-umber-deep border border-umber-border text-umber-crimson'} font-mono font-bold text-[9px]">
         {gridCapExM === 0 ? '$0M كاش (تقشف تام)' : `-\$${gridCapExM}M كاش`}
       </span>
@@ -204,11 +216,10 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>$0M (تجميد)</span>
-      <span class="text-wheat-gold">$35M (صيانة اعتيادية)</span>
-      <span>$80M (توسيع شامل)</span>
+      <span>$0M</span>
+      <span>$80M</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.grid ? '' : 'hidden'}">
       {gridCapExM === 0
         ? 'تجميد الاستثمار الرأسمالي يوفر السيولة الدولارية ($0M كاش)، لكنه يسبب تراجع قدرة الشبكة بنحو 120 ميغاواط وتمديد ساعات التقنين في المحافظات (-0.5 سا/يوم) وزيادة الاحتقان.'
         : gridCapExM === 35
@@ -221,8 +232,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'dollarAuctionUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">مزاد التدخل الدولاري للمصرف المركزي</span>
-        <span class="text-[10px] text-wheat-dark">ضخ سيولة نقدية لكبح انهيار سعر الليرة</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("auction")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">ضخ سيولة نقدية لكبح انهيار سعر الليرة</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
         ${auctionM}M
@@ -230,7 +245,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">الأثر:</span>
       <span class="px-1.5 py-0.2 rounded-full {auctionM === 0 ? 'bg-charcoal-surface border border-charcoal-mid text-wheat-dark' : 'bg-umber-deep border border-umber-border text-umber-crimson'} font-mono font-bold text-[9px]">
         {auctionM === 0 ? '$0M (حماية الاحتياطي)' : `-\$${auctionM}M من الاحتياطي`}
       </span>
@@ -250,22 +264,13 @@
       class="w-full accent-wheat-gold {maxAuction === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>$0M (محايد: حماية الاحتياطي)</span>
-      <span>الحد الأقصى المتاح: ${maxAuction}M</span>
+      <span>$0M</span>
+      <span>${maxAuction}M</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.auction ? '' : 'hidden'}">
       {auctionM === 0
         ? 'الحالة المحايدة ($0M): صون احتياطي النقد الأجنبي بالكامل من الاستنزاف. يترك سعر الصرف الموازي يتحدد وفق قوى العرض والطلب لتجنب هدر الدولارات في معارك تثبيت غير مجدية.'
         : `ضخ \$${auctionM}M في السوق الموازي لامتصاص نحو ${auctionSypT} تريليون ليرة سورية وتثبيت سعر الصرف وكبح جماح التضخم، على حساب رصيد احتياطي النقد الأجنبي.`}
-    </div>
-  </div>
-
-  <div class="py-2.5 border-b border-charcoal-mid/50 space-y-1.5 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'taxOverview') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex justify-between items-center text-xs">
-      <span class="text-xs font-bold text-wheat-gold font-heading" title={STAT_EXPLAINERS_AR.taxCompliancePct}>معدل الامتثال الضريبي الوطني التقديري:</span>
-      <span class="font-bold font-mono text-wheat-gold text-sm">
-        {$gameStore.macro.taxCompliancePct ?? 42}%
-      </span>
     </div>
   </div>
 
@@ -273,8 +278,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'corporateTaxRate') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">ضريبة أرباح الشركات والمنشآت ({$draftStore.corporateTaxRate}%)</span>
-        <span class="text-[10px] text-wheat-dark">الوعاء الضريبي للقطاع التجاري والصناعي</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("corp")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">ضريبة أرباح الشركات والمنشآت ({$draftStore.corporateTaxRate}%)</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
         {$draftStore.corporateTaxRate}%
@@ -282,7 +291,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">الإيراد المقدر:</span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
         +{((($draftStore.corporateTaxRate - 10) * 0.08) + 0.90).toFixed(2)}T ل.س/دور
       </span>
@@ -301,10 +309,10 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>10% (تشجيع الاستثمار)</span>
-      <span>35% (جباية قصوى)</span>
+      <span>10%</span>
+      <span>35%</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.corp ? '' : 'hidden'}">
       معدل الضريبة ({$draftStore.corporateTaxRate}%). رفعه يزيد إيرادات الخزينة بالليرة السورية لكن يقلص الاستثمار وقد يحفز التهرب الضريبي.
     </div>
   </div>
@@ -313,8 +321,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'telecomExciseRate') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">رسم الإنفاق الاستهلاكي على الاتصالات ({$draftStore.telecomExciseRate}%)</span>
-        <span class="text-[10px] text-wheat-dark">ضريبة مباشرة على بطاقات الشحن وباقات الإنترنت</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("telecom")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">رسم الإنفاق الاستهلاكي على الاتصالات ({$draftStore.telecomExciseRate}%)</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-sm shrink-0">
         {$draftStore.telecomExciseRate}%
@@ -322,7 +334,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">المردود:</span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
         +{((($draftStore.telecomExciseRate - 5) * 0.05) + 0.40).toFixed(2)}T ل.س/دور
       </span>
@@ -341,10 +352,10 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>5% (تخفيف الأعباء)</span>
-      <span>30% (جباية سريعة)</span>
+      <span>5%</span>
+      <span>30%</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.telecom ? '' : 'hidden'}">
       رسم استهلاكي ({$draftStore.telecomExciseRate}%). جباية سريعة ومباشرة بالليرة للخزينة، لكن رفعه يثقل كاهل المواطنين ويزيد الاحتقان المعيشي.
     </div>
   </div>
@@ -353,8 +364,12 @@
   <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'nassibTransitFeeUSD') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
     <div class="flex justify-between items-start text-xs">
       <div>
-        <span class="text-xs font-bold text-wheat-gold font-heading block">رسوم الترانزيت بكافة المعابر الحدودية</span>
-        <span class="text-[10px] text-wheat-dark">نصيب، البوكمال، التنف، كسب، باب الهوى</span>
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick={() => toggleExplainer("transit")} aria-label="إظهار الشرح" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
+            <GameIcon name="help" cls="w-4 h-4" />
+          </button>
+          <span class="text-xs font-bold text-wheat-gold font-heading block">رسوم الترانزيت بكافة المعابر الحدودية</span>
+        </div>
       </div>
       <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-xs shrink-0">
         ${$draftStore.nassibTransitFeeUSD} / شاحنة
@@ -362,7 +377,6 @@
     </div>
 
     <div class="flex items-center gap-1.5 flex-wrap">
-      <span class="text-[10px] text-wheat-dark">العائد المقدر:</span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
         +${Math.round(($draftStore.nassibTransitFeeUSD / 450) * 22)}M دولار/دور
       </span>
@@ -381,132 +395,92 @@
       class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
     />
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-      <span>$200 (تنشيط العبور)</span>
-      <span>$800 (تعظيم العائد)</span>
+      <span>$200</span>
+      <span>$800</span>
     </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5">
+    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.transit ? '' : 'hidden'}">
       تعرفة ${$draftStore.nassibTransitFeeUSD} على الشاحنات الأجنبية بكافة المنافذ والمعابر الحدودية لتعظيم عوائد النقد الأجنبي المباشرة ($) للخزينة.
     </div>
   </div>
 
   <!-- Expatriate Brain-Gain Initiative -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'brainGain') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="space-y-1">
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-xs font-bold text-wheat-gold block font-heading">حوافز استقطاب الكفاءات والمهاجرين</span>
-        <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">تفعيل مستمر دورياً</span>
-      </div>
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-[10px] text-wheat-dark">الكلفة:</span>
-        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-$20M</span>
-        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.35T ل.س</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+8% كفاءة</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+4 ثقة</span>
-        {#if isBrainGainCoveredByFX && !$draftStore.expatriateBrainGainIncentive}
-          <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-            مغطى بالنقد الأجنبي
-          </span>
-        {/if}
-      </div>
-    </div>
-    <button
-      disabled={!$draftStore.expatriateBrainGainIncentive && !canAffordBrainGain}
-      onclick={() => {
-        if ($draftStore.expatriateBrainGainIncentive || canAffordBrainGain) {
-          draftStore.setField('expatriateBrainGainIncentive', !$draftStore.expatriateBrainGainIncentive);
-        }
-      }}
-      class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.expatriateBrainGainIncentive ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordBrainGain ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+  <div class="py-2.5 border-b border-charcoal-mid/50 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'brainGain') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div
+      title={brainGainBlocked ? 'ميزانية غير كافية لتفعيل حوافز الاستقطاب' : 'حوافز استقطاب الكفاءات والمهاجرين'}
+      class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {brainGainOn ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordBrainGain ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
     >
-      {#if $draftStore.expatriateBrainGainIncentive}
-        مُفعّل (مستمر)
-      {:else if !canAffordBrainGain}
-        ميزانية غير كافية
-      {:else if isBrainGainCoveredByFX}
-        تفعيل (بتغطية النقد الأجنبي)
-      {:else}
-        مُعطّل
+      <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {brainGainBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span title="تفعيل مستمر دورياً"><GameIcon name="cycle" cls="w-4 h-4 text-forest-accent shrink-0" /></span>
+          <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">حوافز استقطاب الكفاءات والمهاجرين</span>
+        </div>
+        <div class="flex items-center gap-1 flex-wrap">
+          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-$20M</span>
+          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.35T ل.س</span>
+          <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+8% كفاءة</span>
+          <span class="px-1.5 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+4 ثقة</span>
+          {#if isBrainGainCoveredByFX && !brainGainOn}
+            <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
+              مغطى بالنقد الأجنبي
+            </span>
+          {/if}
+        </div>
+      </div>
+      <div class="flex items-center px-2">
+        <ToggleSwitch
+          checked={brainGainOn}
+          disabled={brainGainBlocked}
+          label="حوافز استقطاب الكفاءات"
+          onchange={(next) => {
+            if (next ? canAffordBrainGain : true) draftStore.setField('expatriateBrainGainIncentive', next);
+          }}
+        />
+      </div>
+      {#if brainGainBlocked}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
+        </div>
       {/if}
-    </button>
-  </div>
-
-  <!-- Populist Grant: one-shot SYP bonus buying +8 PC -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'populistGrant') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="space-y-1">
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-xs font-bold text-wheat-gold block font-heading">منحة شعبية استثنائية (مكافأة نصف سنوية)</span>
-        <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">لمرة واحدة هذا الدور</span>
-      </div>
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-[10px] text-wheat-dark">الكلفة:</span>
-        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.75T ل.س</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+8 رصيد سياسي</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+2 ثقة / -2 احتقان</span>
-        {#if isGrantCoveredByFX && !$draftStore.populistGrant}
-          <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-            مغطى بالنقد الأجنبي
-          </span>
-        {/if}
-      </div>
     </div>
-    <button
-      disabled={!$draftStore.populistGrant && !canAffordGrant}
-      onclick={() => {
-        if ($draftStore.populistGrant || canAffordGrant) {
-          draftStore.setField('populistGrant', !$draftStore.populistGrant);
-        }
-      }}
-      class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.populistGrant ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordGrant ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
-    >
-      {#if $draftStore.populistGrant}
-        مُعتمد
-      {:else if !canAffordGrant}
-        ميزانية غير كافية
-      {:else if isGrantCoveredByFX}
-        اعتماد (بتغطية النقد الأجنبي)
-      {:else}
-        اعتماد
-      {/if}
-    </button>
   </div>
 
   <!-- Sovereign Charity Fund: persistent SYP drain buying +3 PC/turn -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'charityFund') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="space-y-1">
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-xs font-bold text-wheat-gold block font-heading">صندوق الكرامة السيادي (إعانات أسر الشهداء)</span>
-        <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">تفعيل مستمر دورياً</span>
-      </div>
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <span class="text-[10px] text-wheat-dark">الكلفة:</span>
-        <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-0.25T ل.س/دور</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+3 رصيد سياسي/دور</span>
-        <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">+1 ثقة</span>
-        {#if isCharityCoveredByFX && !$draftStore.charityFundActive}
-          <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-            مغطى بالنقد الأجنبي
-          </span>
-        {/if}
-      </div>
-    </div>
-    <button
-      disabled={!$draftStore.charityFundActive && !canAffordCharity}
-      onclick={() => {
-        if ($draftStore.charityFundActive || canAffordCharity) {
-          draftStore.setField('charityFundActive', !$draftStore.charityFundActive);
-        }
-      }}
-      class="px-2.5 py-1 border text-[10px] rounded-none transition-colors {$draftStore.charityFundActive ? 'bg-forest-surface border-forest-accent text-forest-accent font-bold cursor-pointer' : canAffordCharity ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+  <div class="py-2.5 border-b border-charcoal-mid/50 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'charityFund') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div
+      title={charityBlocked ? 'ميزانية غير كافية لتفعيل صندوق الكرامة' : 'صندوق الكرامة السيادي (إعانات أسر الشهداء)'}
+      class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {charityOn ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordCharity ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
     >
-      {#if $draftStore.charityFundActive}
-        مُفعّل (مستمر)
-      {:else if !canAffordCharity}
-        ميزانية غير كافية
-      {:else if isCharityCoveredByFX}
-        تفعيل (بتغطية النقد الأجنبي)
-      {:else}
-        مُعطّل
+      <div class="flex-1 min-w-0 px-2 py-2 space-y-1.5 {charityBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span title="تفعيل مستمر دورياً"><GameIcon name="cycle" cls="w-4 h-4 text-forest-accent shrink-0" /></span>
+          <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">صندوق الكرامة السيادي (إعانات أسر الشهداء)</span>
+        </div>
+        <div class="flex items-center gap-1 flex-wrap">
+          <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">-0.25T ل.س/دور</span>
+          <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+3 رصيد سياسي/دور</span>
+          <span class="px-1.5 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+1 ثقة</span>
+          {#if isCharityCoveredByFX && !charityOn}
+            <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
+              مغطى بالنقد الأجنبي
+            </span>
+          {/if}
+        </div>
+      </div>
+      <div class="flex items-center px-2">
+        <ToggleSwitch
+          checked={charityOn}
+          disabled={charityBlocked}
+          label="صندوق الكرامة السيادي"
+          onchange={(next) => {
+            if (next ? canAffordCharity : true) draftStore.setField('charityFundActive', next);
+          }}
+        />
+      </div>
+      {#if charityBlocked}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
+        </div>
       {/if}
-    </button>
+    </div>
   </div>
 </div>
