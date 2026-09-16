@@ -23,6 +23,11 @@ function loadStoredGameState(): GameState {
         ) {
           // Always ensure hex coordinates match the current baseline layout
           parsed.enactedDecrees = parsed.enactedDecrees || [];
+          // Backfill post-launch economy fields so old saves migrate cleanly
+          parsed.facilities = parsed.facilities || [];
+          parsed.macro.productiveCapacityPct = parsed.macro.productiveCapacityPct ?? 20;
+          parsed.macro.grantBucketUSD = parsed.macro.grantBucketUSD ?? 0;
+          parsed.macro.militiaAbsorptionBonus = parsed.macro.militiaAbsorptionBonus ?? 0;
           Object.keys(parsed.governorates).forEach((id) => {
             if (BASELINE_GOVERNORATES[id]) {
               parsed.governorates[id].hexQ = BASELINE_GOVERNORATES[id].hexQ;

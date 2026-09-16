@@ -120,6 +120,15 @@ export interface MacroeconomicState {
   taxCompliancePct?: number;
   // Total Workforce Headcount (in personnel)
   civilServiceHeadcount?: number;
+  /** Productive capacity index (0-100): well-targeted CapEx and executed income
+      projects expand the revenue base; revolts and graft erode it. */
+  productiveCapacityPct?: number;
+  /** Ring-fenced Gulf-grant dollars: spendable ONLY on provincial project USD costs. */
+  grantBucketUSD?: number;
+  /** Compliance bonus from absorbed ex-fighters in formal jobs (0 → 0.04). */
+  militiaAbsorptionBonus?: number;
+  /** Override for the flat Iranian oil coupon once rescheduled (undefined = default). */
+  iranCouponOverrideUSD?: number;
 }
 
 export interface GovernorateStrategicProject {
@@ -143,6 +152,10 @@ export interface GovernorateStrategicProject {
   tribalRageDelta?: number;
   golanTensionDelta?: number;
   suwaydaIntegrationBonus?: number;
+  /** Recurring SYP revenue once executed (ports, rents, industry). */
+  recurringRevenueSYPPerTurn?: number;
+  /** Permanent USD wheat-import-bill reduction once executed (farmland projects). */
+  wheatImportSavingsUSD?: number;
 }
 
 export interface GovernorateNode {
@@ -224,6 +237,8 @@ export interface TurnDirectives {
   propertyRestitution: PropertyRestitutionPolicy;
   signedLoanIds: string[];
   executedMortgageIds: string[];
+  /** Concessional facilities to sign this turn (disbursed in tranches). Reset each turn. */
+  signedFacilityIds: string[];
   expatriateBrainGainIncentive: boolean;
   /** Voluntary early principal repayment for this turn (USD). Highest-rate loans first. */
   extraDebtRepaymentUSD: number;
@@ -260,6 +275,57 @@ export interface RevenueAudit {
   auctionAbsorbedSYP: number;
   /** 5% interest charged on an overdrawn (negative) opening treasury. */
   overdraftInterestSYP: number;
+  /** SYP spending consumed this turn (payrolls, subsidies, ministries, patronage). */
+  operatingExpendedSYP: number;
+  /** SYP spending that builds future revenue (projects, demining, power, CapEx, wheat procurement). */
+  investmentExpendedSYP: number;
+  /** Turns until FX reserves run dry at the current USD burn rate (capped at 99). */
+  runwayTurnsEstimate: number;
+  /** Extra SYP revenue from productive capacity this turn (growth valve). */
+  capacityRevenueBonusSYP: number;
+  /** SYP revenue from executed strategic projects this turn. */
+  projectRevenueSYP: number;
+  /** USD disbursed by concessional facilities this turn (tranches). */
+  facilityInflowUSD: number;
+  /** Human-readable facility tranche lines (shared by preview and results). */
+  facilityLinesAr: string[];
+  /** Overdraft interest as a share of gross SYP revenue (burden readability). */
+  interestBurdenPct: number;
+}
+
+export type FacilityStatus = 'AVAILABLE' | 'ACTIVE' | 'BREACHED' | 'COMPLETED';
+
+export interface FacilityTranche {
+  amountUSD: number;
+  /** Disbursed into the ring-fenced project bucket instead of general reserves. */
+  ringFenced?: boolean;
+}
+
+export interface ConcessionalFacility {
+  id: string;
+  titleAr: string;
+  lenderAr: string;
+  descriptionAr: string;
+  conditionAr: string;
+  breachAr: string;
+  politicalCapitalCost: number;
+  leverageCost: number;
+  tranches: FacilityTranche[];
+  /** Kind of conditionality attached while ACTIVE. */
+  condition:
+    | { kind: 'DIESEL_CRACKDOWN'; turns: number }
+    | { kind: 'CORRUPTION_BELOW'; threshold: number }
+    | { kind: 'NONE' };
+  /** One-shot balance-sheet effect applied on signing (Iran reschedule). */
+  onSign?: { iranCouponUSD?: number };
+}
+
+export interface FacilityState {
+  id: string;
+  status: FacilityStatus;
+  tranchesDrawn: number;
+  /** Turns of conditionality remaining (counts down while ACTIVE). */
+  conditionTurnsLeft: number;
 }
 
 export interface PredictivePreviewRanges {
@@ -276,6 +342,14 @@ export interface PredictivePreviewRanges {
   debtServiceUSD: number;
   /** Projected Iranian oil coupon (zero once formally repudiated). */
   iranOilCouponUSD: number;
+  /** Projected concessional-facility inflow this turn (tranches). */
+  facilityInflowUSD: number;
+  /** Human-readable facility tranche/condition lines for the review modal. */
+  facilityStatusAr: string[];
+  /** Projected operating (consumptive) SYP deficit component. */
+  operatingDeficitSYP: number;
+  /** Projected investment (productive) SYP spending. */
+  investmentSYP: number;
 }
 
 export interface ProjectedStat {
@@ -426,6 +500,8 @@ export interface GameState {
   confiscatedAssets: ConfiscatedAsset[];
   foreignLoans: ForeignLoanPackage[];
   sovereignMortgages: SovereignMortgageOption[];
+  /** Concessional facilities (IMF/grant/reschedule) lifecycle state. */
+  facilities: FacilityState[];
   lastMigrationReport?: MigrationSummary;
   /** Cumulative gov-to-gov displacement across committed turns: key `${fromId}>${toId}` → people. */
   migrationLedger?: Record<string, number>;

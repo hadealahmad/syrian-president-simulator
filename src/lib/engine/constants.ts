@@ -1,4 +1,4 @@
-import type { GovernorateNode, MinistryProfile, CommissionState, ConfiscatedAsset, ForeignLoanPackage, SovereignMortgageOption } from './types';
+import type { GovernorateNode, MinistryProfile, CommissionState, ConfiscatedAsset, ForeignLoanPackage, SovereignMortgageOption, ConcessionalFacility } from './types';
 
 export const INITIAL_YEAR = 2027;
 export const MAX_TURNS = 40;
@@ -34,7 +34,77 @@ export const BASELINE_MACRO = {
   dailyPowerHours: 3.5,                 // Average daily electricity
   taxCompliancePct: 35,                 // 0 - 100 (Dynamic fiscal compliance)
   civilServiceHeadcount: 1_400_000,     // Total active public & security personnel
+  productiveCapacityPct: 20,            // Growth valve: revenue-base index (multiplier is zero at 20)
+  grantBucketUSD: 0,                    // Ring-fenced Gulf-grant dollars (projects only)
+  militiaAbsorptionBonus: 0,            // Compliance bonus from formalized ex-fighters (0 → 0.04)
 };
+
+// ─── Growth valve tuning (all in one block so playtest tuning touches only this) ─
+export const GROWTH_TUNING = {
+  /** Revenue multiplier = (capacity − baseline) × rate → +0% at 20, +32% at 100. */
+  capacityBaseline: 20,
+  capacityRate: 0.004,
+  /** Capacity gained per executed income-generating project (scaled by project cost tier). */
+  projectCapacityGain: 4,
+  /** Capacity per turn by grid CapEx band. */
+  capexHighUSD: 35_000_000,
+  capexHighGain: 1.0,
+  capexMidUSD: 20_000_000,
+  capexMidGain: 0.5,
+  capexZeroLoss: 1.0,
+  /** Capacity destroyed per REVOLT-tier province per turn. */
+  revoltErosion: 2.0,
+  /** Corruption above this halves all capacity gains. */
+  corruptionDragThreshold: 60,
+  /** Militia-absorption compliance ramp: +bonus/step/turn up to max, decays otherwise. */
+  absorptionStep: 0.01,
+  absorptionMax: 0.04,
+};
+
+// ─── Concessional facilities (cheap money with strings attached) ─────────────
+export const CONCESSIONAL_FACILITIES: ConcessionalFacility[] = [
+  {
+    id: 'facility_imf_stabilization',
+    titleAr: 'تسهيل الاستقرار المالي (صندوق النقد)',
+    lenderAr: 'صندوق النقد الدولي — نافذة ما بعد النزاع',
+    descriptionAr: 'تمويل رخيص لدعم الاحتياطي مقابل إصلاحات وقود ملزمة.',
+    conditionAr: 'يشترط حملة صارمة على تهريب المازوت وخفض دعم الوقود: قفل سياسة المازوت 4 دورات.',
+    breachAr: 'التراجع عن شرط الوقود يجمّد الشرائح المتبقية ويفقد 4 ثقة مدنية.',
+    politicalCapitalCost: 10,
+    leverageCost: 4,
+    tranches: [{ amountUSD: 200_000_000 }, { amountUSD: 150_000_000 }, { amountUSD: 150_000_000 }],
+    condition: { kind: 'DIESEL_CRACKDOWN', turns: 4 },
+  },
+  {
+    id: 'facility_gulf_reconstruction_grant',
+    titleAr: 'منحة الإعمار الخليجية',
+    lenderAr: 'صندوق تنموي خليجي — مخصصة للمشاريع حصراً',
+    descriptionAr: 'منح لا تُرد تُصرف على مشاريع المحافظات فقط، على 3 شرائح.',
+    conditionAr: 'تُصرف حصراً على كلف المشاريع بالدولار، وتشترط فساداً مؤسسياً دون 50 عند التوقيع.',
+    breachAr: 'تجاوز الفساد 50 يجمّد الشرائح المتبقية ويفقد 3 ثقة مدنية.',
+    politicalCapitalCost: 8,
+    leverageCost: 2,
+    tranches: [
+      { amountUSD: 100_000_000, ringFenced: true },
+      { amountUSD: 100_000_000, ringFenced: true },
+      { amountUSD: 100_000_000, ringFenced: true },
+    ],
+    condition: { kind: 'CORRUPTION_BELOW', threshold: 50 },
+  },
+  {
+    id: 'facility_iran_reschedule',
+    titleAr: 'إعادة جدولة القسط النفطي الإيراني',
+    lenderAr: 'طهران — تمديد جدول السداد',
+    descriptionAr: 'خفض القسط الدوري من $25M إلى $10M مقابل كلفة سيادية فورية.',
+    conditionAr: 'دفعة واحدة: خفض دائم للقسط، دون شرائح لاحقة.',
+    breachAr: 'لا شروط لاحقة — الكلفة السيادية تُدفع عند التوقيع.',
+    politicalCapitalCost: 6,
+    leverageCost: 8,
+    tranches: [],
+    condition: { kind: 'NONE' },
+    onSign: { iranCouponUSD: 10_000_000 },
+  },
+];
 
 // 14 Syrian Governorates Baseline Spatial & Economic Profile (UN OCHA HNO 2025-2026 & World Bank Data)
 // Relative Hexagonal Grid: (Q, R) coordinates arranged geographically
@@ -71,6 +141,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 75_000_000,
       costSYP: 5_000_000_000,
       costPoliticalCapital: 0,
+      recurringRevenueSYPPerTurn: 1_200_000_000,
       isExecuted: false,
       effectDescriptionAr: 'خفض ساعات التقنين بمقدار 8 ساعات، خفض مؤشر الشغب بـ 24 نقطة، وإصلاح 800 مليون دولار من الأضرار واستقطاب 25 ألف مهني.',
       prriDelta: -24,
@@ -112,6 +183,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 20_000_000,
       costSYP: 3_000_000_000,
       costPoliticalCapital: 5,
+      recurringRevenueSYPPerTurn: 800_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 15% من الذخائر العنقودية، خفض مؤشر الشغب بـ 15 نقطة، وتأمين مداخيل لـ 120 ألف أسرة مزارعة.',
       prriDelta: -15,
@@ -153,6 +225,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 15_000_000,
       costSYP: 2_500_000_000,
       costPoliticalCapital: 10,
+      recurringRevenueSYPPerTurn: 1_000_000_000,
       isExecuted: false,
       effectDescriptionAr: 'خفض القلق الطائفي بـ 25 نقطة، خفض الشغب بـ 12 نقطة، ورفع كفاءة التدفقات السلعية والرسوم المرفئية بالدولار.',
       prriDelta: -12,
@@ -195,6 +268,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 10_000_000,
       costSYP: 2_000_000_000,
       costPoliticalCapital: 10,
+      recurringRevenueSYPPerTurn: 600_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تأمين تصريف إنتاج 60 ألف مزارع، خفض القلق بـ 15 نقطة، ورفد الخزينة بالسيولة الصعبة.',
       prriDelta: -10,
@@ -237,6 +311,8 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 25_000_000,
       costSYP: 3_500_000_000,
       costPoliticalCapital: 5,
+      recurringRevenueSYPPerTurn: 500_000_000,
+      wheatImportSavingsUSD: 10_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 20% من الألغام، خفض مؤشر الشغب بـ 16 نقطة، وحماية 300 ألف رأس من أغنام العواس السورية.',
       prriDelta: -16,
@@ -278,6 +354,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 50_000_000,
       costSYP: 4_500_000_000,
       costPoliticalCapital: 5,
+      recurringRevenueSYPPerTurn: 1_500_000_000,
       isExecuted: false,
       effectDescriptionAr: 'توفير المشتقات النفطية، خفض الظلام بـ 4 ساعات، خفض الشغب بـ 18 نقطة، وخفض القلق الطائفي بـ 15 نقطة.',
       prriDelta: -18,
@@ -320,6 +397,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 35_000_000,
       costSYP: 6_000_000_000,
       costPoliticalCapital: 10,
+      recurringRevenueSYPPerTurn: 1_000_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 20% من حقول الألغام، خفض مؤشر الشغب بـ 18 نقطة، وإتاحة 45 ألف هكتار زراعي للخضار والمحاصيل.',
       prriDelta: -18,
@@ -361,6 +439,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 15_000_000,
       costSYP: 4_000_000_000,
       costPoliticalCapital: 15,
+      recurringRevenueSYPPerTurn: 1_200_000_000,
       isExecuted: false,
       effectDescriptionAr: 'استقرار ضخ مياه الشرب، خفض مؤشر الشغب بـ 14 نقطة، وتخفيف أعباء المعيشة عن الموظفين والكوادر.',
       prriDelta: -14,
@@ -403,6 +482,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 12_000_000,
       costSYP: 1_500_000_000,
       costPoliticalCapital: 10,
+      recurringRevenueSYPPerTurn: 400_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 25% من الألغام الحدودية، خفض توتر الجولان بـ 20 نقطة، خفض الشغب بـ 15 نقطة، وعودة آمنة للمزارعين.',
       prriDelta: -15,
@@ -448,6 +528,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 20_000_000,
       costSYP: 2_500_000_000,
       costPoliticalCapital: 15,
+      recurringRevenueSYPPerTurn: 1_500_000_000,
       isExecuted: false,
       effectDescriptionAr: 'رفع تحصيل نصيب إلى 80%، خفض تمرد درعا بـ 25 نقطة، خفض الشغب بـ 18 نقطة، وتأمين التبادل مع الأردن.',
       prriDelta: -18,
@@ -493,6 +574,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 15_000_000,
       costSYP: 2_000_000_000,
       costPoliticalCapital: 20,
+      recurringRevenueSYPPerTurn: 400_000_000,
       isExecuted: false,
       effectDescriptionAr: 'رفع اندماج السويداء بـ 40%، خفض احتمال الانفصال إلى 4%، إنهاء حصار الطرق، وخفض مؤشر الشغب بـ 20 نقطة.',
       prriDelta: -20,
@@ -536,6 +618,8 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 35_000_000,
       costSYP: 3_000_000_000,
       costPoliticalCapital: 5,
+      recurringRevenueSYPPerTurn: 1_000_000_000,
+      wheatImportSavingsUSD: 10_000_000,
       isExecuted: false,
       effectDescriptionAr: 'توليد 250 ميغاواط كهرباء إضافية، خفض ساعات التقنين بـ 5 ساعات، وتطهير 20% من مخلفات الألغام والعبوات.',
       prriDelta: -20,
@@ -577,6 +661,8 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 30_000_000,
       costSYP: 5_000_000_000,
       costPoliticalCapital: 15,
+      recurringRevenueSYPPerTurn: 500_000_000,
+      wheatImportSavingsUSD: 15_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تأمين 600 ألف طن قمح للاستهلاك الوطني، خفض الشغب بـ 18 نقطة، وخفض القلق القومي والمناطقي بـ 20 نقطة.',
       prriDelta: -18,
@@ -619,6 +705,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
       costUSD: 40_000_000,
       costSYP: 4_000_000_000,
       costPoliticalCapital: 15,
+      recurringRevenueSYPPerTurn: 1_500_000_000,
       isExecuted: false,
       effectDescriptionAr: 'تطهير 25% من الألغام، خفض احتقان العشائر بـ 40 نقطة، خفض الشغب بـ 26 نقطة، وضمان تدفق 45 ألف برميل نفط.',
       prriDelta: -26,

@@ -17,6 +17,12 @@
     return (usd / 1_000_000).toFixed(1);
   }
 
+  function formatBillionSYP(syp: number): string {
+    const val = Number((syp / 1_000_000_000).toFixed(2));
+    if (Object.is(val, -0) || val === 0) return '0.00';
+    return val.toFixed(2);
+  }
+
   const SOUTHERN_POLICY_NAMES_AR: Record<string, string> = {
     HISTORIC_ACCORD: "الوفاق التاريخي الشامل (وفاق السهل والجبل)",
     LOCAL_VOUCHERS: "قسائم الإغاثة المحلية المشروطة",
@@ -161,6 +167,23 @@
           {:else}
             <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.iranOilCouponUSD)}M</span>
           {/if}
+        </div>
+        {#if ($previewRangesStore.facilityInflowUSD ?? 0) > 0}
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-forest-accent">تدفق التسهيلات المشروطة المتوقع</span>
+            <span class="font-bold text-forest-accent">+${formatMillionUSD($previewRangesStore.facilityInflowUSD)}M</span>
+          </div>
+          {#each $previewRangesStore.facilityStatusAr ?? [] as line}
+            <div class="text-[10px] font-mono text-forest-accent/90 pr-2">· {line}</div>
+          {/each}
+        {/if}
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-wheat-dark">العجز التشغيلي المتوقع (المقلق)</span>
+          <span class="font-bold text-umber-crimson">${formatBillionSYP($previewRangesStore.operatingDeficitSYP ?? 0)}B</span>
+        </div>
+        <div class="flex items-center justify-between text-[11px] font-mono">
+          <span class="text-wheat-dark">الإنفاق الاستثماري (يبني الغد)</span>
+          <span class="font-bold text-forest-accent">${formatBillionSYP($previewRangesStore.investmentSYP ?? 0)}B</span>
         </div>
       </div>
 

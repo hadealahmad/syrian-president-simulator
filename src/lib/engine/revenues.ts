@@ -1,5 +1,6 @@
 import type { GameState, TurnDirectives, RevenueAudit } from './types';
-import { IRAN_OIL_COUPON_USD } from './constants';
+import { IRAN_OIL_COUPON_USD, GROWTH_TUNING } from './constants';
+import { computeFacilityTurn, getFacilityDef } from './facilities';
 
 // Patronage economics: cash/FX spent to buy political capital.
 export const POPULIST_GRANT_COST_SYP = 7_500_000_000;
@@ -70,7 +71,7 @@ export function auditSemiannualBudget(
   const corruptionDrag = (macro.systemicCorruption / 100) * 0.30;
   const unrestDrag = (avgPRRI / 100) * 0.25;
 
-  const rawCompliance = baseCompliance + powerFactor + competenceFactor - corruptionDrag - unrestDrag;
+  const rawCompliance = baseCompliance + powerFactor + competenceFactor - corruptionDrag - unrestDrag + (macro.militiaAbsorptionBonus ?? 0);
   const complianceRate = Math.max(0.12, Math.min(0.88, rawCompliance));
   macro.taxCompliancePct = Math.round(complianceRate * 100);
 
@@ -186,6 +187,13 @@ export function auditSemiannualBudget(
 
   const grossCapturedUSD = discretionaryCapturedUSD + tiedAidUSD;
 
+  // Concessional facilities: general tranches join discretionary USD here
+  // (ring-fenced grant money bypasses reserves into the project bucket and
+  // is excluded, so the audit never double-counts it).
+  const facilityTurn = computeFacilityTurn(state, directives);
+  const facilityGeneralUSD = Math.max(0, facilityTurn.inflowUSD - facilityTurn.ringFencedUSD);
+  const discretionaryWithFacilitiesUSD = discretionaryCapturedUSD + facilityGeneralUSD;
+
   // ---------------------------------------------------------
   // 3. HARD CURRENCY EXPENDITURES (USD)
   // ---------------------------------------------------------
@@ -201,7 +209,19 @@ export function auditSemiannualBudget(
     baseWheatImportUSD = 240_000_000;
   }
 
-  const netWheatImportUSD = Math.max(15_000_000, baseWheatImportUSD - tiedAidUSD);
+  // Executed farmland projects permanently shrink the wheat import bill.
+  let projectWheatSavingsUSD = 0;
+  for (const gov of Object.values(governorates)) {
+    const proj = gov.strategicProject;
+    if (proj && proj.isExecuted) {
+      projectWheatSavingsUSD += proj.wheatImportSavingsUSD ?? 0;
+    }
+  }
+
+  const netWheatImportUSD = Math.max(
+    15_000_000,
+    baseWheatImportUSD - tiedAidUSD - projectWheatSavingsUSD
+  );
 
   // Fuel Import Bill governed by Season and Diesel Smuggling Strategy
   const isWinter = state.season === 'H2_WINTER';
@@ -236,9 +256,21 @@ export function auditSemiannualBudget(
   const debtServiceUSD = LEGACY_DEBT_COUPON_USD + signedLoanServiceUSD;
 
   // Iranian oil-credit coupon: flat $25M/turn while the side ledger carries a
-  // balance (voided permanently by formal repudiation). Kept as its own audit
-  // line so both modals can label it distinctly from legacy debt service.
-  const iranOilCouponUSD = (macro.iranOilDebtUSD ?? 0) > 0 ? IRAN_OIL_COUPON_USD : 0;
+  // balance (voided permanently by formal repudiation, reschedulable once
+  // via the Tehran facility to a lower overridden coupon). The directive
+  // check keeps the rehearsal preview identical to the committed turn,
+  // where applyFacilityTurn persists the same override before this audit.
+  let iranOilCouponUSD =
+    (macro.iranOilDebtUSD ?? 0) > 0
+      ? (macro.iranCouponOverrideUSD ?? IRAN_OIL_COUPON_USD)
+      : 0;
+  if (
+    (macro.iranOilDebtUSD ?? 0) > 0 &&
+    (directives.signedFacilityIds ?? []).includes('facility_iran_reschedule')
+  ) {
+    const rescheduleCoupon = getFacilityDef('facility_iran_reschedule')?.onSign?.iranCouponUSD;
+    if (rescheduleCoupon !== undefined) iranOilCouponUSD = rescheduleCoupon;
+  }
 
   // FX revenue forfeited to active sovereign mortgage concessions.
   let mortgageDrainUSD = 0;
@@ -285,13 +317,16 @@ export function auditSemiannualBudget(
   const powerBoostUSD = isPowerBoostActive ? 10_000_000 : 0;
   const powerBoostSYP = isPowerBoostActive ? 3_000_000_000 : 0;
 
-  // Provincial Strategic Projects
+  // Provincial Strategic Projects. Charges EVERY directive-listed project:
+  // execution runs before this audit and flips isExecuted, so filtering on
+  // !isExecuted would make executed projects free and bill only blocked ones.
+  // (The UI never lets an executed project be re-listed, so no double-billing.)
   let provincialProjectsCostUSD = 0;
   let provincialProjectsCostSYP = 0;
   if (directives.provincialProjects && directives.provincialProjects.length > 0) {
     for (const projId of directives.provincialProjects) {
       for (const gov of Object.values(governorates)) {
-        if (gov.strategicProject && gov.strategicProject.id === projId && !gov.strategicProject.isExecuted) {
+        if (gov.strategicProject && gov.strategicProject.id === projId) {
           provincialProjectsCostUSD += gov.strategicProject.costUSD;
           provincialProjectsCostSYP += gov.strategicProject.costSYP;
         }
@@ -317,7 +352,7 @@ export function auditSemiannualBudget(
     directives.dollarAuctionUSD +
     provincialProjectsCostUSD;
 
-  const netUSDDelta = discretionaryCapturedUSD - expendedUSD;
+  const netUSDDelta = discretionaryWithFacilitiesUSD - expendedUSD;
 
   // ---------------------------------------------------------
   // 4. DOMESTIC CURRENCY INFLOWS (SYP)
@@ -343,12 +378,32 @@ export function auditSemiannualBudget(
     (directives.dollarAuctionUSD ?? 0) * (macro.parallelRateSYP * 0.95)
   );
 
+  // Growth valve: productive capacity scales the domestic revenue base.
+  // Multiplier is zero at the starting baseline (20) by tuning design.
+  const capacityPct = macro.productiveCapacityPct ?? GROWTH_TUNING.capacityBaseline;
+  const capacityMult =
+    1 + Math.max(0, capacityPct - GROWTH_TUNING.capacityBaseline) * GROWTH_TUNING.capacityRate;
+  const capacityRevenueBonusSYP = Math.round(
+    (corporateTaxSYP + telecomExciseSYP + fuelSurchargeSYP + utilityBillsSYP + recurringSOEProfitSYP) *
+      (capacityMult - 1)
+  );
+
+  // Executed strategic projects pay recurring SYP revenue from this turn on.
+  let projectRevenueSYP = 0;
+  for (const gov of Object.values(governorates)) {
+    const proj = gov.strategicProject;
+    if (proj && proj.isExecuted) {
+      projectRevenueSYP += proj.recurringRevenueSYPPerTurn ?? 0;
+    }
+  }
   const grossCapturedSYP =
     corporateTaxSYP +
     telecomExciseSYP +
     fuelSurchargeSYP +
     utilityBillsSYP +
     recurringSOEProfitSYP +
+    capacityRevenueBonusSYP +
+    projectRevenueSYP +
     oligarchCashInflowSYP;
 
   // ---------------------------------------------------------
@@ -409,12 +464,38 @@ export function auditSemiannualBudget(
     charityFundSYP +
     provincialProjectsCostSYP;
 
+  // Honest-deficit split: investment builds future revenue (projects,
+  // demining, power, CapEx at SYP-equivalent, domestic wheat procurement);
+  // everything else is consumed this turn. The two sum to expendedSYP exactly.
+  const gridCapExSYPEquiv = Math.round(gridCapExUSD * Math.max(1, macro.parallelRateSYP));
+  const investmentExpendedSYP =
+    deminingSYP +
+    powerBoostSYP +
+    wheatDomesticProcurementSYP +
+    provincialProjectsCostSYP +
+    gridCapExSYPEquiv;
+  const operatingExpendedSYP = expendedSYP - investmentExpendedSYP;
+
   // Seigniorage & Domestic Fiscal Balance (SYP)
   // Unfunded domestic spending draws down the public treasury directly into an overdraft / deficit.
   const rawSYPDeficit = expendedSYP - grossCapturedSYP;
   const seignioragePrintedSYP = directives.moneyPrintingSYP ?? 0;
 
   const netSYPDelta = grossCapturedSYP + seignioragePrintedSYP - expendedSYP;
+
+  // Runway in turns (sibling of the month-based runway above, for the treasury card).
+  let runwayTurnsEstimate = 99;
+  if (netUSDDelta < 0) {
+    const drainPerTurn = Math.abs(netUSDDelta);
+    if (drainPerTurn > 0 && macro.reservesUSD > 0) {
+      runwayTurnsEstimate = Math.max(0, Math.min(99, Math.floor(macro.reservesUSD / drainPerTurn)));
+    } else if (macro.reservesUSD <= 0) {
+      runwayTurnsEstimate = 0;
+    }
+  }
+
+  const interestBurdenPct =
+    grossCapturedSYP > 0 ? Number(((overdraftInterestSYP / grossCapturedSYP) * 100).toFixed(1)) : 0;
 
   // ---------------------------------------------------------
   // 6. FISCAL RUNWAY CALCULATION (in months)
@@ -450,5 +531,13 @@ export function auditSemiannualBudget(
     debtRepaymentPaidUSD,
     auctionAbsorbedSYP,
     overdraftInterestSYP,
+    operatingExpendedSYP,
+    investmentExpendedSYP,
+    runwayTurnsEstimate,
+    capacityRevenueBonusSYP,
+    projectRevenueSYP,
+    facilityInflowUSD: facilityTurn.inflowUSD,
+    facilityLinesAr: facilityTurn.linesAr,
+    interestBurdenPct,
   };
 }

@@ -28,6 +28,12 @@
   let provincesInRevoltCount = $derived(
     Object.values($gameStore.governorates).filter((g) => g.tier === 'REVOLT').length
   );
+  // Operating share of SYP spending (old saves may lack the split fields).
+  let opShare = $derived(
+    audit && audit.expendedSYP > 0
+      ? Math.round(((audit.operatingExpendedSYP ?? audit.expendedSYP) / audit.expendedSYP) * 100)
+      : 0
+  );
 </script>
 
 <div class="flex flex-col flex-1 min-h-0">
@@ -89,6 +95,26 @@
             <span class="text-[10px] block font-mono text-wheat-dark">
               محصّل <span dir="ltr">{formatBillionSYP(audit.grossCapturedSYP)}B</span> − مصروف <span dir="ltr">{formatBillionSYP(audit.expendedSYP)}B</span> = الصافي <span dir="ltr" class={audit.netSYPDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}>{audit.netSYPDelta >= 0 ? '+' : ''}{formatBillionSYP(audit.netSYPDelta)}B</span> هذا الدور
             </span>
+            <span class="text-[10px] block font-mono text-wheat-dark">
+              التركيبة: تشغيلي <span dir="ltr">{formatBillionSYP(audit.operatingExpendedSYP ?? audit.expendedSYP)}B</span> ({opShare}%) · استثماري <span dir="ltr" class="text-forest-accent">{formatBillionSYP(audit.investmentExpendedSYP ?? 0)}B</span> ({100 - opShare}%)
+            </span>
+            <div class="h-1 w-full bg-charcoal-surface rounded-none overflow-hidden flex" aria-hidden="true">
+              <div class="h-full bg-amber-500/70" style="width: {opShare}%"></div>
+              <div class="h-full bg-forest-accent/80" style="width: {100 - opShare}%"></div>
+            </div>
+            {#if (audit.capacityRevenueBonusSYP ?? 0) > 0 || (audit.projectRevenueSYP ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-forest-accent">
+                منها نمو: <span dir="ltr">+{formatBillionSYP((audit.capacityRevenueBonusSYP ?? 0) + (audit.projectRevenueSYP ?? 0))}B</span> إيراد متكرر جديد
+              </span>
+            {/if}
+            <span class="text-[10px] block font-mono text-wheat-dark">
+              المسار: ~<span dir="ltr">{audit.runwayTurnsEstimate ?? 99}</span> دوراً قبل نفاد الاحتياطي · عبء الفوائد <span dir="ltr">{audit.interestBurdenPct ?? 0}%</span> من الإيرادات <span class="text-wheat-dark/70">(بتثبيت سياسات هذا الدور)</span>
+            </span>
+            {#if (audit.facilityInflowUSD ?? 0) > 0}
+              <span class="text-[10px] block font-mono text-forest-accent">
+                تسهيلات: <span dir="ltr">+${formatMillionUSD(audit.facilityInflowUSD)}M</span> هذا الدور
+              </span>
+            {/if}
             {#if $gameStore.macro.treasurySYP < 0}
               <span class="text-[10px] text-umber-crimson block font-heading">
                 عجز مالي متراكم على الخزينة العامة

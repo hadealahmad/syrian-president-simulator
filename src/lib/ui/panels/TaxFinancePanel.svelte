@@ -55,6 +55,13 @@
     Math.min(25, Math.round((auctionM / 10) * 1.5))
   );
 
+  // Growth-valve readout: CapEx bands accrue productive capacity, which
+  // scales domestic revenues (~0.4% ≈ +0.35B/turn per capacity point).
+  let capacityGain = $derived(
+    gridCapExM * 1_000_000 >= 35_000_000 ? 1.0 : gridCapExM * 1_000_000 >= 20_000_000 ? 0.5 : gridCapExM === 0 ? -1.0 : 0
+  );
+  let capacityRevenueB = $derived((capacityGain * 0.35).toFixed(2));
+
   let canAffordBrainGain = $derived(
     $draftStore.expatriateBrainGainIncentive ||
     $budgetStore.canAffordWithFxCoverage(20_000_000, 3_500_000_000)
@@ -204,6 +211,9 @@
       <span class="px-1.5 py-0.2 rounded-full {gridCapExM === 0 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {effectivePowerHoursDelta > 0 ? `+${effectivePowerHoursDelta}` : effectivePowerHoursDelta} س/يوم
       </span>
+      <span class="px-1.5 py-0.2 rounded-full {capacityGain <= 0 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-mid border border-forest-accent/60 text-forest-accent'} font-mono font-bold text-[9px]">
+        {capacityGain <= 0 ? 'تآكل القدرة الإنتاجية' : `+${capacityRevenueB}B إيراد تدريجي/دور`}
+      </span>
     </div>
 
     <input
@@ -224,7 +234,7 @@
         ? 'تجميد الاستثمار الرأسمالي يوفر السيولة الدولارية ($0M كاش)، لكنه يسبب تراجع قدرة الشبكة بنحو 120 ميغاواط وتمديد ساعات التقنين في المحافظات (-0.5 سا/يوم) وزيادة الاحتقان.'
         : gridCapExM === 35
           ? 'الحالة المحايدة ($35M): صيانة دورية تؤمن +399 ميغاواط وتزيد التغذية بنحو +1.6 ساعة/يوم في كافة المحافظات، مما يدعم النشاط الاقتصادي واستقرار الشبكة.'
-          : `استثمار \$${gridCapExM}M يضيف نحو ${effectiveGridMW} ميغاواط للشبكة القومية (${effectivePowerHoursDelta > 0 ? '+' : ''}${effectivePowerHoursDelta} سا/يوم)، مما يخفض ساعات التقنين بالمحافظات ويدعم النشاط الصناعي والامتثال الضريبي.`}
+          : `استثمار \$${gridCapExM}M يضيف نحو ${effectiveGridMW} ميغاواط للشبكة القومية (${effectivePowerHoursDelta > 0 ? '+' : ''}${effectivePowerHoursDelta} سا/يوم)، مما يخفض ساعات التقنين بالمحافظات ويدعم النشاط الصناعي والامتثال الضريبي، ويراكم القدرة الإنتاجية (+${capacityRevenueB}B إيراد تدريجي/دور).`}
     </div>
   </div>
 

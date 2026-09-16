@@ -151,6 +151,16 @@
                 -{node.strategicProject.costPoliticalCapital} رصيد سياسي
               </span>
             {/if}
+            {#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0}
+              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                +{((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) / 1_000_000_000).toFixed(2)}B إيراد متكرر/دور
+              </span>
+            {/if}
+            {#if (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0}
+              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                -${(node.strategicProject.wheatImportSavingsUSD ?? 0) / 1_000_000}M فاتورة قمح دائمة
+              </span>
+            {/if}
           </div>
         </div>
 
@@ -196,6 +206,11 @@
             <span>اعتماد وإطلاق المشروع الاستراتيجي</span>
           {/if}
         </button>
+      {/if}
+      {#if node.strategicProject.isExecuted && ((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0 || (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0)}
+        <div class="text-[10px] font-mono text-forest-accent">
+          مكتمل: {#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0}<span dir="ltr">+{((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) / 1_000_000_000).toFixed(2)}B</span> إيراد متكرر/دور{/if}{#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0 && (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0} · {/if}{#if (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0}<span dir="ltr">-${(node.strategicProject.wheatImportSavingsUSD ?? 0) / 1_000_000}M</span> فاتورة قمح{/if}
+        </div>
       {/if}
     </div>
 

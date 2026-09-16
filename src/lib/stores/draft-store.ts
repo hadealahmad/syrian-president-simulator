@@ -17,6 +17,7 @@ import {
   IMPORT_SURGE_COST_USD,
   LOAN_TERMINATION_PC_EARNED,
 } from '../engine/revenues';
+import { getFacilityDef, activeFacilityLocks } from '../engine/facilities';
 
 export interface TurnBudget {
   initialPC: number;
@@ -109,6 +110,17 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
       const loan = gameState.foreignLoans.find((l) => l.id === loanId);
       if (loan && !loan.isSigned) {
         committedPC += loan.politicalCapitalCost;
+      }
+    }
+  }
+
+  // 6b. Concessional facilities (Political Capital commitments)
+  if (draft.signedFacilityIds && draft.signedFacilityIds.length > 0) {
+    for (const facilityId of draft.signedFacilityIds) {
+      const def = getFacilityDef(facilityId);
+      const existing = gameState.facilities?.find((f) => f.id === facilityId);
+      if (def && (!existing || existing.status === 'AVAILABLE')) {
+        committedPC += def.politicalCapitalCost;
       }
     }
   }
@@ -243,6 +255,29 @@ function createDraftStore() {
     setField: <K extends keyof TurnDirectives>(field: K, value: TurnDirectives[K]) => {
       update((d) => ({ ...d, [field]: value }));
     },
+    /**
+     * Facility-conditionality locks live here (not just in the UI) so no
+     * panel can silently break a signed condition: while the IMF diesel
+     * lock is active, dieselSmuggling is forced to CRACKDOWN.
+     */
+    setFieldGuarded: <K extends keyof TurnDirectives>(
+      game: GameState | null,
+      field: K,
+      value: TurnDirectives[K]
+    ): { applied: boolean; blockedAr?: string } => {
+      if (field === 'dieselSmuggling' && value !== 'CRACKDOWN' && game) {
+        const locks = activeFacilityLocks(game);
+        if (locks.dieselLocked) {
+          update((d) => ({ ...d, dieselSmuggling: 'CRACKDOWN' }));
+          return {
+            applied: false,
+            blockedAr: `مقفل بشرط التسهيل — ${locks.dieselTurnsLeft} دورات متبقية`,
+          };
+        }
+      }
+      update((d) => ({ ...d, [field]: value }));
+      return { applied: true };
+    },
     reset: () => {
       set(getDefaultTurnDirectives());
     },
@@ -252,6 +287,7 @@ function createDraftStore() {
         // Reset one-time executed financial asset transactions that already modified GameState:
         signedLoanIds: [],
         executedMortgageIds: [],
+        signedFacilityIds: [],
         oligarchDecisions: {},
         provincialProjects: [],
         extraDebtRepaymentUSD: 0,
@@ -329,6 +365,16 @@ function createDraftStore() {
           ? current.filter((id) => id !== mortgageId)
           : [...current, mortgageId];
         return { ...d, executedMortgageIds: next };
+      });
+    },
+    toggleFacility: (facilityId: string) => {
+      update((d) => {
+        const current = d.signedFacilityIds || [];
+        const exists = current.includes(facilityId);
+        const next = exists
+          ? current.filter((id) => id !== facilityId)
+          : [...current, facilityId];
+        return { ...d, signedFacilityIds: next };
       });
     },
   };

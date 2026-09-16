@@ -20,6 +20,8 @@ import { checkFailStates } from './fail-states';
 import { projectCenturyOutcome } from './century-engine';
 import { updateSouthernFront, applySpatialContagion, processInterProvincialMigration } from './spatial';
 import { PRNG } from './prng';
+import { GROWTH_TUNING } from './constants';
+import { applyFacilityTurn } from './facilities';
 import {
   getOligarchSettlementIncome,
   getOligarchLiquidationIncome,
@@ -54,6 +56,7 @@ export function getDefaultTurnDirectives(): TurnDirectives {
     propertyRestitution: 'RESTITUTE_TO_REFUGEES',
     signedLoanIds: [],
     executedMortgageIds: [],
+    signedFacilityIds: [],
     expatriateBrainGainIncentive: false,
     extraDebtRepaymentUSD: 0,
     populistGrant: false,
@@ -108,6 +111,7 @@ export function hasDraftSelections(directives: TurnDirectives): boolean {
     (directives.activePoliticalActions && directives.activePoliticalActions.length > 0) ||
     (directives.provincialProjects && directives.provincialProjects.length > 0) ||
     (directives.signedLoanIds && directives.signedLoanIds.length > 0) ||
+    (directives.signedFacilityIds && directives.signedFacilityIds.length > 0) ||
     (directives.executedMortgageIds && directives.executedMortgageIds.length > 0) ||
     Object.keys(directives.oligarchDecisions || {}).length > 0 ||
     directives.southernPolicy !== def.southernPolicy ||
@@ -173,6 +177,10 @@ export function evaluateRehearsalDirectives(
     requiresPrintingSYP: seigniorageNeeded,
     debtServiceUSD: audit.debtServiceUSD,
     iranOilCouponUSD: audit.iranOilCouponUSD,
+    facilityInflowUSD: audit.facilityInflowUSD,
+    facilityStatusAr: audit.facilityLinesAr,
+    operatingDeficitSYP: Math.max(0, audit.expendedSYP - audit.grossCapturedSYP),
+    investmentSYP: audit.investmentExpendedSYP,
   };
 }
 
@@ -181,6 +189,8 @@ export function simulateTurnTransitions(
   directives: TurnDirectives
 ): GameState {
   const next: GameState = JSON.parse(JSON.stringify(currentState));
+  // Strategic projects executed this turn (feeds the growth-valve capacity gain).
+  let projectsExecutedThisTurn = 0;
 
   // =========================================================================
   // PHASE 0: SPECIAL DECREES & POLITICAL ACTIONS
@@ -506,15 +516,27 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 4: PROVINCIAL STRATEGIC PROJECTS, DEMINING & POWER BOOST
   // =========================================================================
+  // Grant-bucket cover: ring-fenced Gulf dollars pay project USD costs first.
+  // Refunded to reserves after the audit (which books the full cost).
+  let grantCoverUSD = 0;
   for (const projId of directives.provincialProjects || []) {
     for (const gov of Object.values(next.governorates)) {
       if (gov.strategicProject && gov.strategicProject.id === projId && !gov.strategicProject.isExecuted) {
+        const grantBucket = next.macro.grantBucketUSD ?? 0;
+        const effectiveReserves = next.macro.reservesUSD + grantBucket;
         if (
           next.macro.politicalCapital >= gov.strategicProject.costPoliticalCapital &&
-          canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, gov.strategicProject.costUSD, gov.strategicProject.costSYP, next.macro.parallelRateSYP)
+          canAffordDirectiveCost(effectiveReserves, next.macro.treasurySYP, gov.strategicProject.costUSD, gov.strategicProject.costSYP, next.macro.parallelRateSYP)
         ) {
           gov.strategicProject.isExecuted = true;
+          projectsExecutedThisTurn += 1;
           next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - gov.strategicProject.costPoliticalCapital);
+          // Ring-fenced grant dollars cover project USD costs before reserves do.
+          const bucketCover = Math.min(next.macro.grantBucketUSD ?? 0, gov.strategicProject.costUSD);
+          if (bucketCover > 0) {
+            next.macro.grantBucketUSD = (next.macro.grantBucketUSD ?? 0) - bucketCover;
+            grantCoverUSD += bucketCover;
+          }
 
           const repairRatio = gov.unrepairedDamageUSD > 0
             ? (gov.strategicProject.damageRepairedUSD / gov.unrepairedDamageUSD)
@@ -616,6 +638,12 @@ export function simulateTurnTransitions(
   const audit = auditSemiannualBudget(next, directives);
   next.lastTurnAudit = audit;
 
+  // Concessional facilities AFTER the audit: the audit's own pure tranche
+  // computation is what both preview and commit display, so status mutation
+  // must not precede it. General tranches reach reserves via netUSDDelta;
+  // only the ring-fenced bucket is credited here.
+  applyFacilityTurn(next, directives);
+
   // Full early termination (sovereign buyback) of signed loans: pay the whole
   // remaining principal from reserves, all-or-nothing per loan in listed order
   // (same allocation as the audit preview). Each buyback earns +6 PC and +4
@@ -671,6 +699,9 @@ export function simulateTurnTransitions(
   }
 
   next.macro.reservesUSD = Math.max(0, next.macro.reservesUSD + audit.netUSDDelta);
+  // Refund the grant-covered share of project USD costs (the audit books the
+  // full cost; the ring-fenced bucket paid part of it, not reserves).
+  if (grantCoverUSD > 0) next.macro.reservesUSD += grantCoverUSD;
   next.macro.treasurySYP = next.macro.treasurySYP + audit.netSYPDelta;
   next.macro.m2MoneySupplySYP += audit.seignioragePrintedSYP;
 
@@ -800,6 +831,41 @@ export function simulateTurnTransitions(
       ledger[key] = (ledger[key] ?? 0) + f.count;
     }
     next.migrationLedger = ledger;
+  }
+
+  // =========================================================================
+  // GROWTH VALVE: productive capacity for NEXT turn's revenue base.
+  // Investment accrues (projects + CapEx with diminishing bands), revolt
+  // provinces erode it, and high corruption halves all gains.
+  // =========================================================================
+  {
+    let gain = projectsExecutedThisTurn * GROWTH_TUNING.projectCapacityGain;
+    const capex = directives.gridCapExUSD ?? 0;
+    if (capex >= GROWTH_TUNING.capexHighUSD) gain += GROWTH_TUNING.capexHighGain;
+    else if (capex >= GROWTH_TUNING.capexMidUSD) gain += GROWTH_TUNING.capexMidGain;
+    else if (capex <= 0) gain -= GROWTH_TUNING.capexZeroLoss;
+    if ((next.macro.systemicCorruption ?? 0) > GROWTH_TUNING.corruptionDragThreshold) {
+      gain = gain > 0 ? gain * 0.5 : gain;
+    }
+    const revolts = Object.values(next.governorates).filter((g) => g.tier === 'REVOLT').length;
+    const capacity = Math.max(
+      0,
+      Math.min(100, (next.macro.productiveCapacityPct ?? 20) + gain - revolts * GROWTH_TUNING.revoltErosion)
+    );
+    next.macro.productiveCapacityPct = Math.round(capacity * 10) / 10;
+  }
+
+  // Militia absorption: formalized ex-fighters widen the tax net gradually
+  // (+compliance/turn up to a cap while ABSORB is chosen, decaying otherwise).
+  {
+    const bonus = next.macro.militiaAbsorptionBonus ?? 0;
+    if (directives.workforceStrategy === 'ABSORB_MILITIAS') {
+      next.macro.militiaAbsorptionBonus =
+        Math.round(Math.min(GROWTH_TUNING.absorptionMax, bonus + GROWTH_TUNING.absorptionStep) * 100) / 100;
+    } else if (bonus > 0) {
+      next.macro.militiaAbsorptionBonus =
+        Math.round(Math.max(0, bonus - GROWTH_TUNING.absorptionStep) * 100) / 100;
+    }
   }
 
   return next;

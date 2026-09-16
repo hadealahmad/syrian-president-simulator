@@ -1,12 +1,25 @@
 <script lang="ts">
-  import { draftStore } from '../../stores/draft-store';
-  import { uiStore } from '../../stores/ui-store';
-  import GameIcon from '../GameIcon.svelte';
+import { draftStore } from '../../stores/draft-store';
+import { gameStore } from '../../stores/game-store';
+import { uiStore } from '../../stores/ui-store';
+import GameIcon from '../GameIcon.svelte';
+import { activeFacilityLocks } from '../../engine/facilities';
   import {
     isOptionRelated,
   } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
+
+  // IMF conditionality lock: while active, diesel policy is pinned to CRACKDOWN.
+  function dieselGuard(value: 'CRACKDOWN' | 'STANDARD' | 'PERMISSIVE'): string | null {
+    const res = draftStore.setFieldGuarded($gameStore, 'dieselSmuggling', value);
+    return res.applied ? null : (res.blockedAr ?? 'مقفل بشرط التسهيل');
+  }
+  let dieselLock = $derived(activeFacilityLocks($gameStore).dieselLocked);
+  let dieselLockNote = $derived.by(() => {
+    const locks = activeFacilityLocks($gameStore);
+    return locks.dieselLocked ? `مقفل بشرط التسهيل — ${locks.dieselTurnsLeft} دورات متبقية` : '';
+  });
 
   // Collapsible per-section effect explainers (help icon before each title, hidden by default)
   let openExplainers = $state<Record<string, boolean>>({});
@@ -114,6 +127,7 @@
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">+8000 وظيفة</span>
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-6 توتر</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+امتثال تدريجي</span>
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+5 فساد</span>
         </div>
       </button>
@@ -122,7 +136,7 @@
       {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
         <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
       {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
-        <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن، مقابل تضخم كتلة الرواتب الحكومية وزيادة الفساد الإداري.
+        <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن، مقابل تضخم كتلة الرواتب الحكومية وزيادة الفساد الإداري — مع اتساع القاعدة الضريبية تدريجياً (+1 امتثال/دور حتى +4).
       {:else}
         <span class="text-wheat-mid font-medium">الأثر:</span> الحفاظ على قوام الموظفين ورواتب الملاك الحكومي الراهن دون تعديل.
       {/if}
@@ -189,6 +203,9 @@
         <GameIcon name="help" cls="w-4 h-4" />
       </button>
       <span class="text-xs font-bold text-wheat-gold font-heading block">مكافحة تهريب المشتقات النفطية</span>
+      {#if dieselLock}
+        <span class="px-1.5 py-0.2 rounded-none bg-amber-950 border border-amber-500/50 text-amber-300 text-[8.5px] font-mono">{dieselLockNote}</span>
+      {/if}
     </div>
     <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
       <button
@@ -203,8 +220,9 @@
       </button>
 
       <button
-        onclick={() => draftStore.setField('dieselSmuggling', 'STANDARD')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+        onclick={() => dieselGuard('STANDARD')}
+        title={dieselLock ? dieselLockNote : ''}
+        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'} {dieselLock ? 'opacity-50' : ''}"
       >
         <span class="font-bold text-[10.5px]">رقابة اعتيادية</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
@@ -214,8 +232,9 @@
       </button>
 
       <button
-        onclick={() => draftStore.setField('dieselSmuggling', 'PERMISSIVE')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'PERMISSIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
+        onclick={() => dieselGuard('PERMISSIVE')}
+        title={dieselLock ? dieselLockNote : ''}
+        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'PERMISSIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'} {dieselLock ? 'opacity-50' : ''}"
       >
         <span class="font-bold text-[10.5px]">غض الطرف</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
