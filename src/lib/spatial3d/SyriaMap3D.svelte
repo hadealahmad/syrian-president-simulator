@@ -277,12 +277,13 @@
   // on the module-level CRTShader object, so the sliders drive the live
   // pass directly; the $state mirrors exist purely for the readout. Once
   // the values feel right, bake them into the CRTShader defaults.
-  // One entry per tunable; all effects except the lens default to OFF so
-  // the shipped look stays as tuned until values are baked in.
+  // Baked look — values tuned in the dev panel and promoted to the shipped
+  // defaults (2026-09 CRT pass): subtle lens + chroma fringing, light
+  // scanlines/mask/grain, whisper of strobe/bloom/phosphor trails.
   const CRT_DEFAULTS: Record<string, number> = {
-    uBulge: 0.12, uRadius: 0.62,
-    uChroma: 0, uScan: 0, uPixel: 0, uMask: 0,
-    uStrobe: 0, uTint: 0, uNoise: 0, uBloom: 0, uGhost: 0,
+    uBulge: 0.03, uRadius: 1,
+    uChroma: 0.14, uScan: 0.25, uPixel: 0, uMask: 0.1,
+    uStrobe: 0.01, uTint: 0, uNoise: 0.1, uBloom: 0.12, uGhost: 0.08,
   };
   interface CrtSlider {
     key: string;
