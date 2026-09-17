@@ -95,6 +95,38 @@
     return group;
   }
 
+  // Governorate stroke as a closed flat ribbon: GL line width is capped at
+  // 1px on every platform, so real strokes are extruded geometry (same trick
+  // as the arrow ribbons). Vertex normals average adjacent edges; consumed
+  // with DoubleSide so winding never matters.
+  function ringStrokeGeometry(pts: [number, number][], width: number, z: number): THREE.BufferGeometry {
+    const n = pts.length;
+    const half = width / 2;
+    const pos = new Float32Array(n * 6);
+    const idx: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const [x, y] = pts[i];
+      const [px, py] = pts[(i - 1 + n) % n];
+      const [nx2, ny2] = pts[(i + 1) % n];
+      let dx = nx2 - px;
+      let dy = ny2 - py;
+      const len = Math.hypot(dx, dy) || 1;
+      dx /= len;
+      dy /= len;
+      const ox = -dy * half;
+      const oy = dx * half;
+      pos.set([x - ox, y - oy, z], i * 6);
+      pos.set([x + ox, y + oy, z], i * 6 + 3);
+      const a = i * 2;
+      const b = ((i + 1) % n) * 2;
+      idx.push(a, a + 1, b, a + 1, b + 1, b);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    return geo;
+  }
+
   // Health ramp (mirrors SyriaMap.svelte: worst red -> mid gold -> best green).
   function attentionIndex(gov: GovernorateNode | undefined): number {
     if (!gov) return 0.3;
@@ -240,13 +272,18 @@
   let weatherOverride: 'snow' | 'wind' | null = null;
   let hostKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+  // Center-lens CRT: a fisheye magnifier in the middle that relaxes to a
+  // 1:1 mapping toward the edges. Implemented as a SHRINK of the sampling
+  // radius (s <= 1 everywhere), so no sample can ever fall outside the
+  // frame — the image stretches edge to edge with no dark border ring, no
+  // vignette and no masking (unlike the earlier barrel-out mapping).
+  // Knobs: uBulge = center magnification (0.12 ≈ 12%), uRadius = where the
+  // lens has fully relaxed, in half-diagonal units.
   const CRTShader = {
     uniforms: {
       tDiffuse: { value: null as THREE.Texture | null },
-      uBarrel: { value: 0.16 },
-      uVig: { value: 0.55 },
-      uScan: { value: 0.05 },
-      uRes: { value: new THREE.Vector2(1600, 900) },
+      uBulge: { value: 0.12 },
+      uRadius: { value: 0.62 },
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -257,21 +294,15 @@
     `,
     fragmentShader: /* glsl */ `
       uniform sampler2D tDiffuse;
-      uniform float uBarrel;
-      uniform float uVig;
-      uniform float uScan;
-      uniform vec2 uRes;
+      uniform float uBulge;
+      uniform float uRadius;
       varying vec2 vUv;
       void main() {
-        vec2 cc = vUv - 0.5;
-        float r2 = dot(cc, cc);
-        vec2 uv = vUv + cc * r2 * uBarrel;
-        float mask = step(abs(uv.x - 0.5), 0.5) * step(abs(uv.y - 0.5), 0.5);
-        vec3 col = texture2D(tDiffuse, uv).rgb * mask;
-        float vig = smoothstep(0.95, 0.3, length(cc * vec2(1.0, 1.25)));
-        col *= mix(1.0, vig, uVig);
-        col *= 1.0 - uScan * (0.5 + 0.5 * sin(vUv.y * uRes.y * 3.14159));
-        gl_FragColor = vec4(col, 1.0);
+        vec2 p = vUv - 0.5;
+        float r = length(p);
+        float s = 1.0 - uBulge * (1.0 - smoothstep(0.0, uRadius, r));
+        vec2 uv = p * s + 0.5;
+        gl_FragColor = vec4(texture2D(tDiffuse, uv).rgb, 1.0);
       }
     `,
   };
@@ -298,6 +329,10 @@
     // missed everything above it (icons, arrows, labels all unhittable).
     const camera = new THREE.OrthographicCamera(0, WORLD_W, 0, -WORLD_H, -10, 10);
     camera.position.z = 10;
+    // Live viewport bounds in SVG coords (y down), refreshed by fitCamera:
+    // weather uses these so flakes/streaks spawn and recycle OUTSIDE the
+    // visible frame instead of popping in and out inside it.
+    const viewSvg = { left: -500, right: 1500, top: -100, bottom: 980 };
 
     const fitCamera = (w: number, h: number): void => {
       const boxAspect = WORLD_W / WORLD_H;
@@ -313,6 +348,10 @@
       camera.updateProjectionMatrix();
       // World units per screen px — snow sizes are authored in px.
       worldPerPx = (camera.right - camera.left) / Math.max(1, w);
+      viewSvg.left = camera.left;
+      viewSvg.right = camera.right;
+      viewSvg.top = -camera.top;
+      viewSvg.bottom = -camera.bottom;
     };
 
     // ── Stack discipline (hard-won): after the camera moved to z=10 (needed
@@ -385,15 +424,20 @@
     // mimics the 2D hover stroke-width bump (2.8 vs 1.6) that GL line width
     // cannot express.
     const govMeshes = new Map<string, THREE.Mesh[]>();
-    const govBorders = new Map<string, THREE.LineLoop[]>();
-    const govAccents = new Map<string, THREE.LineLoop[]>();
+    const govStrokes = new Map<string, THREE.Mesh[]>();
+    const govAccents = new Map<string, THREE.Mesh[]>();
     const govRings = new Map<string, [number, number][][]>();
     const govBBox = new Map<string, [number, number, number, number]>();
     const shadowGroup = new THREE.Group();
-    const accentGroup = new THREE.Group();
-    accentGroup.position.z = 0.55;
-    const accentHoverMat = new THREE.LineBasicMaterial({ color: themeVars.hover, transparent: true, depthWrite: false });
-    const accentSelMat = new THREE.LineBasicMaterial({ color: themeVars.selected, transparent: true, depthWrite: false });
+    const strokeMat = new THREE.MeshBasicMaterial({
+      color: themeVars.ink, side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    });
+    const accentHoverMat = new THREE.MeshBasicMaterial({
+      color: themeVars.hover, side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    });
+    const accentSelMat = new THREE.MeshBasicMaterial({
+      color: themeVars.selected, side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    });
     for (const gov of SYRIA_2D_GOVERNORATES) {
       const state = get(gameStore).governorates[gov.id];
       const rings = parsePaths(gov.path);
@@ -413,7 +457,9 @@
       govBBox.set(gov.id, [minx, miny, maxx, maxy]);
       const group = shapeMesh(rings, 0xffffff, 0.78, 0);
       const meshes: THREE.Mesh[] = [];
-      const borders: THREE.LineLoop[] = [];
+      const strokes: THREE.Mesh[] = [];
+      const accents: THREE.Mesh[] = [];
+      const lineLoops: THREE.Object3D[] = [];
       for (const child of group.children) {
         if (child instanceof THREE.Mesh) {
           const mat = child.material as THREE.MeshBasicMaterial;
@@ -437,37 +483,30 @@
             shadowGroup.add(dark);
           }
         } else if (child instanceof THREE.LineLoop) {
-          const mat = child.material as THREE.LineBasicMaterial;
-          mat.color.set(themeVars.ink);
-          borders.push(child);
+          lineLoops.push(child);
         }
       }
-      // Accent outline: the same rings inflated ~1.2% about the governorate
-      // center — reads as the 2D map's thicker hover/selected stroke.
-      const [cxw, cyw] = [gov.center[0], -gov.center[1]];
-      const ACCENT = 1.012;
-      const accents: THREE.LineLoop[] = [];
+      // Swap shapeMesh's 1px LineLoops for extruded ribbon strokes (the 2D
+      // map's 1.6 ink border) plus a wider hover/selected accent ribbon
+      // (the 2D 2.8 stroke). GL lines cannot exceed 1px, ribbons can.
+      for (const loop of lineLoops) group.remove(loop);
       for (const pts of rings) {
-        const geo = new THREE.BufferGeometry().setFromPoints(
-          pts.map(([x, y]) => new THREE.Vector3(
-            cxw + (x - cxw) * ACCENT,
-            cyw + (y - cyw) * ACCENT,
-            0,
-          )),
-        );
-        const loop = new THREE.LineLoop(geo, accentHoverMat);
-        loop.visible = false;
-        loop.renderOrder = 3;
-        accents.push(loop);
-        accentGroup.add(loop);
+        const base = new THREE.Mesh(ringStrokeGeometry(pts, 1.8, 0), strokeMat);
+        base.renderOrder = 1;
+        strokes.push(base);
+        group.add(base);
+        const accent = new THREE.Mesh(ringStrokeGeometry(pts, 3.2, 0), accentHoverMat);
+        accent.visible = false;
+        accent.renderOrder = 2;
+        accents.push(accent);
+        group.add(accent);
       }
       govMeshes.set(gov.id, meshes);
-      govBorders.set(gov.id, borders);
+      govStrokes.set(gov.id, strokes);
       govAccents.set(gov.id, accents);
       scene.add(group);
     }
     scene.add(shadowGroup);
-    scene.add(accentGroup);
 
     // Place-name sprites — created after the heading font has actually
     // loaded, so canvas rasterization never bakes a fallback face.
@@ -886,12 +925,16 @@
     let flakes: Flake[] = [];
     let streaks: Streak[] = [];
     let gustT = 0;
-    const WVIEW = { x0: -140, y0: -140, x1: 1140, y1: 1020 };
+    // Spawn/recycle margin: everything enters and leaves this far OUTSIDE
+    // the live viewport (viewSvg), never mid-screen.
+    const WMARGIN = 60;
+    const viewW = (): number => viewSvg.right - viewSvg.left;
+    const viewH = (): number => viewSvg.bottom - viewSvg.top;
     function seedWeather(mode: WeatherMode): void {
       if (mode === 'snow') {
         flakes = Array.from({ length: 130 }, () => ({
-          x: WVIEW.x0 + Math.random() * (WVIEW.x1 - WVIEW.x0),
-          y: WVIEW.y0 + Math.random() * (WVIEW.y1 - WVIEW.y0),
+          x: viewSvg.left - 40 + Math.random() * (viewW() + 80),
+          y: viewSvg.top - WMARGIN + Math.random() * (viewH() + WMARGIN * 2),
           r: 1 + Math.random() * 2.2,
           speed: 12 + Math.random() * 26,
           swayAmp: 8 + Math.random() * 18,
@@ -904,8 +947,8 @@
         streaks = [];
       } else {
         streaks = Array.from({ length: 22 }, () => ({
-          x: WVIEW.x0 + Math.random() * (WVIEW.x1 - WVIEW.x0),
-          y: WVIEW.y0 + Math.random() * (WVIEW.y1 - WVIEW.y0),
+          x: viewSvg.left - 40 + Math.random() * (viewW() + 80),
+          y: viewSvg.top - 40 + Math.random() * (viewH() + 80),
           len: 80 + Math.random() * 130,
           speed: 22 + Math.random() * 30,
           alpha: 0.1 + Math.random() * 0.12,
@@ -916,6 +959,7 @@
         }));
         flakes = [];
       }
+      seedWindColors();
     }
     // Snow: ONE plain Mesh holding all flake quads (positions rewritten per
     // frame, texture from canvas). Hard-won context: THREE.Points, its
@@ -985,38 +1029,104 @@
     snow.visible = false;
     scene.add(snow);
     let worldPerPx = 1;
-    // Wind: one LineSegments, 7 segments per streak, rewritten per frame.
-    const WIND_SEGS = 7;
+    // Wind: soft smudge ribbons — ONE mesh, 6 quads per streak, rewritten
+    // per frame. GL 1px lines read as wires; dragging a texture that fades
+    // at both ends AND both edges across a bent ribbon reads as a blurred
+    // gust, with the same cost as the old lines (single draw call, one
+    // preallocated buffer — no per-frame allocation).
+    const WIND_SEGS = 6;
     const WIND_MAX = 22;
+    const WIND_VERTS = (WIND_SEGS + 1) * 2; // 14 per streak
     const windGeo = new THREE.BufferGeometry();
-    const windPos = new Float32Array(WIND_MAX * WIND_SEGS * 2 * 3);
-    const windCol = new Float32Array(WIND_MAX * WIND_SEGS * 2 * 3);
+    const windPos = new Float32Array(WIND_MAX * WIND_VERTS * 3);
+    const windCol = new Float32Array(WIND_MAX * WIND_VERTS * 3);
+    const windUv = new Float32Array(WIND_MAX * WIND_VERTS * 2);
+    const windIdx: number[] = [];
+    for (let s = 0; s < WIND_MAX; s++) {
+      const base = s * WIND_VERTS;
+      for (let i = 0; i <= WIND_SEGS; i++) {
+        const u = i / WIND_SEGS;
+        const v0 = base + i * 2;
+        windUv.set([u, 0, u, 1], v0 * 2);
+        if (i < WIND_SEGS) {
+          windIdx.push(v0, v0 + 1, v0 + 2, v0 + 1, v0 + 3, v0 + 2);
+        }
+      }
+    }
     windGeo.setAttribute('position', new THREE.BufferAttribute(windPos, 3));
     windGeo.setAttribute('color', new THREE.BufferAttribute(windCol, 3));
-    const wind = new THREE.LineSegments(
+    windGeo.setAttribute('uv', new THREE.BufferAttribute(windUv, 2));
+    windGeo.setIndex(windIdx);
+    const windTex = (() => {
+      // Lengthwise fade (2D stroke gradient 0 -> alpha -> 0) times a soft
+      // crosswise falloff — destination-in keeps the ends and edges blurred.
+      const c = document.createElement('canvas');
+      c.width = 128;
+      c.height = 32;
+      const ctx = c.getContext('2d')!;
+      const across = ctx.createLinearGradient(0, 0, 128, 0);
+      across.addColorStop(0, 'rgba(255,255,255,0)');
+      across.addColorStop(0.3, 'rgba(255,255,255,1)');
+      across.addColorStop(0.7, 'rgba(255,255,255,1)');
+      across.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = across;
+      ctx.fillRect(0, 0, 128, 32);
+      ctx.globalCompositeOperation = 'destination-in';
+      const along = ctx.createLinearGradient(0, 0, 0, 32);
+      along.addColorStop(0, 'rgba(255,255,255,0)');
+      along.addColorStop(0.5, 'rgba(255,255,255,1)');
+      along.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = along;
+      ctx.fillRect(0, 0, 128, 32);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    const wind = new THREE.Mesh(
       windGeo,
-      // Vertex colors carry the lengthwise taper + per-streak alpha; the
-      // material opacity is the normalization base (max streak alpha 0.22).
-      new THREE.LineBasicMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.22, depthWrite: false }),
+      // Vertex colors carry the per-streak alpha (0.10-0.22); the material
+      // opacity is the normalization base. The texture carries the shape.
+      new THREE.MeshBasicMaterial({
+        map: windTex, vertexColors: true, transparent: true, opacity: 0.22,
+        depthWrite: false, side: THREE.DoubleSide,
+      }),
     );
     wind.position.set(0, 0, 0.5);
     wind.renderOrder = -60;
     wind.frustumCulled = false;
     wind.visible = false;
     scene.add(wind);
+    // Streak colors are seed-static: write once per seed (normalized alpha).
+    function seedWindColors(): void {
+      for (let si = 0; si < streaks.length; si++) {
+        const a = Math.min(1, streaks[si].alpha / 0.22);
+        const base = si * WIND_VERTS;
+        for (let v = 0; v < WIND_VERTS; v++) {
+          const o = (base + v) * 3;
+          windCol[o] = a;
+          windCol[o + 1] = a;
+          windCol[o + 2] = a;
+        }
+      }
+      windGeo.attributes.color.needsUpdate = true;
+      windGeo.setDrawRange(0, streaks.length * WIND_SEGS * 6);
+    }
     const reducedMotion =
       typeof window !== 'undefined' &&
       typeof window.matchMedia === 'function' &&
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let weatherMode: WeatherMode = seasonToMode(get(gameStore).season);
     seedWeather(weatherMode);
-    function streakPoint(s: Streak, t: number, time: number): [number, number] {
+    // Scratch for the 7 sample points of one streak (x,y pairs); reused so
+    // the per-frame update allocates nothing.
+    const windScratch = new Float32Array((WIND_SEGS + 1) * 2);
+    function streakPointAt(s: Streak, t: number, time: number, out: Float32Array, o: number): void {
       // Gentle S-curve with an eastward-traveling ripple (matches 2D feel).
-      const x = s.x + s.len * t;
-      const bend = Math.sin(t * Math.PI) * 8;
-      const wave = Math.sin(t * 6 - time * 2 + s.phase) * 3;
-      const y = s.y + bend * 0.3 + wave + Math.sin(time * s.bobFreq + s.phase) * s.bobAmp * 0.2;
-      return [x, y];
+      out[o] = s.x + s.len * t;
+      out[o + 1] = s.y
+        + Math.sin(t * Math.PI) * 8 * 0.3
+        + Math.sin(t * 6 - time * 2 + s.phase) * 3
+        + Math.sin(time * s.bobFreq + s.phase) * s.bobAmp * 0.2;
     }
     function updateWeather(dt: number): void {
       const mode = weatherOverride ?? seasonToMode(get(gameStore).season);
@@ -1034,16 +1144,16 @@
       if (weatherMode === 'snow') {
         snow.visible = true;
         wind.visible = false;
-        const W = WVIEW.x1 - WVIEW.x0;
         for (let i = 0; i < flakes.length; i++) {
           const f = flakes[i];
           if (!reducedMotion) {
             f.phase += dt * f.swayFreq;
             f.rot += f.rotSpeed * dt;
             f.y += f.speed * dt;
-            if (f.y > WVIEW.y1 + 6) {
-              f.y = WVIEW.y0 - 6;
-              f.x = WVIEW.x0 + Math.random() * W;
+            // Recycle fully below the frame back to fully above it.
+            if (f.y > viewSvg.bottom + WMARGIN) {
+              f.y = viewSvg.top - WMARGIN;
+              f.x = viewSvg.left - 40 + Math.random() * (viewW() + 80);
             }
           }
           const cxp = f.x + Math.sin(f.phase) * f.swayAmp;
@@ -1073,53 +1183,49 @@
         snow.visible = false;
         wind.visible = true;
         if (!reducedMotion) gustT += dt;
-        let v = 0;
-        for (const s of streaks) {
+        for (let si = 0; si < streaks.length; si++) {
+          const s = streaks[si];
           if (!reducedMotion) {
             const gust = 0.7 + 0.5 * (0.5 + 0.5 * Math.sin(gustT * 0.6 + s.phase));
             s.x += s.speed * gust * dt;
             s.y += Math.sin(gustT * s.bobFreq + s.phase) * s.bobAmp * dt;
-            if (s.x - s.len > WVIEW.x1) {
-              s.x = WVIEW.x0 - s.len;
-              s.y = WVIEW.y0 + Math.random() * (WVIEW.y1 - WVIEW.y0);
+            // Travel fully off the right edge before recycling back in
+            // fully off the left edge.
+            if (s.x - s.len > viewSvg.right + WMARGIN) {
+              s.x = viewSvg.left - s.len - WMARGIN;
+              s.y = viewSvg.top - 40 + Math.random() * (viewH() + 80);
             }
-            if (s.y < WVIEW.y0 - 20) s.y = WVIEW.y1 + 20;
-            else if (s.y > WVIEW.y1 + 20) s.y = WVIEW.y0 - 20;
+            if (s.y < viewSvg.top - 40) s.y = viewSvg.bottom + 40;
+            else if (s.y > viewSvg.bottom + 40) s.y = viewSvg.top - 40;
           }
-          let px = 0;
-          let py = 0;
-          let pf = 0;
+          // Sample the spine, then extrude +-half width into the ribbon.
           for (let i = 0; i <= WIND_SEGS; i++) {
-            const [qx, qy] = streakPoint(s, i / WIND_SEGS, gustT);
-            // Tapered ends via vertex brightness (2D fades the stroke
-            // gradient 0 -> alpha -> 0 across the middle 30-70%) plus the
-            // per-streak alpha (0.10-0.22) normalized against the material's.
-            const tt = i / WIND_SEGS;
-            const taper = tt <= 0.3 ? tt / 0.3 : tt >= 0.7 ? (1 - tt) / 0.3 : 1;
-            const qf = Math.min(1, (s.alpha / 0.22) * taper);
-            if (i > 0) {
-              windPos[v] = px;
-              windPos[v + 1] = -py;
-              windPos[v + 2] = 0;
-              windCol[v] = pf;
-              windCol[v + 1] = pf;
-              windCol[v + 2] = pf;
-              windPos[v + 3] = qx;
-              windPos[v + 4] = -qy;
-              windPos[v + 5] = 0;
-              windCol[v + 3] = qf;
-              windCol[v + 4] = qf;
-              windCol[v + 5] = qf;
-              v += 6;
-            }
-            px = qx;
-            py = qy;
-            pf = qf;
+            streakPointAt(s, i / WIND_SEGS, gustT, windScratch, i * 2);
+          }
+          const half = (3 + s.width * 2.5) / 2;
+          const base = si * WIND_VERTS * 3;
+          for (let i = 0; i <= WIND_SEGS; i++) {
+            const ip = Math.max(0, i - 1);
+            const inx = Math.min(WIND_SEGS, i + 1);
+            let dx = windScratch[inx * 2] - windScratch[ip * 2];
+            let dy = windScratch[inx * 2 + 1] - windScratch[ip * 2 + 1];
+            const len = Math.hypot(dx, dy) || 1;
+            dx /= len;
+            dy /= len;
+            const ox = -dy * half;
+            const oy = dx * half;
+            const cx = windScratch[i * 2];
+            const cy = windScratch[i * 2 + 1];
+            const o = base + i * 6;
+            windPos[o] = cx - ox;
+            windPos[o + 1] = -(cy - oy);
+            windPos[o + 2] = 0;
+            windPos[o + 3] = cx + ox;
+            windPos[o + 4] = -(cy + oy);
+            windPos[o + 5] = 0;
           }
         }
         windGeo.attributes.position.needsUpdate = true;
-        windGeo.attributes.color.needsUpdate = true;
-        windGeo.setDrawRange(0, (v / 3) | 0);
       }
     }
 
@@ -1157,7 +1263,7 @@
       renderer.setSize(w, h, false);
       composer.setPixelRatio(dpr);
       composer.setSize(w, h);
-      (crtPass.uniforms['uRes'].value as THREE.Vector2).set(w * dpr, h * dpr);
+
       fitCamera(w, h);
     };
     resize();
@@ -1343,18 +1449,13 @@
           mat.color.copy(base);
           mat.opacity = flooding ? 0.35 : 0.78;
         }
-        // Active shapes' borders paint last (2D paints hovered/selected on
-        // top); the scaled accent loop reads as the thicker 2.8 stroke.
-        for (const b of govBorders.get(id)!) {
-          (b.material as THREE.LineBasicMaterial).color.set(
-            isSelected ? themeVars.selected : isHovered ? themeVars.hover : themeVars.ink,
-          );
-          b.renderOrder = isHovered || isSelected ? 2 : 0;
-        }
-        for (const a of govAccents.get(id)!) {
-          const show = isHovered || isSelected;
-          a.visible = show;
-          if (show) a.material = isHovered ? accentHoverMat : accentSelMat;
+        // Base stroke for idle shapes; the wider accent ribbon (2D's 2.8px
+        // hover/selected stroke) replaces it while active.
+        const active = isHovered || isSelected;
+        for (const sm of govStrokes.get(id)!) sm.visible = !active;
+        for (const am of govAccents.get(id)!) {
+          am.visible = active;
+          if (active) am.material = isSelected ? accentSelMat : accentHoverMat;
         }
         // Icons + halo + flood + pill follow the active stat, if any.
         const recs = govIcons.get(id);
@@ -1457,6 +1558,7 @@
       dividerMat.color.set(themeVars.divider);
       accentHoverMat.color.set(themeVars.hover);
       accentSelMat.color.set(themeVars.selected);
+      strokeMat.color.set(themeVars.ink);
       crtPass.enabled = get(uiStore).crtTube;
       syncArrows();
       composer.render();
