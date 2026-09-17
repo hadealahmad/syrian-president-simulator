@@ -272,6 +272,26 @@
   let weatherOverride: 'snow' | 'wind' | null = null;
   let hostKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
+  // Dev tuning panel for the CRT lens (dev builds only). The uniforms live
+  // on the module-level CRTShader object, so the sliders drive the live
+  // pass directly; the $state mirrors exist purely for the readout. Once
+  // the values feel right, bake them into the CRTShader defaults.
+  const CRT_DEFAULTS = { uBulge: 0.12, uRadius: 0.62 };
+  let crtBulge = $state(CRT_DEFAULTS.uBulge);
+  let crtRadius = $state(CRT_DEFAULTS.uRadius);
+  // ShaderPass clones the uniforms object, so the live values must be read
+  // from the pass instance itself — this ref is set when the pass is built.
+  let crtUniforms: { uBulge: { value: number }; uRadius: { value: number } } | null = null;
+  function setCrtUniform(name: 'uBulge' | 'uRadius', v: number): void {
+    if (crtUniforms) crtUniforms[name].value = v;
+    if (name === 'uBulge') crtBulge = v;
+    else crtRadius = v;
+  }
+  function resetCrt(): void {
+    setCrtUniform('uBulge', CRT_DEFAULTS.uBulge);
+    setCrtUniform('uRadius', CRT_DEFAULTS.uRadius);
+  }
+
   // Center-lens CRT: a fisheye magnifier in the middle that relaxes to a
   // 1:1 mapping toward the edges. Implemented as a SHRINK of the sampling
   // radius (s <= 1 everywhere), so no sample can ever fall outside the
@@ -282,8 +302,8 @@
   const CRTShader = {
     uniforms: {
       tDiffuse: { value: null as THREE.Texture | null },
-      uBulge: { value: 0.12 },
-      uRadius: { value: 0.62 },
+      uBulge: { value: CRT_DEFAULTS.uBulge },
+      uRadius: { value: CRT_DEFAULTS.uRadius },
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -334,20 +354,23 @@
     // visible frame instead of popping in and out inside it.
     const viewSvg = { left: -500, right: 1500, top: -100, bottom: 980 };
 
+    // The floating command hub overlays the canvas bottom, so the map keeps
+    // a safe margin above it — the 2D map's pb-[112px] container padding,
+    // reproduced in the projection: fit the world box into (w × h−reserve)
+    // and center it in that upper region.
+    const BOTTOM_SAFE_PX = 112;
     const fitCamera = (w: number, h: number): void => {
-      const boxAspect = WORLD_W / WORLD_H;
-      const aspect = w / Math.max(1, h);
-      let halfW = WORLD_W / 2;
-      let halfH = WORLD_H / 2;
-      if (aspect > boxAspect) halfW = halfH * aspect;
-      else halfH = halfW / aspect;
+      const effH = Math.max(1, h - BOTTOM_SAFE_PX);
+      const scale = Math.min(w / WORLD_W, effH / WORLD_H);
+      const halfW = w / (2 * scale);
+      const halfH = h / (2 * scale);
       camera.left = WORLD_W / 2 - halfW;
       camera.right = WORLD_W / 2 + halfW;
-      camera.top = -WORLD_H / 2 + halfH;
-      camera.bottom = -WORLD_H / 2 - halfH;
+      camera.top = -WORLD_H / 2 + halfH * (effH / h);
+      camera.bottom = camera.top - 2 * halfH;
       camera.updateProjectionMatrix();
       // World units per screen px — snow sizes are authored in px.
-      worldPerPx = (camera.right - camera.left) / Math.max(1, w);
+      worldPerPx = 1 / scale;
       viewSvg.left = camera.left;
       viewSvg.right = camera.right;
       viewSvg.top = -camera.top;
@@ -1274,6 +1297,9 @@
     const composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     const crtPass = new ShaderPass(CRTShader);
+    // Point the dev-panel sliders at the LIVE pass uniforms (the pass cloned
+    // the shader's uniforms, so the module object is no longer authoritative).
+    crtUniforms = crtPass.uniforms as unknown as typeof crtUniforms;
     composer.addPass(crtPass);
     composer.addPass(new OutputPass());
 
@@ -1625,6 +1651,7 @@
       ro.disconnect();
       themeUnsub?.();
       hostKeyHandler = null;
+      crtUniforms = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('click', onClick);
@@ -1656,5 +1683,40 @@
       class="pointer-events-none absolute z-10 px-2 py-1 text-[11px] font-arabic text-wheat-light bg-forest-deep/95 border border-wheat-mid/40 rounded-none whitespace-nowrap"
       style="left:{tooltip.x + 14}px;top:{tooltip.y + 12}px;"
     >{tooltip.text}</div>
+  {/if}
+
+  <!-- CRT lens tuning (dev builds only): live sliders on the shader
+       uniforms. Bake the chosen values into CRT_DEFAULTS when happy. -->
+  {#if import.meta.env.DEV}
+    <div
+      dir="rtl"
+      class="absolute top-10 left-3 z-20 w-[236px] px-3 py-2.5 space-y-2.5 bg-forest-deep/95 border border-wheat-mid/40 text-wheat-light font-arabic text-[11px] shadow-xl"
+    >
+      <div class="flex items-center justify-between border-b border-charcoal-mid pb-1.5">
+        <span class="text-wheat-gold font-bold font-heading">ضبط عدسة CRT</span>
+        <button
+          onclick={resetCrt}
+          class="px-1.5 py-0.5 text-[10px] border border-charcoal-mid text-wheat-dark hover:text-wheat-gold hover:border-wheat-mid/60 cursor-pointer"
+        >إعادة الضبط</button>
+      </div>
+      <label class="block space-y-1">
+        <span class="flex justify-between"><span>قوة الانتفاخ</span><bdi class="font-mono text-wheat-gold">{crtBulge.toFixed(3)}</bdi></span>
+        <input
+          type="range" min="0" max="0.4" step="0.005" value={crtBulge}
+          oninput={(e) => setCrtUniform('uBulge', Number(e.currentTarget.value))}
+          class="w-full h-1.5 cursor-pointer"
+          style="accent-color: var(--color-wheat-gold, #d8c58a);"
+        />
+      </label>
+      <label class="block space-y-1">
+        <span class="flex justify-between"><span>نصف قطر العدسة</span><bdi class="font-mono text-wheat-gold">{crtRadius.toFixed(2)}</bdi></span>
+        <input
+          type="range" min="0.2" max="1" step="0.01" value={crtRadius}
+          oninput={(e) => setCrtUniform('uRadius', Number(e.currentTarget.value))}
+          class="w-full h-1.5 cursor-pointer"
+          style="accent-color: var(--color-wheat-gold, #d8c58a);"
+        />
+      </label>
+    </div>
   {/if}
 </div>
