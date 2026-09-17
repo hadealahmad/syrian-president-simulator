@@ -91,7 +91,7 @@
 </div>
 
 {#if $uiStore.isSettingsOpen}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 select-none font-arabic">
+  <div class="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4 select-none font-arabic">
     <button
       class="absolute inset-0 bg-black/25 cursor-default"
       onclick={closeSettings}

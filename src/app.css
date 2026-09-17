@@ -469,7 +469,12 @@
   }
 }
 .app-shell {
-  height: var(--vp-h);
+  /* The shell is the viewport and must NOT shrink with the HUD zoom: the
+     scaled HUD layer inside it visually fills it, so keeping the real
+     viewport height here (with overflow-hidden) clips nothing. Only
+     elements INSIDE the layer use the zoom-aware --vp-w/--vp-h. */
+  height: 100vh;
+  height: 100dvh;
 }
 .hud-layer-zoomed {
   position: absolute;
