@@ -311,7 +311,7 @@
 
     <!-- Mine Clearance Directive (hidden where never needed; resolved notice once cleared) -->
     {#if neededDeminingFromStart}
-    <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('demining') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div class="py-1.5 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('demining') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
       {#if canDeployDemining}
       <div
         title={demBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($20M / 8.0B SP)' : 'توجيه فرق نزع الألغام'}
@@ -371,7 +371,7 @@
         {/if}
       </div>
       {:else}
-      <div class="border-t border-charcoal-mid/80 pt-2 text-[11px] font-bold text-forest-accent leading-relaxed">
+      <div class="pt-1 text-[11px] font-bold text-forest-accent leading-relaxed">
         تم نزع النسبة الأكبر من الألغام واعتبار مشكلة الألغام محلولة في المحافظة
       </div>
       {/if}
@@ -379,7 +379,7 @@
     {/if}
 
     <!-- Power Supply Boost Priority Directive -->
-    <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('power') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+    <div class="py-1.5 space-y-2 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('power') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
       <div
         title={powerBlocked ? 'موقوف مؤقتاً: ميزانية غير كافية ($10M / 3.0B SP)' : 'أولوية تعزيز التغذية والكهرباء'}
         class="flex flex-row items-stretch text-start border bg-forest-deep/60 transition-all {isSelectedForPowerBoost ? 'border-charcoal-mid ring-2 ring-wheat-gold/80' : canAffordPowerBoost ? 'border-charcoal-mid' : SUSPENDED_CARD_CLASS}"
@@ -441,7 +441,7 @@
 
     {#if node.id === 'as_suwayda'}
       <!-- Southern Policy Command Selector -->
-      <div class="space-y-1.5 pt-2 border-t border-charcoal-mid">
+      <div class="space-y-1.5 pt-1">
         <span class="text-xs font-bold text-wheat-gold font-heading block">توجيه سياسة الجبهة الجنوبية:</span>
         <!-- Live meters with fate thresholds: integration 80 = accord ending; secession 60 = cantons, 85 = balkanization -->
         <div class="space-y-1 px-0.5 pb-1">
@@ -542,7 +542,7 @@
     {/if}
 
     {#if node.id === 'daraa' || node.id === 'quneitra'}
-      <div class="space-y-1.5 pt-2 border-t border-charcoal-mid">
+      <div class="space-y-1.5 pt-1">
         <span class="text-xs font-bold text-wheat-gold font-heading block">توجيه موقف حدود الجولان:</span>
         <!-- Live meters: tension 20 = sovereignty events; defiance 25 = Hauran events; nassib 80 = full capture -->
         <div class="space-y-1 px-0.5 pb-1">
