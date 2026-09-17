@@ -273,64 +273,19 @@
   let weatherOverride: 'snow' | 'wind' | null = null;
   let hostKeyHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  // Dev tuning panel for the CRT lens (dev builds only). The uniforms live
-  // on the module-level CRTShader object, so the sliders drive the live
-  // pass directly; the $state mirrors exist purely for the readout. Once
-  // the values feel right, bake them into the CRTShader defaults.
-  // Baked look — values tuned in the dev panel and promoted to the shipped
-  // defaults (2026-09 CRT pass): subtle lens + chroma fringing, light
-  // scanlines/mask/grain, whisper of strobe/bloom/phosphor trails.
+  // Baked CRT look — tuned over dev-panel sessions (2026-09) and promoted
+  // to shipped defaults: subtle lens + chroma fringing, light scanlines/
+  // mask/grain, whisper of strobe/bloom/phosphor trails and interference.
+  // The whole pass is killable via the Settings toggle (uiStore.crtTube).
   const CRT_DEFAULTS: Record<string, number> = {
     uBulge: 0.03, uRadius: 1,
     uChroma: 0.14, uScan: 0.25, uPixel: 0, uMask: 0.1,
     uStrobe: 0.01, uTint: 0, uNoise: 0.1, uBloom: 0.12, uGhost: 0.08,
-    uRollH: 0, uRollV: 0, uRollSpeed: 0.08, uJitter: 0,
+    uRollH: 0, uRollV: 0.01, uRollSpeed: 0.03, uJitter: 0.01,
   };
-  interface CrtSlider {
-    key: string;
-    label: string;
-    min: number;
-    max: number;
-    step: number;
-    fmt: number;
-    hint?: string;
-  }
-  const CRT_SLIDERS: CrtSlider[] = [
-    { key: 'uBulge', label: 'قوة الانتفاخ', min: 0, max: 0.4, step: 0.005, fmt: 3 },
-    { key: 'uRadius', label: 'نصف قطر العدسة', min: 0.2, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uChroma', label: 'الانحراف اللوني', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uScan', label: 'خطوط المسح', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uPixel', label: 'حجم البكسل', min: 0, max: 8, step: 1, fmt: 0, hint: '0 = معطّل' },
-    { key: 'uMask', label: 'قناع الفوسفور', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uStrobe', label: 'الوميض', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uTint', label: 'بهتان الألوان', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uNoise', label: 'التشويش', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uBloom', label: 'توهج الفوسفور', min: 0, max: 1, step: 0.01, fmt: 2 },
-    { key: 'uGhost', label: 'ذيل الفوسفور', min: 0, max: 0.97, step: 0.01, fmt: 2, hint: 'تمرير الصور' },
-    { key: 'uRollH', label: 'خط التداخل الأفقي', min: 0, max: 1, step: 0.01, fmt: 2, hint: 'يزحف عمودياً' },
-    { key: 'uRollV', label: 'خط التداخل العامودي', min: 0, max: 1, step: 0.01, fmt: 2, hint: 'يزحف أفقياً' },
-    { key: 'uRollSpeed', label: 'سرعة زحف التداخل', min: 0.02, max: 0.3, step: 0.01, fmt: 2 },
-    { key: 'uJitter', label: 'اهتزاز التزامن', min: 0, max: 1, step: 0.01, fmt: 2 },
-  ];
-  let crtValues = $state<Record<string, number>>({ ...CRT_DEFAULTS });
-  // ShaderPass clones the uniforms object, so live values must be written
-  // to the pass instance; ghost trails live on a separate AfterimagePass.
+  // ShaderPass clones the uniforms object, so live values must be written to
+  // the pass instance (used for the per-frame uTime and the resize uRes).
   let crtUniforms: Record<string, { value: number }> | null = null;
-  let crtGhostPass: { uniforms: Record<string, { value: number }>; enabled: boolean } | null = null;
-  function setCrtValue(key: string, v: number): void {
-    crtValues[key] = v;
-    if (key === 'uGhost') {
-      if (crtGhostPass) {
-        crtGhostPass.uniforms['damp'].value = v;
-        crtGhostPass.enabled = v > 0.005;
-      }
-      return;
-    }
-    if (crtUniforms) crtUniforms[key].value = v;
-  }
-  function resetCrt(): void {
-    for (const k of Object.keys(CRT_DEFAULTS)) setCrtValue(k, CRT_DEFAULTS[k]);
-  }
 
   // CRT suite. The lens is a fisheye magnifier in the middle that relaxes
   // to a 1:1 mapping toward the edges (the sampling radius only ever
@@ -1484,7 +1439,6 @@
     // until the ghost slider leaves 0.
     const ghostPass = new AfterimagePass(CRT_DEFAULTS.uGhost);
     ghostPass.enabled = false;
-    crtGhostPass = ghostPass as unknown as typeof crtGhostPass;
     composer.addPass(ghostPass);
     composer.addPass(new OutputPass());
 
@@ -1842,7 +1796,6 @@
       themeUnsub?.();
       hostKeyHandler = null;
       crtUniforms = null;
-      crtGhostPass = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('click', onClick);
@@ -1874,36 +1827,5 @@
       class="pointer-events-none absolute z-10 px-2 py-1 text-[11px] font-arabic text-wheat-light bg-forest-deep/95 border border-wheat-mid/40 rounded-none whitespace-nowrap"
       style="left:{tooltip.x + 14}px;top:{tooltip.y + 12}px;"
     >{tooltip.text}</div>
-  {/if}
-
-  <!-- CRT lens tuning (dev builds only): live sliders on the shader
-       uniforms. Bake the chosen values into CRT_DEFAULTS when happy. -->
-  {#if import.meta.env.DEV}
-    <div
-      dir="rtl"
-      class="absolute top-10 left-3 z-20 w-[236px] px-3 py-2.5 space-y-2.5 bg-forest-deep/95 border border-wheat-mid/40 text-wheat-light font-arabic text-[11px] shadow-xl"
-    >
-      <div class="flex items-center justify-between border-b border-charcoal-mid pb-1.5">
-        <span class="text-wheat-gold font-bold font-heading">ضبط عدسة CRT</span>
-        <button
-          onclick={resetCrt}
-          class="px-1.5 py-0.5 text-[10px] border border-charcoal-mid text-wheat-dark hover:text-wheat-gold hover:border-wheat-mid/60 cursor-pointer"
-        >إعادة الضبط</button>
-      </div>
-      {#each CRT_SLIDERS as s (s.key)}
-        <label class="block space-y-1">
-          <span class="flex justify-between gap-2">
-            <span>{s.label}{#if s.hint}<em class="text-wheat-dark not-italic"> · {s.hint}</em>{/if}</span>
-            <bdi class="font-mono text-wheat-gold">{crtValues[s.key].toFixed(s.fmt)}</bdi>
-          </span>
-          <input
-            type="range" min={s.min} max={s.max} step={s.step} value={crtValues[s.key]}
-            oninput={(e) => setCrtValue(s.key, Number(e.currentTarget.value))}
-            class="w-full h-1.5 cursor-pointer"
-            style="accent-color: var(--color-wheat-gold, #d8c58a);"
-          />
-        </label>
-      {/each}
-    </div>
   {/if}
 </div>
