@@ -50,7 +50,7 @@
 
 <header
   data-tour="treasury"
-  class="fixed top-0 z-20 h-[84px] bg-forest-deep shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
+  class="pointer-events-auto fixed top-0 z-20 h-[84px] bg-forest-deep shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
 >
   <div class="h-full w-full min-w-[660px] grid grid-cols-6 grid-rows-2 bg-forest-deep">
     <!-- End Turn: spans both rows, one column wide -->

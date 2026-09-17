@@ -23,7 +23,7 @@
 
 {#if $uiStore.isRestartModalOpen}
   <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
+    class="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4 select-none font-arabic"
     role="dialog"
     aria-modal="true"
   >

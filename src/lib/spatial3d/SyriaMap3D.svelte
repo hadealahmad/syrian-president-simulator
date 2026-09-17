@@ -533,10 +533,13 @@
     // The floating command hub overlays the canvas bottom, so the map keeps
     // a safe margin above it — the 2D map's pb-[112px] container padding,
     // reproduced in the projection: fit the world box into (w × h−reserve)
-    // and center it in that upper region.
+    // and center it in that upper region. The hub scales with the HUD zoom
+    // (2K screens), so the reserve scales with it too.
     const BOTTOM_SAFE_PX = 112;
     const fitCamera = (w: number, h: number): void => {
-      const effH = Math.max(1, h - BOTTOM_SAFE_PX);
+      const hudZoom =
+        Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-zoom')) || 1;
+      const effH = Math.max(1, h - BOTTOM_SAFE_PX * hudZoom);
       const scale = Math.min(w / WORLD_W, effH / WORLD_H);
       const halfW = w / (2 * scale);
       const halfH = h / (2 * scale);

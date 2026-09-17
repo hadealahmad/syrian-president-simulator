@@ -43,7 +43,7 @@
 
 <!-- System Controls: guide + settings - top left under the top bar -->
 <div
-  class="fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'left-[396px]' : 'left-3'}"
+  class="pointer-events-auto fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'left-[396px]' : 'left-3'}"
 >
   <!-- Presidential Guide Tour (icon only, stays outside the settings menu) -->
   <button
