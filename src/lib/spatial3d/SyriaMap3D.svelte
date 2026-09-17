@@ -284,6 +284,7 @@
     uBulge: 0.03, uRadius: 1,
     uChroma: 0.14, uScan: 0.25, uPixel: 0, uMask: 0.1,
     uStrobe: 0.01, uTint: 0, uNoise: 0.1, uBloom: 0.12, uGhost: 0.08,
+    uRollH: 0, uRollV: 0, uRollSpeed: 0.08, uJitter: 0,
   };
   interface CrtSlider {
     key: string;
@@ -306,6 +307,10 @@
     { key: 'uNoise', label: 'التشويش', min: 0, max: 1, step: 0.01, fmt: 2 },
     { key: 'uBloom', label: 'توهج الفوسفور', min: 0, max: 1, step: 0.01, fmt: 2 },
     { key: 'uGhost', label: 'ذيل الفوسفور', min: 0, max: 0.97, step: 0.01, fmt: 2, hint: 'تمرير الصور' },
+    { key: 'uRollH', label: 'خط التداخل الأفقي', min: 0, max: 1, step: 0.01, fmt: 2, hint: 'يزحف عمودياً' },
+    { key: 'uRollV', label: 'خط التداخل العامودي', min: 0, max: 1, step: 0.01, fmt: 2, hint: 'يزحف أفقياً' },
+    { key: 'uRollSpeed', label: 'سرعة زحف التداخل', min: 0.02, max: 0.3, step: 0.01, fmt: 2 },
+    { key: 'uJitter', label: 'اهتزاز التزامن', min: 0, max: 1, step: 0.01, fmt: 2 },
   ];
   let crtValues = $state<Record<string, number>>({ ...CRT_DEFAULTS });
   // ShaderPass clones the uniforms object, so live values must be written
@@ -347,6 +352,10 @@
       uTint: { value: CRT_DEFAULTS.uTint },
       uNoise: { value: CRT_DEFAULTS.uNoise },
       uBloom: { value: CRT_DEFAULTS.uBloom },
+      uRollH: { value: CRT_DEFAULTS.uRollH },
+      uRollV: { value: CRT_DEFAULTS.uRollV },
+      uRollSpeed: { value: CRT_DEFAULTS.uRollSpeed },
+      uJitter: { value: CRT_DEFAULTS.uJitter },
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -369,6 +378,10 @@
       uniform float uTint;
       uniform float uNoise;
       uniform float uBloom;
+      uniform float uRollH;
+      uniform float uRollV;
+      uniform float uRollSpeed;
+      uniform float uJitter;
       varying vec2 vUv;
 
       float hash(vec2 p) {
@@ -380,6 +393,43 @@
         float r = length(p);
         float s = 1.0 - uBulge * (1.0 - smoothstep(0.0, uRadius, r));
         vec2 uv = p * s + 0.5;
+
+        // ── Rolling interference (hum) bars — the wandering line(s) of an
+        // old set. Each bar is a soft dim swell with a thin bright line and
+        // a dark edge just behind it (the classic single/double hum line),
+        // and it DISPLACES the content as it passes plus adds its own
+        // light. Screen-fixed (driven by vUv), computed before sampling.
+        float rollAdd = 0.0;
+        float rollMul = 1.0;
+        if (uRollH > 0.001) {
+          float y = fract(uTime * uRollSpeed);
+          float dpx = abs(fract(uv.y - y + 0.5) - 0.5) * uRes.y;
+          float soft = exp(-dpx * dpx * 0.0025);
+          float line = exp(-dpx * dpx * 0.9);
+          float dEdge = max(dpx - 3.0, 0.0);
+          float dark = exp(-dEdge * dEdge * 1.2);
+          rollAdd += (soft * 0.35 + line * 0.9) * uRollH;
+          rollMul *= 1.0 - dark * 0.5 * uRollH;
+          uv.x += line * uRollH * 0.012 * sin(uTime * 2.0 + uv.y * 30.0);
+        }
+        if (uRollV > 0.001) {
+          float x = fract(uTime * uRollSpeed * 0.7 + 0.37);
+          float dpx = abs(fract(uv.x - x + 0.5) - 0.5) * uRes.x;
+          float soft = exp(-dpx * dpx * 0.0025);
+          float line = exp(-dpx * dpx * 0.9);
+          float dEdge = max(dpx - 3.0, 0.0);
+          float dark = exp(-dEdge * dEdge * 1.2);
+          rollAdd += (soft * 0.25 + line * 0.7) * uRollV;
+          rollMul *= 1.0 - dark * 0.4 * uRollV;
+          uv.y += line * uRollV * 0.008 * sin(uTime * 2.3 + uv.x * 24.0);
+        }
+        // Horizontal sync tearing: coarse per-row displacement, refreshed
+        // several times a second (VHS-style bands slipping sideways).
+        if (uJitter > 0.001) {
+          float row = floor(uv.y * 18.0);
+          float n = hash(vec2(row, floor(uTime * 10.0)));
+          uv.x += (n - 0.5) * uJitter * 0.02;
+        }
 
         // Pixelation: snap samples to a virtual pixel grid.
         if (uPixel > 0.5) {
@@ -425,6 +475,10 @@
           );
           col *= mix(vec3(1.0), mask, uMask);
         }
+
+        // Hum-bar light: the soft swell + bright filament brighten, and the
+        // dark edge just behind it dims (self-contained, not screen-noise).
+        col = col * rollMul + vec3(0.85, 0.92, 1.0) * rollAdd;
 
         // Strobing: field-refresh brightness flicker.
         if (uStrobe > 0.001) {
