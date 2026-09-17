@@ -10,6 +10,7 @@
   import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
   import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
   import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+  import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
   import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
   import { get } from 'svelte/store';
   import { gameStore } from '../stores/game-store';
@@ -276,34 +277,75 @@
   // on the module-level CRTShader object, so the sliders drive the live
   // pass directly; the $state mirrors exist purely for the readout. Once
   // the values feel right, bake them into the CRTShader defaults.
-  const CRT_DEFAULTS = { uBulge: 0.12, uRadius: 0.62 };
-  let crtBulge = $state(CRT_DEFAULTS.uBulge);
-  let crtRadius = $state(CRT_DEFAULTS.uRadius);
-  // ShaderPass clones the uniforms object, so the live values must be read
-  // from the pass instance itself — this ref is set when the pass is built.
-  let crtUniforms: { uBulge: { value: number }; uRadius: { value: number } } | null = null;
-  function setCrtUniform(name: 'uBulge' | 'uRadius', v: number): void {
-    if (crtUniforms) crtUniforms[name].value = v;
-    if (name === 'uBulge') crtBulge = v;
-    else crtRadius = v;
+  // One entry per tunable; all effects except the lens default to OFF so
+  // the shipped look stays as tuned until values are baked in.
+  const CRT_DEFAULTS: Record<string, number> = {
+    uBulge: 0.12, uRadius: 0.62,
+    uChroma: 0, uScan: 0, uPixel: 0, uMask: 0,
+    uStrobe: 0, uTint: 0, uNoise: 0, uBloom: 0, uGhost: 0,
+  };
+  interface CrtSlider {
+    key: string;
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+    fmt: number;
+    hint?: string;
+  }
+  const CRT_SLIDERS: CrtSlider[] = [
+    { key: 'uBulge', label: 'قوة الانتفاخ', min: 0, max: 0.4, step: 0.005, fmt: 3 },
+    { key: 'uRadius', label: 'نصف قطر العدسة', min: 0.2, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uChroma', label: 'الانحراف اللوني', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uScan', label: 'خطوط المسح', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uPixel', label: 'حجم البكسل', min: 0, max: 8, step: 1, fmt: 0, hint: '0 = معطّل' },
+    { key: 'uMask', label: 'قناع الفوسفور', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uStrobe', label: 'الوميض', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uTint', label: 'بهتان الألوان', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uNoise', label: 'التشويش', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uBloom', label: 'توهج الفوسفور', min: 0, max: 1, step: 0.01, fmt: 2 },
+    { key: 'uGhost', label: 'ذيل الفوسفور', min: 0, max: 0.97, step: 0.01, fmt: 2, hint: 'تمرير الصور' },
+  ];
+  let crtValues = $state<Record<string, number>>({ ...CRT_DEFAULTS });
+  // ShaderPass clones the uniforms object, so live values must be written
+  // to the pass instance; ghost trails live on a separate AfterimagePass.
+  let crtUniforms: Record<string, { value: number }> | null = null;
+  let crtGhostPass: { uniforms: Record<string, { value: number }>; enabled: boolean } | null = null;
+  function setCrtValue(key: string, v: number): void {
+    crtValues[key] = v;
+    if (key === 'uGhost') {
+      if (crtGhostPass) {
+        crtGhostPass.uniforms['damp'].value = v;
+        crtGhostPass.enabled = v > 0.005;
+      }
+      return;
+    }
+    if (crtUniforms) crtUniforms[key].value = v;
   }
   function resetCrt(): void {
-    setCrtUniform('uBulge', CRT_DEFAULTS.uBulge);
-    setCrtUniform('uRadius', CRT_DEFAULTS.uRadius);
+    for (const k of Object.keys(CRT_DEFAULTS)) setCrtValue(k, CRT_DEFAULTS[k]);
   }
 
-  // Center-lens CRT: a fisheye magnifier in the middle that relaxes to a
-  // 1:1 mapping toward the edges. Implemented as a SHRINK of the sampling
-  // radius (s <= 1 everywhere), so no sample can ever fall outside the
-  // frame — the image stretches edge to edge with no dark border ring, no
-  // vignette and no masking (unlike the earlier barrel-out mapping).
-  // Knobs: uBulge = center magnification (0.12 ≈ 12%), uRadius = where the
-  // lens has fully relaxed, in half-diagonal units.
+  // CRT suite. The lens is a fisheye magnifier in the middle that relaxes
+  // to a 1:1 mapping toward the edges (the sampling radius only ever
+  // shrinks, so no sample can fall outside the frame — no dark borders).
+  // Every other effect defaults to 0 (off) and is tuned live in the dev
+  // panel; bake the chosen numbers into CRT_DEFAULTS when settled.
   const CRTShader = {
     uniforms: {
       tDiffuse: { value: null as THREE.Texture | null },
+      uTime: { value: 0 },
+      uRes: { value: new THREE.Vector2(1600, 900) },
       uBulge: { value: CRT_DEFAULTS.uBulge },
       uRadius: { value: CRT_DEFAULTS.uRadius },
+      uChroma: { value: CRT_DEFAULTS.uChroma },
+      uScan: { value: CRT_DEFAULTS.uScan },
+      uPixel: { value: CRT_DEFAULTS.uPixel },
+      uMask: { value: CRT_DEFAULTS.uMask },
+      uStrobe: { value: CRT_DEFAULTS.uStrobe },
+      uTint: { value: CRT_DEFAULTS.uTint },
+      uNoise: { value: CRT_DEFAULTS.uNoise },
+      uBloom: { value: CRT_DEFAULTS.uBloom },
     },
     vertexShader: /* glsl */ `
       varying vec2 vUv;
@@ -314,15 +356,94 @@
     `,
     fragmentShader: /* glsl */ `
       uniform sampler2D tDiffuse;
+      uniform float uTime;
+      uniform vec2 uRes;
       uniform float uBulge;
       uniform float uRadius;
+      uniform float uChroma;
+      uniform float uScan;
+      uniform float uPixel;
+      uniform float uMask;
+      uniform float uStrobe;
+      uniform float uTint;
+      uniform float uNoise;
+      uniform float uBloom;
       varying vec2 vUv;
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+
       void main() {
         vec2 p = vUv - 0.5;
         float r = length(p);
         float s = 1.0 - uBulge * (1.0 - smoothstep(0.0, uRadius, r));
         vec2 uv = p * s + 0.5;
-        gl_FragColor = vec4(texture2D(tDiffuse, uv).rgb, 1.0);
+
+        // Pixelation: snap samples to a virtual pixel grid.
+        if (uPixel > 0.5) {
+          vec2 grid = uRes / uPixel;
+          uv = (floor(uv * grid) + 0.5) / grid;
+        }
+
+        vec3 col;
+        if (uChroma > 0.001) {
+          // Radial chromatic aberration: red pulled in, blue pushed out.
+          vec2 dir = (uv - 0.5) * uChroma * 0.02;
+          col.r = texture2D(tDiffuse, uv - dir).r;
+          col.g = texture2D(tDiffuse, uv).g;
+          col.b = texture2D(tDiffuse, uv + dir).b;
+        } else {
+          col = texture2D(tDiffuse, uv).rgb;
+        }
+
+        // Phosphor bloom: cheap 4-tap bright-pass glow.
+        if (uBloom > 0.001) {
+          vec2 o = 3.0 / uRes;
+          vec3 b = texture2D(tDiffuse, uv + vec2(o.x, o.y)).rgb
+                 + texture2D(tDiffuse, uv + vec2(-o.x, o.y)).rgb
+                 + texture2D(tDiffuse, uv + vec2(o.x, -o.y)).rgb
+                 + texture2D(tDiffuse, uv + vec2(-o.x, -o.y)).rgb;
+          b = max(b * 0.25 - 0.35, 0.0);
+          col += b * uBloom;
+        }
+
+        // Scanlines ride the tube's raster (they bend with the glass).
+        if (uScan > 0.001) {
+          float line = 0.5 + 0.5 * sin(uv.y * uRes.y * 3.14159);
+          col *= 1.0 - uScan * line;
+        }
+
+        // Aperture grille: vertical RGB phosphor triads.
+        if (uMask > 0.001) {
+          float m = mod(floor(uv.x * uRes.x), 3.0);
+          vec3 mask = vec3(
+            m < 1.0 ? 1.0 : 0.4,
+            m >= 1.0 && m < 2.0 ? 1.0 : 0.4,
+            m >= 2.0 ? 1.0 : 0.4
+          );
+          col *= mix(vec3(1.0), mask, uMask);
+        }
+
+        // Strobing: field-refresh brightness flicker.
+        if (uStrobe > 0.001) {
+          float f = 0.5 + 0.5 * sin(uTime * 18.0);
+          col *= 1.0 - uStrobe * 0.5 * f;
+        }
+
+        // Discoloration: worn-tube color cast + slight desaturation.
+        if (uTint > 0.001) {
+          float lum = dot(col, vec3(0.299, 0.587, 0.114));
+          col = mix(col, mix(vec3(lum), col, 0.75) * vec3(0.93, 1.0, 0.96), uTint);
+        }
+
+        // Grain / static.
+        if (uNoise > 0.001) {
+          float n = hash(uv * uRes + fract(uTime) * 91.7);
+          col += (n - 0.5) * uNoise * 0.15;
+        }
+
+        gl_FragColor = vec4(col, 1.0);
       }
     `,
   };
@@ -1301,6 +1422,12 @@
     // the shader's uniforms, so the module object is no longer authoritative).
     crtUniforms = crtPass.uniforms as unknown as typeof crtUniforms;
     composer.addPass(crtPass);
+    // Phosphor trails: AfterimagePass feedback after the CRT shading, off
+    // until the ghost slider leaves 0.
+    const ghostPass = new AfterimagePass(CRT_DEFAULTS.uGhost);
+    ghostPass.enabled = false;
+    crtGhostPass = ghostPass as unknown as typeof crtGhostPass;
+    composer.addPass(ghostPass);
     composer.addPass(new OutputPass());
 
     // Smooth responsive resize (2D-map behavior). Buffer resizes are
@@ -1332,6 +1459,9 @@
       }
       renderer.setSize(curW, curH, false);
       composer.setSize(curW, curH);
+      if (crtUniforms?.['uRes']) {
+        (crtUniforms['uRes'].value as unknown as THREE.Vector2).set(curW * curDpr, curH * curDpr);
+      }
       fitCamera(curW, curH);
     };
     requestResize();
@@ -1638,6 +1768,8 @@
       accentSelMat.color.set(themeVars.selected);
       strokeMat.color.set(themeVars.ink);
       crtPass.enabled = get(uiStore).crtTube;
+      crtUniforms!['uTime'].value = now / 1000;
+      ghostPass.enabled = crtPass.enabled && ghostPass.uniforms['damp'].value > 0.005;
       syncArrows();
       applyResize();
       composer.render();
@@ -1652,6 +1784,7 @@
       themeUnsub?.();
       hostKeyHandler = null;
       crtUniforms = null;
+      crtGhostPass = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('click', onClick);
@@ -1699,24 +1832,20 @@
           class="px-1.5 py-0.5 text-[10px] border border-charcoal-mid text-wheat-dark hover:text-wheat-gold hover:border-wheat-mid/60 cursor-pointer"
         >إعادة الضبط</button>
       </div>
-      <label class="block space-y-1">
-        <span class="flex justify-between"><span>قوة الانتفاخ</span><bdi class="font-mono text-wheat-gold">{crtBulge.toFixed(3)}</bdi></span>
-        <input
-          type="range" min="0" max="0.4" step="0.005" value={crtBulge}
-          oninput={(e) => setCrtUniform('uBulge', Number(e.currentTarget.value))}
-          class="w-full h-1.5 cursor-pointer"
-          style="accent-color: var(--color-wheat-gold, #d8c58a);"
-        />
-      </label>
-      <label class="block space-y-1">
-        <span class="flex justify-between"><span>نصف قطر العدسة</span><bdi class="font-mono text-wheat-gold">{crtRadius.toFixed(2)}</bdi></span>
-        <input
-          type="range" min="0.2" max="1" step="0.01" value={crtRadius}
-          oninput={(e) => setCrtUniform('uRadius', Number(e.currentTarget.value))}
-          class="w-full h-1.5 cursor-pointer"
-          style="accent-color: var(--color-wheat-gold, #d8c58a);"
-        />
-      </label>
+      {#each CRT_SLIDERS as s (s.key)}
+        <label class="block space-y-1">
+          <span class="flex justify-between gap-2">
+            <span>{s.label}{#if s.hint}<em class="text-wheat-dark not-italic"> · {s.hint}</em>{/if}</span>
+            <bdi class="font-mono text-wheat-gold">{crtValues[s.key].toFixed(s.fmt)}</bdi>
+          </span>
+          <input
+            type="range" min={s.min} max={s.max} step={s.step} value={crtValues[s.key]}
+            oninput={(e) => setCrtValue(s.key, Number(e.currentTarget.value))}
+            class="w-full h-1.5 cursor-pointer"
+            style="accent-color: var(--color-wheat-gold, #d8c58a);"
+          />
+        </label>
+      {/each}
     </div>
   {/if}
 </div>
