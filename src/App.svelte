@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import SyriaMap from './lib/spatial3d/SyriaMap.svelte';
+  import SyriaMap from './lib/spatial3d/SyriaMap3D.svelte';
   import TopRibbon from './lib/ui/TopRibbon.svelte';
   import FloatingCommandDeck from './lib/ui/FloatingCommandDeck.svelte';
   import CommandHub from './lib/ui/CommandHub.svelte';
