@@ -125,7 +125,7 @@
     <!-- Card -->
     <div
       bind:this={popEl}
-      class="absolute w-[348px] max-w-[calc(100vw-24px)] bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
+      class="absolute w-[348px] max-w-[calc(100vw-24px)] modal-card scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
       style="left:{pop.x}px;top:{pop.y}px;"
     >
       <div class="flex items-center justify-between px-4 pt-3">

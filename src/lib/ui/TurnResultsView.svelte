@@ -48,7 +48,7 @@
       </div>
     </div>
 
-    <div class="flex-1 min-h-0 overflow-y-auto space-y-5 py-4 pr-1">
+    <div class="scroll-area flex-1 min-h-0 overflow-y-auto space-y-5 py-4 pr-1">
       <!-- Financial Ledger -->
       <div class="space-y-2">
         <h3 class="text-xs text-wheat-gold font-semibold block font-heading">الميزان المالي للدولة:</h3>

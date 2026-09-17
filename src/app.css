@@ -330,7 +330,6 @@
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: var(--color-forest-deep);
 }
@@ -403,4 +402,43 @@
   .gloss-hover::before {
     display: none;
   }
+}
+
+/* Scrollable panels & dialogs (mobile + desktop): momentum touch scrolling,
+   contained scroll chaining, thin themed scrollbar. Unlayered so it wins
+   over utilities; apply alongside overflow-y-auto hosts. */
+.scroll-area {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+/* Dynamic viewport sizing (mobile URL-bar safe), vh first as fallback.
+   Unlayered declarations override the h-screen / h-[70vh] utilities. */
+.app-shell {
+  height: 100vh;
+  height: 100dvh;
+}
+.drawer-full {
+  height: 100vh;
+  height: 100dvh;
+}
+.cmd-panel {
+  max-height: calc(100vh - 240px);
+  max-height: calc(100dvh - 240px);
+}
+.modal-tall {
+  height: 70vh;
+  height: 70dvh;
+}
+.modal-confirm {
+  height: 56vh;
+  height: 56dvh;
+}
+.modal-card {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
 }

@@ -24,7 +24,7 @@
   });
 </script>
 
-<main class="relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
+<main class="app-shell relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
   <!-- 2D Sovereign Vector Map Viewport (pushed left of the stats drawer) -->
   <div data-tour="map" class="fixed top-[84px] bottom-0 left-0 overflow-hidden z-10 transition-all duration-300 ease-in-out {statsOpen ? 'right-[390px]' : 'right-0'}">
     <SyriaMap />

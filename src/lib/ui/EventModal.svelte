@@ -128,10 +128,10 @@
     class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >
     <div
-      class="pointer-events-auto relative h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light modal-enter"
+      class="pointer-events-auto relative modal-tall h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light modal-enter"
     >
       <!-- Content -->
-      <div class="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
+      <div class="scroll-area p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
         <div class="border-b border-charcoal-mid pb-3 shrink-0">
           <div class="flex items-center gap-2">
             <GameIcon name="siren" cls="w-5 h-5 shrink-0 text-umber-crimson" />
@@ -276,7 +276,7 @@
           class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 select-none font-arabic"
         >
           <div
-            class="h-[56vh] aspect-[3/4] max-w-[90%] bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light overflow-y-auto"
+            class="modal-confirm h-[56vh] aspect-[3/4] max-w-[90%] bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light scroll-area overflow-y-auto"
           >
             <!-- Confirmation Header -->
             <div class="border-b border-charcoal-mid pb-3">

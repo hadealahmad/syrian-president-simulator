@@ -136,7 +136,7 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >
     <div
-      class="pointer-events-auto h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-green shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col overflow-hidden transition-all duration-500 ease-out {$uiStore.turnFlowStage === 'events' ? 'scale-[0.93] -translate-x-12 pointer-events-none' : ''}"
+      class="pointer-events-auto modal-tall h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-green shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col overflow-hidden transition-all duration-500 ease-out {$uiStore.turnFlowStage === 'events' ? 'scale-[0.93] -translate-x-12 pointer-events-none' : ''}"
       aria-hidden={$uiStore.turnFlowStage === 'events'}
       inert={$uiStore.turnFlowStage === 'events'}
     >
@@ -188,7 +188,7 @@
       </div>
 
       <!-- Action Items Ledger List (Scrollable) -->
-      <div class="space-y-2 overflow-y-auto flex-1 min-h-0 pr-1 text-xs">
+      <div class="scroll-area space-y-2 overflow-y-auto flex-1 min-h-0 pr-1 text-xs">
         {#if !hasAnyActions}
           <div class="p-8 text-center bg-charcoal-surface border border-charcoal-mid rounded-none text-wheat-dark space-y-2">
             <p class="font-heading text-sm text-wheat-light">لم يتم اعتماد أي قرارات أو تعديل في السياسات لهذا الدور</p>

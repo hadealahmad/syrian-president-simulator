@@ -28,7 +28,7 @@
     aria-modal="true"
   >
     <div
-      class="w-[min(80vw,280px)] min-w-[200px] min-h-[280px] aspect-[3/4] overflow-y-auto bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
+      class="w-[min(80vw,280px)] min-w-[200px] min-h-[280px] aspect-[3/4] scroll-area overflow-y-auto modal-card bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl p-6 space-y-5 text-wheat-light rounded-none flex flex-col"
     >
       <!-- Header -->
       <div class="border-b border-charcoal-mid pb-3">

@@ -160,8 +160,8 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
                no JS chasing, no stagger. -->
           <div
             data-cmd-panel
-            class="pointer-events-auto absolute bottom-[calc(100%+8px)] left-1/2 overflow-y-auto bg-forest-deep border-2 border-wheat-mid/70 shadow-[0_10px_50px_rgba(0,0,0,0.85)] rounded-none p-4 text-wheat-light {btn.id === 'assets' && assetsDone ? 'mb-4' : ''}"
-            style="width: min(400px, 94vw); max-height: calc(100vh - 240px); margin-left: calc(min(400px, 94vw) / -2{edgeShift ? ` + ${edgeShift}px` : ''});"
+            class="cmd-panel pointer-events-auto absolute bottom-[calc(100%+8px)] left-1/2 scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/70 shadow-[0_10px_50px_rgba(0,0,0,0.85)] rounded-none p-4 text-wheat-light {btn.id === 'assets' && assetsDone ? 'mb-4' : ''}"
+            style="width: min(400px, 94vw); margin-left: calc(min(400px, 94vw) / -2{edgeShift ? ` + ${edgeShift}px` : ''});"
           >
             {#if active === 'emergency'}
               <EmergencyPanel />

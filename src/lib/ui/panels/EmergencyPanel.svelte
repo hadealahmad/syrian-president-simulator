@@ -402,7 +402,7 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
       tabindex="-1"
       aria-label="إلغاء"
     ></button>
-    <div class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none">
+    <div class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none scroll-area overflow-y-auto modal-card">
       {#if loan}
         <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{loan.titleAr}</h3>
         <p class="text-[11px] text-wheat-dark leading-relaxed">{loan.lenderAr} — {loan.concessionSummaryAr}</p>
