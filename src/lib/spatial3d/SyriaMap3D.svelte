@@ -1,9 +1,10 @@
-<!-- Three.js map spike: same stores, same data, WebGL renderer.
-     Scope: static scene (governorates + neighbors + labels) with raycast
-     hover/click wired into uiStore, plus a fullscreen CRT pass (barrel +
-     vignette + scanlines). Weather, migration arrows, and stat icons come
-     later IF this proves 60fps. Hit-testing parity: click gov = select,
-     click empty = deselect (mirrors SyriaMap.svelte). -->
+<!-- Three.js map renderer — full parity with SyriaMap.svelte (2D):
+     regional context + governorates + health ramp, stat clusters with
+     hover flood / halo / % pill, migration arrows with tooltips, seasonal
+     weather (wind lines, snow quads), keyboard shape navigation, and the
+     CRT tube as a post-process pass (deck toggle honors uiStore.crtTube).
+     Same stores, same selectors, same interaction contract as the 2D map:
+     click gov = select, click empty = deselect, Esc clears. -->
 <script lang="ts">
   import * as THREE from 'three';
   import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -16,7 +17,7 @@
   import { uiStore } from '../stores/ui-store';
   import { theme } from '../stores/theme-store';
   import { SYRIA_2D_GOVERNORATES } from './syria-2d-paths';
-  import { REGION_NEAR, REGION_FAR, REGION_FAR_LABELS, REGION_SEA } from './syria-region-context';
+  import { REGION_NEAR, REGION_FAR, REGION_FAR_LABELS } from './syria-region-context';
   import { GLYPHS } from '../ui/GameIcon.svelte';
   import type { GovernorateNode, MigrationFlow } from '../engine/types';
 
@@ -25,7 +26,7 @@
   interface ThemeVars {
     ok: string; warn: string; danger: string; midGold: string;
     ink: string; shadow: string; selected: string; hover: string;
-    arrowPred: string;
+    arrowPred: string; divider: string;
   }
   function readThemeVars(): ThemeVars {
     const cs = getComputedStyle(document.documentElement);
@@ -40,6 +41,7 @@
       selected: v('--map-selected-stroke', '#b9a779'),
       hover: v('--map-hover-stroke', '#e6edf3'),
       arrowPred: v('--map-arrow-pred', '#e6edf3'),
+      divider: v('--color-charcoal-white', '#ffffff'),
     };
   }
 
@@ -183,6 +185,12 @@
     ];
   }
 
+  // Tooltip + test-only weather override live outside the WebGL effect
+  // (plain Svelte reactivity; the effect reads them through closures).
+  let tooltip = $state<{ x: number; y: number; text: string } | null>(null);
+  let weatherOverride: 'snow' | 'wind' | null = null;
+  let hostKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+
   const CRTShader = {
     uniforms: {
       tDiffuse: { value: null as THREE.Texture | null },
@@ -230,8 +238,12 @@
     renderer.domElement.style.height = '100%';
 
     const scene = new THREE.Scene();
-    // Ortho camera mirroring the 2D viewBox (y negated frame).
+    // Ortho camera mirroring the 2D viewBox (y negated frame). Parked at
+    // z=10 looking down -z: content lives at z -1..6, and raycaster rays
+    // start at the camera — at z=0 they began INSIDE the content stack and
+    // missed everything above it (icons, arrows, labels all unhittable).
     const camera = new THREE.OrthographicCamera(0, WORLD_W, 0, -WORLD_H, -10, 10);
+    camera.position.z = 10;
 
     const fitCamera = (w: number, h: number): void => {
       const boxAspect = WORLD_W / WORLD_H;
@@ -245,20 +257,42 @@
       camera.top = -WORLD_H / 2 + halfH;
       camera.bottom = -WORLD_H / 2 - halfH;
       camera.updateProjectionMatrix();
+      // World units per screen px — snow sizes are authored in px.
+      worldPerPx = (camera.right - camera.left) / Math.max(1, w);
     };
 
-    // Sea backdrop.
+    // ── Stack discipline (hard-won): after the camera moved to z=10 (needed
+    // for raycasting), flat geometry below z≈0 does not rasterize with this
+    // ortho setup — a z-ladder test clipped -0.1 but drew 0.2+. So every
+    // flat layer lives at z=0.5 (the governorates stay at their proven 0)
+    // and ALL layering is explicit renderOrder + depth-write control:
+    //   sea -100 · countries -90 · snow -80 · shadow -70 · wind -60 ·
+    //   governorates 0 · flood 3 · divider 4 · arrows 5 · stats/UI 7-10.
+    // The sea is the only opaque object (renders first); everything else is
+    // transparent and sorted by renderOrder.
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(12000, 12000),
-      new THREE.MeshBasicMaterial({ color: 0x0d323c }),
+      new THREE.MeshBasicMaterial({ color: 0x0d323c, transparent: true, opacity: 0.6, depthWrite: false }),
     );
-    sea.position.set(500, -440, -2);
+    sea.position.set(500, -440, 0.5);
+    sea.renderOrder = -100;
     scene.add(sea);
 
     // Neighbor lands (flat, decorative for now — data-region ids kept).
+    // Transparent pass, no depth writes: fills and border lines draw in
+    // creation order, everything above them paints over freely.
     for (const n of [...REGION_FAR, ...REGION_NEAR]) {
-      const g = shapeMesh(parsePaths(n.path), 0x221b11, 0.92, -1);
+      const g = shapeMesh(parsePaths(n.path), 0x221b11, 0.92, 0.5);
       g.userData.regionId = n.id;
+      g.traverse((o) => {
+        o.renderOrder = -90;
+        const mesh = o as THREE.Mesh;
+        const mat = mesh.material as THREE.Material | undefined;
+        if (mat) {
+          mat.transparent = true;
+          mat.depthWrite = false;
+        }
+      });
       scene.add(g);
     }
 
@@ -305,8 +339,10 @@
             color: new THREE.Color(themeVars.shadow),
             transparent: true,
             opacity: 0.3,
+            depthWrite: false,
           });
-          dark.position.set(2, -6, -0.4);
+          dark.position.set(2, -6, 0.5);
+          dark.renderOrder = -70;
           dark.userData.govId = '';
           shadowGroup.add(dark);
         } else if (child instanceof THREE.LineLoop) {
@@ -466,11 +502,16 @@
     floodPlane.renderOrder = 3;
     floodPlane.visible = false;
     scene.add(floodPlane);
+    // Divider: clipped to the governorate shape like the 2D map (the same
+    // mask drives its alpha along the fill-level row; a full-width line
+    // would run out across the sea).
     const dividerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false });
-    const divider = new THREE.Mesh(new THREE.PlaneGeometry(1, 3), dividerMat);
+    const dividerGeo = new THREE.PlaneGeometry(1, 3);
+    const divider = new THREE.Mesh(dividerGeo, dividerMat);
     divider.renderOrder = 4;
     divider.visible = false;
     scene.add(divider);
+    const dividerUv = dividerGeo.attributes.uv as THREE.BufferAttribute;
 
     // --- Internal migration arrows (gov-to-gov). Ported routing from
     // SyriaMap.svelte: tries offset/bow side combos, keeps the path farthest
@@ -542,6 +583,8 @@
       width: number;
       history: number;
       predicted: number;
+      fromId: string;
+      toId: string;
     }
     function computeArrows(): MigArrow[] {
       const ledger: Record<string, number> = get(gameStore).migrationLedger ?? {};
@@ -577,6 +620,8 @@
           width: Math.min(3.5, Math.max(1, Math.sqrt(total) / 34)),
           history: a.history,
           predicted: a.predicted,
+          fromId: a.fromId,
+          toId: a.toId,
         });
       }
       arrows.sort((x, y) => y.history + y.predicted - (x.history + x.predicted));
@@ -602,6 +647,13 @@
     const arrowPredMat = new THREE.MeshBasicMaterial({
       color: new THREE.Color(themeVars.arrowPred), transparent: true, opacity: 0.6, depthWrite: false, alphaMap: dashTex,
     });
+    // Invisible fat hit-ribbons (arrows are 1–3.5u thin; 14u is hoverable).
+    // colorWrite off + no depth write: zero visual, still raycastable.
+    const arrowHitMat = new THREE.MeshBasicMaterial({
+      transparent: true, opacity: 0, depthWrite: false, colorWrite: false, depthTest: false,
+    });
+    const arrowHitMeshes: THREE.Mesh[] = [];
+    const arrowHitMeta: { fromId: string; toId: string; history: number; predicted: number }[] = [];
     const headGeo = new THREE.ConeGeometry(7, 16, 6);
     const headHistMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeVars.midGold), transparent: true, opacity: 0.8, depthWrite: false });
     const headPredMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(themeVars.arrowPred), transparent: true, opacity: 0.85, depthWrite: false });
@@ -649,18 +701,30 @@
       if (!show) return;
       const ledger = get(gameStore).migrationLedger ?? {};
       const predicted: MigrationFlow[] = get(projectedTurnStore).migrationFlows ?? [];
-      const sig = `${turn}|${Object.keys(ledger).length}|${predicted.length}|${predicted.reduce((a, f) => a + f.count, 0)}`;
+      // Value-complete signature: every ledger entry + every predicted flow
+      // (a key-count-only signature missed same-shape different-value edits).
+      const sig =
+        `${turn}|` +
+        Object.entries(ledger).map(([k, v]) => `${k}:${v}`).join(',') + '|' +
+        predicted.map((f) => `${f.fromId}>${f.toId}:${f.count}`).join(',');
       if (sig === arrowSig) return;
       arrowSig = sig;
       while (arrowGroup.children.length > 0) {
         const child = arrowGroup.children.pop()!;
-        // Head geometry is shared — only ribbons own their geometry.
+        // Head geometry is shared — everything else owns its geometry.
         if (child instanceof THREE.Mesh && child.geometry !== headGeo) child.geometry.dispose();
       }
+      arrowHitMeshes.length = 0;
+      arrowHitMeta.length = 0;
       for (const a of computeArrows()) {
         const end = a.pts[a.pts.length - 1];
         const prev = a.pts[a.pts.length - 2];
         const tangent = new THREE.Vector3(end[0] - prev[0], end[1] - prev[1], 0).normalize();
+        const hit = new THREE.Mesh(ribbonGeometry(a.pts, 14), arrowHitMat);
+        hit.renderOrder = 5;
+        arrowGroup.add(hit);
+        arrowHitMeshes.push(hit);
+        arrowHitMeta.push({ fromId: a.fromId, toId: a.toId, history: a.history, predicted: a.predicted });
         const headScale = 0.6 + a.width * 0.15;
         if (a.history > 0) {
           arrowGroup.add(new THREE.Mesh(ribbonGeometry(a.pts, a.width), arrowHistMat));
@@ -726,37 +790,60 @@
         flakes = [];
       }
     }
-    // Soft round flake sprite (one shared texture).
-    const flakeCanvas = document.createElement('canvas');
-    flakeCanvas.width = 32;
-    flakeCanvas.height = 32;
-    {
-      const ctx = flakeCanvas.getContext('2d')!;
-      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    // Snow: ONE plain Mesh holding all flake quads (positions rewritten per
+    // frame, texture from canvas). Hard-won context: THREE.Points, its
+    // LineSegments cross variant, InstancedMesh, and Sprite pools were all
+    // tried — sprites z-clip below z≈0 with this ortho camera and the others
+    // never rasterized. Plain meshes are verified at every depth (sea -2,
+    // flood 0.2, governorates 0), so the flakes are quads in one Mesh at the
+    // wind lines' z — between the country layer and the governorates, the
+    // exact slot the 2D map paints weather into. Flake size is authored in
+    // px and converted through worldPerPx so it reads the same on any
+    // viewport (per-flake opacity variance is dropped: single material).
+    const SNOW_MAX = 130;
+    const flakeTex = (() => {
+      const c = document.createElement('canvas');
+      c.width = 64;
+      c.height = 64;
+      const ctx = c.getContext('2d')!;
+      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+      grad.addColorStop(0.45, 'rgba(255,255,255,0.65)');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 32, 32);
-    }
-    const flakeTex = new THREE.CanvasTexture(flakeCanvas);
-    const SNOW_MAX = 130;
+      ctx.fillRect(0, 0, 64, 64);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
     const snowGeo = new THREE.BufferGeometry();
-    const snowPos = new Float32Array(SNOW_MAX * 3);
-    const snowCol = new Float32Array(SNOW_MAX * 3);
+    const snowPos = new Float32Array(SNOW_MAX * 4 * 3);
+    const snowUv = new Float32Array(SNOW_MAX * 4 * 2);
+    const snowIdx: number[] = [];
+    for (let i = 0; i < SNOW_MAX; i++) {
+      const v = i * 4;
+      snowUv.set([0, 1, 1, 1, 0, 0, 1, 0], i * 8);
+      // TL, BL, TR then TR, BL, BR — CCW, front-facing toward the camera.
+      snowIdx.push(v, v + 2, v + 1, v + 1, v + 2, v + 3);
+    }
     snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
-    snowGeo.setAttribute('color', new THREE.BufferAttribute(snowCol, 3));
-    // Additive blending: per-flake brightness doubles as alpha (dark =
-    // invisible), so no custom shader is needed for varied flake opacity.
-    const snowMat = new THREE.PointsMaterial({
-      size: 6, sizeAttenuation: false, map: flakeTex, transparent: true,
-      vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true,
+    snowGeo.setAttribute('uv', new THREE.BufferAttribute(snowUv, 2));
+    snowGeo.setIndex(snowIdx);
+    // Layering is by DRAW ORDER, not depth: quads at z<≈0.5 clip away under
+    // this ortho setup (verified with a z-ladder), and depth-testing is the
+    // wrong tool anyway. renderOrder -1 + depthTest off paints the flakes
+    // right after the country layer; every later pass (governorates, shadow,
+    // arrows, icons, labels, flood) draws over them — the exact 2D stacking.
+    const snowMat = new THREE.MeshBasicMaterial({
+      map: flakeTex, transparent: true, opacity: 0.55, depthWrite: false, depthTest: false,
     });
-    const snow = new THREE.Points(snowGeo, snowMat);
-    snow.position.z = -0.5;
+    const snow = new THREE.Mesh(snowGeo, snowMat);
+    snow.position.z = 0.5;
+    snow.renderOrder = -80;
     snow.frustumCulled = false;
     snow.visible = false;
     scene.add(snow);
+    let worldPerPx = 1;
     // Wind: one LineSegments, 7 segments per streak, rewritten per frame.
     const WIND_SEGS = 7;
     const WIND_MAX = 22;
@@ -767,7 +854,8 @@
       windGeo,
       new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false }),
     );
-    wind.position.z = -0.5;
+    wind.position.set(0, 0, 0.5);
+    wind.renderOrder = -60;
     wind.frustumCulled = false;
     wind.visible = false;
     scene.add(wind);
@@ -786,7 +874,7 @@
       return [x, y];
     }
     function updateWeather(dt: number): void {
-      const mode = seasonToMode(get(gameStore).season);
+      const mode = weatherOverride ?? seasonToMode(get(gameStore).season);
       if (mode !== weatherMode) {
         weatherMode = mode;
         seedWeather(mode);
@@ -805,16 +893,21 @@
               f.x = WVIEW.x0 + Math.random() * W;
             }
           }
-          snowPos[i * 3] = f.x + Math.sin(f.phase) * f.swayAmp;
-          snowPos[i * 3 + 1] = -(f.y);
-          snowPos[i * 3 + 2] = -0.5;
-          snowCol[i * 3] = f.alpha;
-          snowCol[i * 3 + 1] = f.alpha;
-          snowCol[i * 3 + 2] = f.alpha;
+          const cxp = f.x + Math.sin(f.phase) * f.swayAmp;
+          const cyp = -(f.y);
+          const hz = ((f.r * 2.4 + 1.5) * worldPerPx) / 2;
+          const o = i * 12;
+          snowPos[o] = cxp - hz;
+          snowPos[o + 1] = cyp + hz;
+          snowPos[o + 3] = cxp + hz;
+          snowPos[o + 4] = cyp + hz;
+          snowPos[o + 6] = cxp - hz;
+          snowPos[o + 7] = cyp - hz;
+          snowPos[o + 9] = cxp + hz;
+          snowPos[o + 10] = cyp - hz;
         }
         snowGeo.attributes.position.needsUpdate = true;
-        snowGeo.attributes.color.needsUpdate = true;
-        snowGeo.setDrawRange(0, flakes.length);
+        snowGeo.setDrawRange(0, flakes.length * 6);
       } else {
         snow.visible = false;
         wind.visible = true;
@@ -912,29 +1005,96 @@
       return { govId, statKey: null };
     };
 
+    const fmtPeople = (n: number): string => Math.round(n).toLocaleString('en-US');
+    const govNameAr = (id: string): string => get(gameStore).governorates[id]?.nameAr ?? id;
+    const pickArrow = (e: PointerEvent): { fromId: string; toId: string; history: number; predicted: number } | null => {
+      if (!get(uiStore).showMigrationArrows || arrowHitMeshes.length === 0) return null;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.set(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      );
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(arrowHitMeshes, false);
+      if (hits.length === 0) return null;
+      const idx = arrowHitMeshes.indexOf(hits[0].object as THREE.Mesh);
+      return idx >= 0 ? arrowHitMeta[idx] : null;
+    };
+
     const onMove = (e: PointerEvent): void => {
       const hit = pick(e);
       hovered = hit.govId;
       hoveredStat = hit.govId && hit.statKey ? { govId: hit.govId, key: hit.statKey } : null;
+      if (hoveredStat) {
+        tooltip = null;
+      } else {
+        const a = pickArrow(e);
+        if (a) {
+          const rect = renderer.domElement.getBoundingClientRect();
+          tooltip = {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top,
+            text: `نزوح داخلي من ${govNameAr(a.fromId)} إلى ${govNameAr(a.toId)} — الدورات السابقة: ${fmtPeople(a.history)}، المتوقع: ${fmtPeople(a.predicted)}`,
+          };
+        } else {
+          tooltip = null;
+        }
+      }
       renderer.domElement.style.cursor = hit.govId ? 'pointer' : 'default';
     };
-    const onClick = (e: PointerEvent): void => {
-      const id = pick(e).govId;
+    const activateGov = (id: string): void => {
       const current = get(uiStore).selectedGovernorateId;
-      if (!id) {
-        uiStore.selectGovernorate(null);
-        uiStore.closeCommandPanel();
-      } else if (current === id) {
+      if (current === id) {
         uiStore.selectGovernorate(null);
         if (get(uiStore).activeCommandPanel === 'provincial') uiStore.closeCommandPanel();
       } else {
         uiStore.selectGovernorate(id);
       }
     };
+    const onClick = (e: PointerEvent): void => {
+      const id = pick(e).govId;
+      if (!id) {
+        uiStore.selectGovernorate(null);
+        uiStore.closeCommandPanel();
+      } else {
+        activateGov(id);
+      }
+    };
+    // Keyboard shape navigation: arrows move a shared highlight, Enter/Space
+    // activates, Escape clears. (Pointer users get hover; hub buttons cover
+    // the rest — same contract as the 2D map's note.)
+    const onKey = (e: KeyboardEvent): void => {
+      const ids = SYRIA_2D_GOVERNORATES.map((g) => g.id);
+      const anchor = hovered ?? get(uiStore).selectedGovernorateId;
+      const idx = anchor ? ids.indexOf(anchor) : -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        hovered = ids[(idx + 1 + ids.length) % ids.length];
+        hoveredStat = null;
+        tooltip = null;
+        e.preventDefault();
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        hovered = ids[(idx - 1 + ids.length) % ids.length];
+        hoveredStat = null;
+        tooltip = null;
+        e.preventDefault();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        if (hovered) activateGov(hovered);
+        e.preventDefault();
+      } else if (e.key === 'Escape') {
+        hovered = null;
+        hoveredStat = null;
+        tooltip = null;
+        uiStore.selectGovernorate(null);
+        uiStore.closeCommandPanel();
+      }
+    };
     renderer.domElement.addEventListener('pointermove', onMove);
     renderer.domElement.addEventListener('click', onClick);
+    hostKeyHandler = onKey;
 
-    // Test hook (drives the same pick path as real pointer events).
+    // Minimal test surface for headless screenshot verification (same pick
+    // path as real pointer events; iconScreen + debugSeason exist so tooling
+    // can place exact hovers and preview weather out of season).
     (window as unknown as Record<string, unknown>).__syria3d = {
       hover: (x: number, y: number): PickHit => {
         const hit = pick({ clientX: x, clientY: y } as PointerEvent);
@@ -945,6 +1105,9 @@
       clear: (): void => {
         hovered = null;
         hoveredStat = null;
+      },
+      debugSeason: (m: 'snow' | 'wind' | null): void => {
+        weatherOverride = m;
       },
       iconScreen: (govId: string, idx: number): [number, number] | null => {
         const rec = govIcons.get(govId)?.[idx];
@@ -1053,6 +1216,17 @@
           if (showDivider) {
             divider.scale.set(bw, 1, 1);
             divider.position.set(minx + bw / 2, fillY, 0.25);
+            // Sample the mask along the fill-level row (same v as the flood
+            // plane's top edge) so the line only spans the shape.
+            dividerUv.setY(0, frac);
+            dividerUv.setY(1, frac);
+            dividerUv.setY(2, frac);
+            dividerUv.setY(3, frac);
+            dividerUv.needsUpdate = true;
+            if (dividerMat.alphaMap !== tex) {
+              dividerMat.alphaMap = tex;
+              dividerMat.needsUpdate = true;
+            }
           }
           const key = `${id}|${st.key}|${Math.round(st.pct)}|${st.color}`;
           if (key !== pillKey) {
@@ -1071,11 +1245,13 @@
         haloRing.visible = false;
         pillKey = '';
       }
-      // Arrow theme colors stay live; rebuilds happen inside on data change.
+      // Theme-driven colors stay live; arrow rebuilds happen on data change.
       arrowHistMat.color.set(themeVars.midGold);
       headHistMat.color.set(themeVars.midGold);
       arrowPredMat.color.set(themeVars.arrowPred);
       headPredMat.color.set(themeVars.arrowPred);
+      dividerMat.color.set(themeVars.divider);
+      crtPass.enabled = get(uiStore).crtTube;
       syncArrows();
       composer.render();
       raf = requestAnimationFrame(frame);
@@ -1087,6 +1263,7 @@
       cancelAnimationFrame(raf);
       ro.disconnect();
       themeUnsub();
+      hostKeyHandler = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('click', onClick);
@@ -1104,9 +1281,19 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -- Canvas viewport: keyboard shape navigation via arrows/Enter/Escape; hub buttons cover the rest. -->
 <div
   bind:this={host}
-  class="relative w-full h-full overflow-hidden select-none"
+  class="relative w-full h-full overflow-hidden select-none focus:outline-none focus-visible:outline-2 focus-visible:outline-wheat-gold"
   role="region"
   aria-label="الخارطة الاستراتيجية للجمهورية العربية السورية"
-></div>
+  tabindex={0}
+  onkeydown={(e: KeyboardEvent) => hostKeyHandler?.(e)}
+>
+  {#if tooltip}
+    <div
+      class="pointer-events-none absolute z-10 px-2 py-1 text-[11px] font-arabic text-wheat-light bg-forest-deep/95 border border-wheat-mid/40 rounded-none whitespace-nowrap"
+      style="left:{tooltip.x + 14}px;top:{tooltip.y + 12}px;"
+    >{tooltip.text}</div>
+  {/if}
+</div>

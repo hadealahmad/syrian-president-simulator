@@ -86,6 +86,20 @@
       <path d="M9.7 5 H12.4 V7.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   </button>
+
+  <!-- CRT tube glass toggle (map canvas only; off = raw map, cheaper on weak GPUs) -->
+  <button
+    onclick={() => uiStore.setCrtTube(!$uiStore.crtTube)}
+    aria-pressed={$uiStore.crtTube}
+    aria-label="تبديل تأثير الشاشة"
+    title="تبديل تأثير شاشة CRT"
+    class="h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none {$uiStore.crtTube ? 'border-wheat-mid/60 text-wheat-gold' : 'border-charcoal-mid text-wheat-dark hover:text-wheat-gold'}"
+  >
+    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" class="w-4 h-4 shrink-0">
+      <rect x="1" y="2.5" width="12" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.4" />
+      <path d="M5 12.5h4M7 10.5v2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+    </svg>
+  </button>
 </div>
 
 {#if $uiStore.isSettingsOpen}
