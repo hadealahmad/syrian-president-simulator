@@ -19,14 +19,19 @@
   import { SYRIA_2D_GOVERNORATES } from './syria-2d-paths';
   import { REGION_NEAR, REGION_FAR, REGION_FAR_LABELS } from './syria-region-context';
   import { GLYPHS } from '../ui/GameIcon.svelte';
+  import { cssRgbTriplet, type RgbTriplet } from '../themes';
   import type { GovernorateNode, MigrationFlow } from '../engine/types';
 
   // Live theme snapshot (CSS vars are read once per theme change, never per
   // frame — getComputedStyle in the hot loop would force style recalc).
+  // Every value the 2D map themes must be here; region land/sea/label
+  // colors are literals on both maps by design (SyID identity colors).
   interface ThemeVars {
     ok: string; warn: string; danger: string; midGold: string;
     ink: string; shadow: string; selected: string; hover: string;
     arrowPred: string; divider: string;
+    canvas: string; grid: string;
+    rampWorst: RgbTriplet; rampMid: RgbTriplet; rampBest: RgbTriplet;
   }
   function readThemeVars(): ThemeVars {
     const cs = getComputedStyle(document.documentElement);
@@ -42,6 +47,11 @@
       hover: v('--map-hover-stroke', '#e6edf3'),
       arrowPred: v('--map-arrow-pred', '#e6edf3'),
       divider: v('--color-charcoal-white', '#ffffff'),
+      canvas: v('--map-canvas', '#0e1715'),
+      grid: v('--map-grid', '#edebe0'),
+      rampWorst: cssRgbTriplet('--map-ramp-worst', [74, 21, 30]),
+      rampMid: cssRgbTriplet('--map-ramp-mid', [152, 133, 97]),
+      rampBest: cssRgbTriplet('--map-ramp-best', [46, 107, 95]),
     };
   }
 
@@ -95,54 +105,93 @@
       gov.prri / 100
     ) / 4;
   }
+  // Ramp colors derived from the live theme triplets (--map-ramp-*); re-set
+  // whenever the theme changes so the health fill tracks the active theme
+  // exactly like the 2D map. The triplet is CSS sRGB, so it must be declared
+  // as such (setRGB with SRGBColorSpace) — the plain component constructor
+  // treats numbers as linear working-space values and shifts the tones.
+  // Seeded with the default-theme values so gov creation can run before the
+  // first theme snapshot lands.
+  const srgbRgb = (t: RgbTriplet): THREE.Color =>
+    new THREE.Color().setRGB(t[0] / 255, t[1] / 255, t[2] / 255, THREE.SRGBColorSpace);
+  let rampColors = {
+    worst: srgbRgb([74, 21, 30]),
+    mid: srgbRgb([152, 133, 97]),
+    best: srgbRgb([46, 107, 95]),
+  };
+  function setRampColors(t: ThemeVars): void {
+    rampColors = {
+      worst: srgbRgb(t.rampWorst),
+      mid: srgbRgb(t.rampMid),
+      best: srgbRgb(t.rampBest),
+    };
+  }
+
   function healthColor(gov: GovernorateNode | undefined): THREE.Color {
-    // Hex strings are interpreted as sRGB and converted to the linear
-    // working space (ColorManagement on) — matches the 2D ramp exactly.
-    const worst = new THREE.Color('#4a151e');
-    const mid = new THREE.Color('#988561');
-    const best = new THREE.Color('#2e6b5f');
+    const ramp = rampColors;
     const health = 1 - Math.min(1, Math.max(0, (attentionIndex(gov) - 0.25) / 0.5));
     const c = new THREE.Color();
-    if (health < 0.5) c.lerpColors(worst, mid, health * 2);
-    else c.lerpColors(mid, best, (health - 0.5) * 2);
+    if (health < 0.5) c.lerpColors(ramp.worst, ramp.mid, health * 2);
+    else c.lerpColors(ramp.mid, ramp.best, (health - 0.5) * 2);
     return c;
   }
 
   // Arabic-shaping-safe label: canvas 2D shapes complex script correctly,
-  // unlike SDF text stacks. Same heading face as the UI.
+  // unlike SDF text stacks. Same heading face as the UI — font read from the
+  // --font-heading var so the label stack always follows the game's font
+  // system; text em maps to the 2D map's 24-unit font-size.
+  const LABEL_FONT_PX = 56;
+  const LABEL_CANVAS_H = 128;
+  function headingFontStack(): string {
+    if (typeof document === 'undefined') return "'Thmanyah Serif Display', serif";
+    const cs = getComputedStyle(document.documentElement);
+    return cs.getPropertyValue('--font-heading').trim() || "'Thmanyah Serif Display', serif";
+  }
   function makeLabel(text: string): THREE.Sprite {
     const c = document.createElement('canvas');
     c.width = 512;
-    c.height = 128;
+    c.height = LABEL_CANVAS_H;
     const ctx = c.getContext('2d')!;
-    ctx.font = '700 56px "Thmanyah Serif Display", serif';
+    ctx.font = `700 ${LABEL_FONT_PX}px ${headingFontStack()}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#9a8a5f';
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.85;
     ctx.fillText(text, 256, 66);
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 4;
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(130, 32.5, 1);
+    const emFrac = LABEL_FONT_PX / LABEL_CANVAS_H;
+    const h = 24 / emFrac; // em box = 24 world units, matching 2D font-size
+    sprite.scale.set(h * 4, h, 1);
     sprite.renderOrder = 10;
     return sprite;
   }
+  const ensureHeadingFont = async (): Promise<void> => {
+    if (typeof document === 'undefined' || !document.fonts) return;
+    try {
+      await document.fonts.load(`700 ${LABEL_FONT_PX}px "Thmanyah Serif Display"`);
+      await document.fonts.ready;
+    } catch {
+      /* label falls back to the stack's next family */
+    }
+  };
 
   // Stat icon art: rasterize the same GameIcon glyphs (white fill, ink
-  // outline baked in), then tint per state via material color. One texture
-  // per glyph name, shared by all governorates.
+  // outline in the themed --map-ink), then tint per state via material
+  // color. One texture per glyph name, shared by all governorates; re-baked
+  // when the theme changes the ink color.
   const iconTexCache = new Map<string, THREE.CanvasTexture>();
-  async function iconTexture(name: string): Promise<THREE.CanvasTexture> {
+  async function iconTexture(name: string, ink: string): Promise<THREE.CanvasTexture> {
     const hit = iconTexCache.get(name);
     if (hit) return hit;
     const g = GLYPHS[name] ?? GLYPHS['flame'];
     const vbw = Number(g.vb.split(' ')[2] ?? 512);
     const svg =
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${g.vb}">` +
-      `<g stroke="#0d1117" stroke-width="${vbw * 0.04}" paint-order="stroke" fill="#ffffff">` +
+      `<g stroke="${ink}" stroke-width="${vbw * 0.04}" paint-order="stroke" fill="#ffffff">` +
       `${g.body.replaceAll('currentColor', '#ffffff')}</g></svg>`;
     const img = new Image();
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml' }));
@@ -230,8 +279,13 @@
   $effect(() => {
     const el = host;
     if (!el) return;
+    let alive = true;
+    // Live theme snapshot; re-applied on every theme change below.
+    let themeVars = readThemeVars();
+    setRampColors(themeVars);
+    let themeUnsub: (() => void) | null = null;
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setClearColor(0x0b1512, 1);
+    renderer.setClearColor(new THREE.Color(themeVars.canvas), 1);
     el.appendChild(renderer.domElement);
     renderer.domElement.style.display = 'block';
     renderer.domElement.style.width = '100%';
@@ -266,10 +320,39 @@
     // ortho setup — a z-ladder test clipped -0.1 but drew 0.2+. So every
     // flat layer lives at z=0.5 (the governorates stay at their proven 0)
     // and ALL layering is explicit renderOrder + depth-write control:
-    //   sea -100 · countries -90 · snow -80 · shadow -70 · wind -60 ·
-    //   governorates 0 · flood 3 · divider 4 · arrows 5 · stats/UI 7-10.
-    // The sea is the only opaque object (renders first); everything else is
-    // transparent and sorted by renderOrder.
+    //   grid -105 · sea -100 · countries -90 · snow -80 · shadow -70 ·
+    //   wind -60 · governorates 0 · flood 3 · divider 4 · arrows 5 ·
+    //   stats/UI 7-10.
+    // The grid + sea composite exactly like the 2D map: dotted grid (24px
+    // pitch, 0.04 opacity, --map-grid) under the 0.6 sea over the themed
+    // --map-canvas clear color.
+    const GRID_PITCH = 24;
+    const gridCanvas = document.createElement('canvas');
+    gridCanvas.width = GRID_PITCH;
+    gridCanvas.height = GRID_PITCH;
+    const gridTex = new THREE.CanvasTexture(gridCanvas);
+    gridTex.wrapS = THREE.RepeatWrapping;
+    gridTex.wrapT = THREE.RepeatWrapping;
+    gridTex.colorSpace = THREE.SRGBColorSpace;
+    const redrawGrid = (): void => {
+      const gctx = gridCanvas.getContext('2d')!;
+      gctx.clearRect(0, 0, GRID_PITCH, GRID_PITCH);
+      gctx.fillStyle = themeVars.grid;
+      gctx.beginPath();
+      gctx.arc(GRID_PITCH / 2, GRID_PITCH / 2, 1, 0, Math.PI * 2);
+      gctx.fill();
+      gridTex.needsUpdate = true;
+    };
+    const gridPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(12000, 12000),
+      new THREE.MeshBasicMaterial({ map: gridTex, transparent: true, opacity: 0.04, depthWrite: false }),
+    );
+    gridTex.repeat.set(12000 / GRID_PITCH, 12000 / GRID_PITCH);
+    gridPlane.position.set(500, -440, 0.5);
+    gridPlane.renderOrder = -105;
+    scene.add(gridPlane);
+    redrawGrid();
+
     const sea = new THREE.Mesh(
       new THREE.PlaneGeometry(12000, 12000),
       new THREE.MeshBasicMaterial({ color: 0x0d323c, transparent: true, opacity: 0.6, depthWrite: false }),
@@ -297,16 +380,20 @@
     }
 
     // Governorates (interactive). Fills dim while a stat flood is active,
-    // exactly like the 2D map (fill-opacity 0.35 vs 0.78).
-    let themeVars = readThemeVars();
-    const themeUnsub = theme.subscribe(() => {
-      themeVars = readThemeVars();
-    });
+    // exactly like the 2D map (fill-opacity 0.35 vs 0.78). Each governorate
+    // also gets an "accent" border loop (scaled ~1.2% about its center) that
+    // mimics the 2D hover stroke-width bump (2.8 vs 1.6) that GL line width
+    // cannot express.
     const govMeshes = new Map<string, THREE.Mesh[]>();
-    const govBorders = new Map<string, THREE.LineBasicMaterial[]>();
+    const govBorders = new Map<string, THREE.LineLoop[]>();
+    const govAccents = new Map<string, THREE.LineLoop[]>();
     const govRings = new Map<string, [number, number][][]>();
     const govBBox = new Map<string, [number, number, number, number]>();
     const shadowGroup = new THREE.Group();
+    const accentGroup = new THREE.Group();
+    accentGroup.position.z = 0.55;
+    const accentHoverMat = new THREE.LineBasicMaterial({ color: themeVars.hover, transparent: true, depthWrite: false });
+    const accentSelMat = new THREE.LineBasicMaterial({ color: themeVars.selected, transparent: true, depthWrite: false });
     for (const gov of SYRIA_2D_GOVERNORATES) {
       const state = get(gameStore).governorates[gov.id];
       const rings = parsePaths(gov.path);
@@ -326,7 +413,7 @@
       govBBox.set(gov.id, [minx, miny, maxx, maxy]);
       const group = shapeMesh(rings, 0xffffff, 0.78, 0);
       const meshes: THREE.Mesh[] = [];
-      const borders: THREE.LineBasicMaterial[] = [];
+      const borders: THREE.LineLoop[] = [];
       for (const child of group.children) {
         if (child instanceof THREE.Mesh) {
           const mat = child.material as THREE.MeshBasicMaterial;
@@ -334,39 +421,68 @@
           mat.color.copy(healthColor(state));
           child.userData.govId = gov.id;
           meshes.push(child);
-          const dark = child.clone();
-          dark.material = new THREE.MeshBasicMaterial({
-            color: new THREE.Color(themeVars.shadow),
-            transparent: true,
-            opacity: 0.3,
-            depthWrite: false,
-          });
-          dark.position.set(2, -6, 0.5);
-          dark.renderOrder = -70;
-          dark.userData.govId = '';
-          shadowGroup.add(dark);
+          // Two offset silhouette layers approximate the 2D map's hard
+          // offset plus its soft CSS drop-shadow (0 12px 36px).
+          for (const [dx2, dy2, op] of [[2, -6, 0.3], [5, -13, 0.12]] as const) {
+            const dark = child.clone();
+            dark.material = new THREE.MeshBasicMaterial({
+              color: new THREE.Color(themeVars.shadow),
+              transparent: true,
+              opacity: op,
+              depthWrite: false,
+            });
+            dark.position.set(dx2, dy2, 0.5);
+            dark.renderOrder = -70;
+            dark.userData.govId = '';
+            shadowGroup.add(dark);
+          }
         } else if (child instanceof THREE.LineLoop) {
           const mat = child.material as THREE.LineBasicMaterial;
           mat.color.set(themeVars.ink);
-          borders.push(mat);
+          borders.push(child);
         }
+      }
+      // Accent outline: the same rings inflated ~1.2% about the governorate
+      // center — reads as the 2D map's thicker hover/selected stroke.
+      const [cxw, cyw] = [gov.center[0], -gov.center[1]];
+      const ACCENT = 1.012;
+      const accents: THREE.LineLoop[] = [];
+      for (const pts of rings) {
+        const geo = new THREE.BufferGeometry().setFromPoints(
+          pts.map(([x, y]) => new THREE.Vector3(
+            cxw + (x - cxw) * ACCENT,
+            cyw + (y - cyw) * ACCENT,
+            0,
+          )),
+        );
+        const loop = new THREE.LineLoop(geo, accentHoverMat);
+        loop.visible = false;
+        loop.renderOrder = 3;
+        accents.push(loop);
+        accentGroup.add(loop);
       }
       govMeshes.set(gov.id, meshes);
       govBorders.set(gov.id, borders);
+      govAccents.set(gov.id, accents);
       scene.add(group);
     }
     scene.add(shadowGroup);
+    scene.add(accentGroup);
 
-    // Place-name sprites.
+    // Place-name sprites — created after the heading font has actually
+    // loaded, so canvas rasterization never bakes a fallback face.
     const labelData = [
       ...REGION_NEAR.map((n) => ({ name: n.nameAr, at: n.labelAt })),
       ...REGION_FAR_LABELS.map((n) => ({ name: n.nameAr, at: n.labelAt })),
     ];
-    for (const l of labelData) {
-      const sprite = makeLabel(l.name);
-      sprite.position.set(l.at[0], -l.at[1], 5);
-      scene.add(sprite);
-    }
+    void ensureHeadingFont().then(() => {
+      if (!alive) return;
+      for (const l of labelData) {
+        const sprite = makeLabel(l.name);
+        sprite.position.set(l.at[0], -l.at[1], 5);
+        scene.add(sprite);
+      }
+    });
 
     // --- Status clusters: 4 stat icons per governorate + hover flood. ---
     // Icon layout mirrors the 2D map (dx/dy offsets, 24px, 28px active).
@@ -381,13 +497,21 @@
     }
     const govIcons = new Map<string, IconRec[]>();
     const iconTexs = new Map<string, THREE.CanvasTexture>();
-    void Promise.all(
-      ['minefield', 'power-generator', 'stone-wall', 'brick-wall', 'broken-wall',
-        'emotion-happy-fill', 'emotion-normal-fill', 'emotion-sad-fill'].map(
-        async (name) => [name, await iconTexture(name)] as const,
-      ),
-    ).then((entries) => {
+    const ICON_NAMES = [
+      'minefield', 'power-generator', 'stone-wall', 'brick-wall', 'broken-wall',
+      'emotion-happy-fill', 'emotion-normal-fill', 'emotion-sad-fill',
+    ];
+    // Re-runnable: theme changes drop the ink-baked cache and re-bake. The
+    // frame loop swaps materials' maps whenever the texture set changes.
+    const bakeIcons = async (): Promise<void> => {
+      const entries = await Promise.all(
+        ICON_NAMES.map(async (name) => [name, await iconTexture(name, themeVars.ink)] as const),
+      );
+      iconTexs.clear();
       for (const [name, tex] of entries) iconTexs.set(name, tex);
+    };
+    void bakeIcons().then(() => {
+      if (!alive) return;
       for (const gov of SYRIA_2D_GOVERNORATES) {
         const [cx, cy] = gov.center;
         const recs: IconRec[] = [];
@@ -751,6 +875,7 @@
     interface Flake {
       x: number; y: number; r: number; speed: number;
       swayAmp: number; swayFreq: number; phase: number; alpha: number;
+      rot: number; rotSpeed: number;
     }
     interface Streak {
       x: number; y: number; len: number; speed: number; alpha: number;
@@ -773,6 +898,8 @@
           swayFreq: 0.3 + Math.random() * 0.7,
           phase: Math.random() * Math.PI * 2,
           alpha: 0.25 + Math.random() * 0.45,
+          rot: Math.random() * Math.PI,
+          rotSpeed: (Math.random() - 0.5) * 0.8,
         }));
         streaks = [];
       } else {
@@ -799,25 +926,36 @@
     // wind lines' z — between the country layer and the governorates, the
     // exact slot the 2D map paints weather into. Flake size is authored in
     // px and converted through worldPerPx so it reads the same on any
-    // viewport (per-flake opacity variance is dropped: single material).
+    // viewport; per-flake alpha rides in vertex colors (2D's 0.25–0.7).
     const SNOW_MAX = 130;
     const flakeTex = (() => {
+      // Asterisk flake mirroring the 2D drawFlake: three diameters at 60°,
+      // double-stroked for a soft edge.
       const c = document.createElement('canvas');
       c.width = 64;
       c.height = 64;
       const ctx = c.getContext('2d')!;
-      const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.45, 'rgba(255,255,255,0.65)');
-      grad.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 64, 64);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineCap = 'round';
+      const R = 26;
+      for (const [lw, a] of [[4, 0.45], [2, 1]] as const) {
+        ctx.globalAlpha = a;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const ang = (i * Math.PI) / 3;
+          ctx.moveTo(32 - R * Math.cos(ang), 32 - R * Math.sin(ang));
+          ctx.lineTo(32 + R * Math.cos(ang), 32 + R * Math.sin(ang));
+        }
+        ctx.stroke();
+      }
       const t = new THREE.CanvasTexture(c);
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     })();
     const snowGeo = new THREE.BufferGeometry();
     const snowPos = new Float32Array(SNOW_MAX * 4 * 3);
+    const snowCol = new Float32Array(SNOW_MAX * 4 * 3);
     const snowUv = new Float32Array(SNOW_MAX * 4 * 2);
     const snowIdx: number[] = [];
     for (let i = 0; i < SNOW_MAX; i++) {
@@ -827,15 +965,18 @@
       snowIdx.push(v, v + 2, v + 1, v + 1, v + 2, v + 3);
     }
     snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3));
+    snowGeo.setAttribute('color', new THREE.BufferAttribute(snowCol, 3));
     snowGeo.setAttribute('uv', new THREE.BufferAttribute(snowUv, 2));
     snowGeo.setIndex(snowIdx);
     // Layering is by DRAW ORDER, not depth: quads at z<≈0.5 clip away under
     // this ortho setup (verified with a z-ladder), and depth-testing is the
-    // wrong tool anyway. renderOrder -1 + depthTest off paints the flakes
-    // right after the country layer; every later pass (governorates, shadow,
-    // arrows, icons, labels, flood) draws over them — the exact 2D stacking.
+    // wrong tool anyway. renderOrder -80 + depthTest off paints the flakes
+    // right after the country layer; every later pass (shadow, wind,
+    // governorates, arrows, icons, labels, flood) draws over them — the
+    // exact 2D stacking.
     const snowMat = new THREE.MeshBasicMaterial({
-      map: flakeTex, transparent: true, opacity: 0.55, depthWrite: false, depthTest: false,
+      map: flakeTex, transparent: true, opacity: 0.7, vertexColors: true,
+      depthWrite: false, depthTest: false,
     });
     const snow = new THREE.Mesh(snowGeo, snowMat);
     snow.position.z = 0.5;
@@ -849,10 +990,14 @@
     const WIND_MAX = 22;
     const windGeo = new THREE.BufferGeometry();
     const windPos = new Float32Array(WIND_MAX * WIND_SEGS * 2 * 3);
+    const windCol = new Float32Array(WIND_MAX * WIND_SEGS * 2 * 3);
     windGeo.setAttribute('position', new THREE.BufferAttribute(windPos, 3));
+    windGeo.setAttribute('color', new THREE.BufferAttribute(windCol, 3));
     const wind = new THREE.LineSegments(
       windGeo,
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false }),
+      // Vertex colors carry the lengthwise taper + per-streak alpha; the
+      // material opacity is the normalization base (max streak alpha 0.22).
+      new THREE.LineBasicMaterial({ color: 0xffffff, vertexColors: true, transparent: true, opacity: 0.22, depthWrite: false }),
     );
     wind.position.set(0, 0, 0.5);
     wind.renderOrder = -60;
@@ -879,6 +1024,13 @@
         weatherMode = mode;
         seedWeather(mode);
       }
+      if (reducedMotion) {
+        // 2D parity: the weather canvas is hidden entirely under reduced
+        // motion, so the 3D layers hide too.
+        snow.visible = false;
+        wind.visible = false;
+        return;
+      }
       if (weatherMode === 'snow') {
         snow.visible = true;
         wind.visible = false;
@@ -887,6 +1039,7 @@
           const f = flakes[i];
           if (!reducedMotion) {
             f.phase += dt * f.swayFreq;
+            f.rot += f.rotSpeed * dt;
             f.y += f.speed * dt;
             if (f.y > WVIEW.y1 + 6) {
               f.y = WVIEW.y0 - 6;
@@ -896,17 +1049,25 @@
           const cxp = f.x + Math.sin(f.phase) * f.swayAmp;
           const cyp = -(f.y);
           const hz = ((f.r * 2.4 + 1.5) * worldPerPx) / 2;
+          const cosR = Math.cos(f.rot);
+          const sinR = Math.sin(f.rot);
           const o = i * 12;
-          snowPos[o] = cxp - hz;
-          snowPos[o + 1] = cyp + hz;
-          snowPos[o + 3] = cxp + hz;
-          snowPos[o + 4] = cyp + hz;
-          snowPos[o + 6] = cxp - hz;
-          snowPos[o + 7] = cyp - hz;
-          snowPos[o + 9] = cxp + hz;
-          snowPos[o + 10] = cyp - hz;
+          // TL, TR, BL, BR — rotated about the flake center like the 2D
+          // flakes' slow spin.
+          snowPos[o] = cxp + (-hz * cosR - hz * sinR);
+          snowPos[o + 1] = cyp + (-hz * sinR + hz * cosR);
+          snowPos[o + 3] = cxp + (hz * cosR - hz * sinR);
+          snowPos[o + 4] = cyp + (hz * sinR + hz * cosR);
+          snowPos[o + 6] = cxp + (-hz * cosR + hz * sinR);
+          snowPos[o + 7] = cyp + (-hz * sinR - hz * cosR);
+          snowPos[o + 9] = cxp + (hz * cosR + hz * sinR);
+          snowPos[o + 10] = cyp + (hz * sinR - hz * cosR);
+          // Per-flake opacity (2D: alpha 0.25–0.7) as vertex brightness.
+          const k = Math.min(1, f.alpha / 0.7);
+          for (let c2 = 0; c2 < 12; c2++) snowCol[o + c2] = k;
         }
         snowGeo.attributes.position.needsUpdate = true;
+        snowGeo.attributes.color.needsUpdate = true;
         snowGeo.setDrawRange(0, flakes.length * 6);
       } else {
         snow.visible = false;
@@ -927,24 +1088,58 @@
           }
           let px = 0;
           let py = 0;
+          let pf = 0;
           for (let i = 0; i <= WIND_SEGS; i++) {
             const [qx, qy] = streakPoint(s, i / WIND_SEGS, gustT);
+            // Tapered ends via vertex brightness (2D fades the stroke
+            // gradient 0 -> alpha -> 0 across the middle 30-70%) plus the
+            // per-streak alpha (0.10-0.22) normalized against the material's.
+            const tt = i / WIND_SEGS;
+            const taper = tt <= 0.3 ? tt / 0.3 : tt >= 0.7 ? (1 - tt) / 0.3 : 1;
+            const qf = Math.min(1, (s.alpha / 0.22) * taper);
             if (i > 0) {
-              windPos[v++] = px;
-              windPos[v++] = -py;
-              windPos[v++] = -0.5;
-              windPos[v++] = qx;
-              windPos[v++] = -qy;
-              windPos[v++] = -0.5;
+              windPos[v] = px;
+              windPos[v + 1] = -py;
+              windPos[v + 2] = 0;
+              windCol[v] = pf;
+              windCol[v + 1] = pf;
+              windCol[v + 2] = pf;
+              windPos[v + 3] = qx;
+              windPos[v + 4] = -qy;
+              windPos[v + 5] = 0;
+              windCol[v + 3] = qf;
+              windCol[v + 4] = qf;
+              windCol[v + 5] = qf;
+              v += 6;
             }
             px = qx;
             py = qy;
+            pf = qf;
           }
         }
         windGeo.attributes.position.needsUpdate = true;
+        windGeo.attributes.color.needsUpdate = true;
         windGeo.setDrawRange(0, (v / 3) | 0);
       }
     }
+
+    // Theme engine hook: re-apply every themed piece the moment the theme
+    // store changes — clear color, health ramp triplets, grid dot color and
+    // icon ink textures — so the 3D map follows themes exactly like the 2D
+    // map's CSS-var repaint.
+    const applyTheme = (): void => {
+      setRampColors(themeVars);
+      renderer.setClearColor(new THREE.Color(themeVars.canvas), 1);
+      redrawGrid();
+      for (const t of iconTexCache.values()) t.dispose();
+      iconTexCache.clear();
+      void bakeIcons();
+    };
+    themeUnsub = theme.subscribe(() => {
+      themeVars = readThemeVars();
+      applyTheme();
+    });
+    applyTheme();
 
     // Post: render + CRT tube pass.
     const composer = new EffectComposer(renderer);
@@ -1122,7 +1317,6 @@
     };
 
     let raf = 0;
-    let alive = true;
     let lastT = 0;
     const selected = (): string | null => get(uiStore).selectedGovernorateId;
     const frame = (): void => {
@@ -1149,8 +1343,18 @@
           mat.color.copy(base);
           mat.opacity = flooding ? 0.35 : 0.78;
         }
+        // Active shapes' borders paint last (2D paints hovered/selected on
+        // top); the scaled accent loop reads as the thicker 2.8 stroke.
         for (const b of govBorders.get(id)!) {
-          b.color.set(isSelected ? themeVars.selected : isHovered ? themeVars.hover : themeVars.ink);
+          (b.material as THREE.LineBasicMaterial).color.set(
+            isSelected ? themeVars.selected : isHovered ? themeVars.hover : themeVars.ink,
+          );
+          b.renderOrder = isHovered || isSelected ? 2 : 0;
+        }
+        for (const a of govAccents.get(id)!) {
+          const show = isHovered || isSelected;
+          a.visible = show;
+          if (show) a.material = isHovered ? accentHoverMat : accentSelMat;
         }
         // Icons + halo + flood + pill follow the active stat, if any.
         const recs = govIcons.get(id);
@@ -1251,6 +1455,8 @@
       arrowPredMat.color.set(themeVars.arrowPred);
       headPredMat.color.set(themeVars.arrowPred);
       dividerMat.color.set(themeVars.divider);
+      accentHoverMat.color.set(themeVars.hover);
+      accentSelMat.color.set(themeVars.selected);
       crtPass.enabled = get(uiStore).crtTube;
       syncArrows();
       composer.render();
@@ -1262,7 +1468,7 @@
       alive = false;
       cancelAnimationFrame(raf);
       ro.disconnect();
-      themeUnsub();
+      themeUnsub?.();
       hostKeyHandler = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
       renderer.domElement.removeEventListener('pointermove', onMove);
