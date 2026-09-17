@@ -401,11 +401,16 @@
     scene.add(sea);
 
     // Neighbor lands (flat, decorative for now — data-region ids kept).
-    // Transparent pass, no depth writes: fills and border lines draw in
-    // creation order, everything above them paints over freely.
+    // Country borders get the same ribbon treatment as governorates (1.8,
+    // #4a3d24 like the 2D region layer) so they stay clearly visible.
+    const regionBorderMat = new THREE.MeshBasicMaterial({
+      color: 0x4a3d24, side: THREE.DoubleSide, transparent: true, depthWrite: false,
+    });
     for (const n of [...REGION_FAR, ...REGION_NEAR]) {
-      const g = shapeMesh(parsePaths(n.path), 0x221b11, 0.92, 0.5);
+      const rings = parsePaths(n.path);
+      const g = shapeMesh(rings, 0x221b11, 0.92, 0.5);
       g.userData.regionId = n.id;
+      const lineLoops: THREE.Object3D[] = [];
       g.traverse((o) => {
         o.renderOrder = -90;
         const mesh = o as THREE.Mesh;
@@ -414,7 +419,14 @@
           mat.transparent = true;
           mat.depthWrite = false;
         }
+        if ((o as THREE.LineLoop).isLineLoop) lineLoops.push(o);
       });
+      for (const loop of lineLoops) g.remove(loop);
+      for (const pts of rings) {
+        const border = new THREE.Mesh(ringStrokeGeometry(pts, 1.8, 0), regionBorderMat);
+        border.renderOrder = -90;
+        g.add(border);
+      }
       scene.add(g);
     }
 
@@ -426,6 +438,8 @@
     const govMeshes = new Map<string, THREE.Mesh[]>();
     const govStrokes = new Map<string, THREE.Mesh[]>();
     const govAccents = new Map<string, THREE.Mesh[]>();
+    const govGroups = new Map<string, THREE.Group>();
+    const govBaseZ = new Map<string, number>();
     const govRings = new Map<string, [number, number][][]>();
     const govBBox = new Map<string, [number, number, number, number]>();
     const shadowGroup = new THREE.Group();
@@ -438,7 +452,7 @@
     const accentSelMat = new THREE.MeshBasicMaterial({
       color: themeVars.selected, side: THREE.DoubleSide, transparent: true, depthWrite: false,
     });
-    for (const gov of SYRIA_2D_GOVERNORATES) {
+    for (const [gi, gov] of SYRIA_2D_GOVERNORATES.entries()) {
       const state = get(gameStore).governorates[gov.id];
       const rings = parsePaths(gov.path);
       govRings.set(gov.id, rings);
@@ -455,7 +469,14 @@
         }
       }
       govBBox.set(gov.id, [minx, miny, maxx, maxy]);
-      const group = shapeMesh(rings, 0xffffff, 0.78, 0);
+      // Solid fills, painter-ordered: each governorate sits a hair above the
+      // previous one so shared borders draw exactly once (the later index
+      // covers the earlier) with zero coplanar z-fighting — the 2D map's
+      // DOM-order painting, done with depth. Hover/select lift further in
+      // the frame loop (0.02 / 0.03) to pull the whole shape to the front.
+      const baseZ = 0.001 * (gi + 1);
+      govBaseZ.set(gov.id, baseZ);
+      const group = shapeMesh(rings, 0xffffff, 1, baseZ);
       const meshes: THREE.Mesh[] = [];
       const strokes: THREE.Mesh[] = [];
       const accents: THREE.Mesh[] = [];
@@ -486,16 +507,17 @@
           lineLoops.push(child);
         }
       }
-      // Swap shapeMesh's 1px LineLoops for extruded ribbon strokes (the 2D
-      // map's 1.6 ink border) plus a wider hover/selected accent ribbon
-      // (the 2D 2.8 stroke). GL lines cannot exceed 1px, ribbons can.
+      // Swap shapeMesh's 1px LineLoops for extruded ribbon strokes. Widths
+      // mirror the 2D map's 1.6 / 2.8 viewBox strokes converted to world
+      // units at a ~1600px viewport (worldPerPx ~1.2): 3.0 base, 5.0 accent
+      // — GL lines cannot exceed 1px, ribbons can.
       for (const loop of lineLoops) group.remove(loop);
       for (const pts of rings) {
-        const base = new THREE.Mesh(ringStrokeGeometry(pts, 1.8, 0), strokeMat);
+        const base = new THREE.Mesh(ringStrokeGeometry(pts, 3.0, 0), strokeMat);
         base.renderOrder = 1;
         strokes.push(base);
         group.add(base);
-        const accent = new THREE.Mesh(ringStrokeGeometry(pts, 3.2, 0), accentHoverMat);
+        const accent = new THREE.Mesh(ringStrokeGeometry(pts, 5.0, 0), accentHoverMat);
         accent.visible = false;
         accent.renderOrder = 2;
         accents.push(accent);
@@ -504,6 +526,7 @@
       govMeshes.set(gov.id, meshes);
       govStrokes.set(gov.id, strokes);
       govAccents.set(gov.id, accents);
+      govGroups.set(gov.id, group);
       scene.add(group);
     }
     scene.add(shadowGroup);
@@ -1254,20 +1277,40 @@
     composer.addPass(crtPass);
     composer.addPass(new OutputPass());
 
-    const resize = (): void => {
+    // Smooth responsive resize (2D-map behavior). Buffer resizes are
+    // DEFERRED into the render frame: as the sidebar's 300ms CSS transition
+    // animates the container, ResizeObserver only records the latest size
+    // and the frame loop applies it immediately before rendering, so the
+    // cleared canvas/targets are redrawn in the same paint — no blink, no
+    // intermediate blank frames, and DPR is only touched when it changes.
+    let pendingW = 1;
+    let pendingH = 1;
+    let pendingDpr = 1;
+    let curW = 0;
+    let curH = 0;
+    let curDpr = 0;
+    const requestResize = (): void => {
       const rect = el.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width));
-      const h = Math.max(1, Math.round(rect.height));
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      renderer.setPixelRatio(dpr);
-      renderer.setSize(w, h, false);
-      composer.setPixelRatio(dpr);
-      composer.setSize(w, h);
-
-      fitCamera(w, h);
+      pendingW = Math.max(1, Math.round(rect.width));
+      pendingH = Math.max(1, Math.round(rect.height));
+      pendingDpr = Math.min(2, window.devicePixelRatio || 1);
     };
-    resize();
-    const ro = new ResizeObserver(resize);
+    const applyResize = (): void => {
+      if (pendingW === curW && pendingH === curH && pendingDpr === curDpr) return;
+      curW = pendingW;
+      curH = pendingH;
+      curDpr = pendingDpr;
+      if (renderer.getPixelRatio() !== curDpr) {
+        renderer.setPixelRatio(curDpr);
+        composer.setPixelRatio(curDpr);
+      }
+      renderer.setSize(curW, curH, false);
+      composer.setSize(curW, curH);
+      fitCamera(curW, curH);
+    };
+    requestResize();
+    applyResize();
+    const ro = new ResizeObserver(requestResize);
     ro.observe(el);
 
     const raycaster = new THREE.Raycaster();
@@ -1444,11 +1487,20 @@
         const base = healthColor(govState);
         if (id === hovered) base.offsetHSL(0, 0, 0.07);
         if (isSelected) base.offsetHSL(0, 0, 0.12);
+        // Solid fills (nothing underneath shows); flooding dims like the 2D
+        // map's 0.35 fill-opacity so the flood color reads through.
         for (const m of meshes) {
           const mat = m.material as THREE.MeshBasicMaterial;
           mat.color.copy(base);
-          mat.opacity = flooding ? 0.35 : 0.78;
+          mat.opacity = flooding ? 0.35 : 1;
         }
+        // Painter order: selected on top, then hovered, else creation order
+        // (2D orderedGovernorates ranks).
+        govGroups.get(id)!.position.z = isSelected
+          ? 0.03
+          : isHovered
+            ? 0.02
+            : govBaseZ.get(id)!;
         // Base stroke for idle shapes; the wider accent ribbon (2D's 2.8px
         // hover/selected stroke) replaces it while active.
         const active = isHovered || isSelected;
@@ -1561,6 +1613,7 @@
       strokeMat.color.set(themeVars.ink);
       crtPass.enabled = get(uiStore).crtTube;
       syncArrows();
+      applyResize();
       composer.render();
       raf = requestAnimationFrame(frame);
     };
