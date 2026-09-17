@@ -16,6 +16,8 @@ export interface UIState {
   commandPanelPinned: boolean;
   isStatsSidebarOpen: boolean;
   showMigrationArrows: boolean;
+  /** CRT tube glass over the map canvas (purely visual; off = raw map). */
+  crtTube: boolean;
 }
 
 const TOUR_KEY = 'president_guide_tour_v2';
@@ -42,6 +44,7 @@ function createUIStore() {
     commandPanelPinned: false,
     isStatsSidebarOpen: false,
     showMigrationArrows: true,
+    crtTube: true,
   });
 
   return {
@@ -98,6 +101,9 @@ function createUIStore() {
     },
     setMigrationArrows: (show: boolean) => {
       update((s) => ({ ...s, showMigrationArrows: show }));
+    },
+    setCrtTube: (on: boolean) => {
+      update((s) => ({ ...s, crtTube: on }));
     },
   };
 }

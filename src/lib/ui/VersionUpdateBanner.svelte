@@ -9,7 +9,7 @@
 {#if hasUpdate}
   <aside
     aria-label="تنبيه تحديث النسخة"
-    class="fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-forest-deep/95 border-2 border-amber-400 text-wheat-light px-4 py-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.85)] font-arabic backdrop-blur-md transition-all duration-300"
+    class="pointer-events-auto fixed top-24 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-forest-deep/95 border-2 border-amber-400 text-wheat-light px-4 py-2.5 shadow-[0_10px_40px_rgba(0,0,0,0.85)] font-arabic backdrop-blur-md transition-all duration-300"
   >
     <div class="flex items-center gap-2">
       <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>

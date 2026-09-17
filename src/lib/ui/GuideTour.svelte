@@ -12,6 +12,13 @@
   let target = $state<{ x: number; y: number; w: number; h: number } | null>(null);
   let pop = $state<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: CARD_W, h: 220 });
   let placedSide: 'top' | 'bottom' | 'center' = $state('bottom');
+  // Layout-space viewport of this overlay. Under the HUD zoom the overlay
+  // lives inside a scaled layer, so rect measurements (visual px) and the
+  // window size must be divided by the zoom before being used in here.
+  let vpW = $state(0);
+  let vpH = $state(0);
+  const hudZoom = (): number =>
+    Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-zoom')) || 1;
 
   let isActive = $derived($tourActive);
   let idx = $derived($tourIndex);
@@ -22,11 +29,19 @@
   async function measure(): Promise<void> {
     await tick();
     if (!$tourActive) return;
+    const z = hudZoom();
+    vpW = window.innerWidth / z;
+    vpH = window.innerHeight / z;
     const el = step.selector ? document.querySelector(step.selector) : null;
     const r = el?.getBoundingClientRect() ?? null;
     target =
       r && r.width > 0 && r.height > 0
-        ? { x: r.x - PAD, y: r.y - PAD, w: r.width + PAD * 2, h: r.height + PAD * 2 }
+        ? {
+            x: r.x / z - PAD,
+            y: r.y / z - PAD,
+            w: r.width / z + PAD * 2,
+            h: r.height / z + PAD * 2,
+          }
         : null;
     const w = popEl?.offsetWidth || CARD_W;
     const h = popEl?.offsetHeight || 220;
@@ -34,8 +49,9 @@
   }
 
   function place(w: number, h: number): void {
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
+    const z = hudZoom();
+    const vw = window.innerWidth / z;
+    const vh = window.innerHeight / z;
     if (!target || step.side === 'center') {
       placedSide = 'center';
       pop = { x: Math.max(12, (vw - w) / 2), y: Math.max(12, (vh - h) / 2), w, h };
@@ -87,11 +103,11 @@
 <svelte:window onkeydown={onKey} onresize={measure} />
 
 {#if isActive}
-  <div class="fixed inset-0 z-[200] font-arabic select-none" dir="rtl" role="dialog" aria-label="الجولة التعريفية">
+  <div class="pointer-events-auto fixed inset-0 z-[200] font-arabic select-none" dir="rtl" role="dialog" aria-label="الجولة التعريفية">
     <!-- Dim + cutout -->
     <svg class="absolute inset-0 h-full w-full" onmousedown={stopGuideTour} aria-hidden="true">
       <path
-        d={`M 0,0 H ${window.innerWidth} V ${window.innerHeight} H 0 Z ${cutout}`}
+        d={`M 0,0 H ${vpW} V ${vpH} H 0 Z ${cutout}`}
         fill="rgba(7, 18, 16, 0.78)"
         fill-rule="evenodd"
       />

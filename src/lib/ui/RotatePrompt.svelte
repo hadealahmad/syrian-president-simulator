@@ -10,7 +10,7 @@
   renders on desktop landscape. -->
 {#if !dismissed}
 <div
-  class="fixed inset-0 z-[100] hidden portrait:max-lg:flex items-center justify-center bg-black/70 p-6 select-none font-arabic"
+  class="pointer-events-auto fixed inset-0 z-[100] hidden portrait:max-lg:flex items-center justify-center bg-black/70 p-6 select-none font-arabic"
   role="dialog"
   aria-modal="true"
   aria-label="يرجى تدوير الشاشة"

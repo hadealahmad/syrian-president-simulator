@@ -123,7 +123,7 @@
 }} />
 
 {#if showEventsModal && currentEvent}
-  <div class="fixed inset-0 z-[60] bg-black/25" aria-hidden="true"></div>
+  <div class="pointer-events-auto fixed inset-0 z-[60] bg-black/25" aria-hidden="true"></div>
   <div
     class="fixed inset-0 z-[70] flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >

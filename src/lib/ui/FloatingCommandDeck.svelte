@@ -5,6 +5,7 @@
   import { THEMES, THEME_IDS, type ThemeId } from '../themes';
   import { startGuideTour } from './guide-tour';
   import GameIcon from './GameIcon.svelte';
+  import ToggleSwitch from './ToggleSwitch.svelte';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let themesOpen = $state(false);
@@ -43,7 +44,7 @@
 
 <!-- System Controls: guide + settings - top left under the top bar -->
 <div
-  class="fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'left-[396px]' : 'left-3'}"
+  class="pointer-events-auto fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'left-[396px]' : 'left-3'}"
 >
   <!-- Presidential Guide Tour (icon only, stays outside the settings menu) -->
   <button
@@ -86,10 +87,11 @@
       <path d="M9.7 5 H12.4 V7.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   </button>
+
 </div>
 
 {#if $uiStore.isSettingsOpen}
-  <div class="fixed inset-0 z-50 flex items-center justify-center p-4 select-none font-arabic">
+  <div class="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4 select-none font-arabic">
     <button
       class="absolute inset-0 bg-black/25 cursor-default"
       onclick={closeSettings}
@@ -126,6 +128,19 @@
               <span class="block text-[10px] text-wheat-dark">الحالي: {THEMES[$theme].labelAr}</span>
             </span>
           </button>
+
+          <!-- CRT screen effect toggle (map only; off = raw map, lighter on weak GPUs) -->
+          <div class="h-14 flex items-center justify-between gap-3 px-3 bg-charcoal-surface border border-charcoal-mid">
+            <span class="text-center">
+              <span class="block text-xs font-bold text-wheat-light font-heading">مؤثر شاشة CRT</span>
+              <span class="block text-[10px] text-wheat-dark">{$uiStore.crtTube ? 'مفعّل' : 'معطّل'}</span>
+            </span>
+            <ToggleSwitch
+              checked={$uiStore.crtTube}
+              label="تبديل مؤثر شاشة CRT"
+              onchange={(v) => uiStore.setCrtTube(v)}
+            />
+          </div>
 
           <a
             href="https://www.youtube.com/channel/UCQkqyo2DYRee_1qlHZ1M6Dg/join"

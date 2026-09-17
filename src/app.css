@@ -451,29 +451,57 @@
   scrollbar-gutter: stable;
 }
 
-/* Dynamic viewport sizing (mobile URL-bar safe), vh first as fallback.
-   Unlayered declarations override the h-screen / h-[70vh] utilities. */
+/* HUD zoom (App.svelte, 2K-class screens only): the HUD layer is scaled
+   with a transform over the untouched WebGL map. --hud-zoom (1 or 1.3,
+   set on <html> by App) drives both the layer transform and --vp-w/--vp-h,
+   which every viewport-relative size inside the layer consumes instead of
+   raw vh/vw — inside a transformed layer those still resolve against the
+   real viewport and would overflow. Dynamic viewport (mobile URL-bar safe)
+   via @supports. Unlayered declarations override the h-screen utilities. */
+:root {
+  --hud-zoom: 1;
+  --vp-w: calc(100vw / var(--hud-zoom));
+  --vp-h: calc(100vh / var(--hud-zoom));
+}
+@supports (height: 100dvh) {
+  :root {
+    --vp-h: calc(100dvh / var(--hud-zoom));
+  }
+}
 .app-shell {
+  /* The shell is the viewport and must NOT shrink with the HUD zoom: the
+     scaled HUD layer inside it visually fills it, so keeping the real
+     viewport height here (with overflow-hidden) clips nothing. Only
+     elements INSIDE the layer use the zoom-aware --vp-w/--vp-h. */
   height: 100vh;
   height: 100dvh;
+}
+.hud-layer-zoomed {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: calc(100vw / var(--hud-zoom));
+  height: calc(100vh / var(--hud-zoom));
+  transform: scale(var(--hud-zoom));
+  transform-origin: 0 0;
+  z-index: 20;
+  /* The layer box covers the whole viewport; interactivity is restored
+     per component root (pointer-events-auto) so the map keeps its hover
+     and clicks everywhere else. */
+  pointer-events: none;
 }
 .drawer-full {
-  height: 100vh;
-  height: 100dvh;
+  height: var(--vp-h);
 }
 .cmd-panel {
-  max-height: calc(100vh - 240px);
-  max-height: calc(100dvh - 240px);
+  max-height: calc(var(--vp-h) - 240px);
 }
 .modal-tall {
-  height: 70vh;
-  height: 70dvh;
+  height: calc(var(--vp-h) * 0.7);
 }
 .modal-confirm {
-  height: 56vh;
-  height: 56dvh;
+  height: calc(var(--vp-h) * 0.56);
 }
 .modal-card {
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px);
+  max-height: calc(var(--vp-h) - 32px);
 }

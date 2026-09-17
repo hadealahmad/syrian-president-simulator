@@ -131,7 +131,7 @@
 </script>
 
 {#if $uiStore.turnFlowStage !== 'closed'}
-  <div class="fixed inset-0 z-40 bg-black/25" aria-hidden="true" onclick={handleClose}></div>
+  <div class="pointer-events-auto fixed inset-0 z-40 bg-black/25" aria-hidden="true" onclick={handleClose}></div>
   <div
     class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >

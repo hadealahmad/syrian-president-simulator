@@ -64,7 +64,10 @@ import ProvincialPanel from './panels/ProvincialPanel.svelte';
     if (pr.left < hr.left + EDGE) shift = hr.left + EDGE - pr.left;
     else if (pr.right > hr.right - EDGE) shift = hr.right - EDGE - pr.right;
     if (t !== clampToken) return;
-    edgeShift = Math.round(shift);
+    // Rects are visual px; the shift is applied as a translate in the HUD
+    // layer's layout space — divide by the zoom so they match.
+    const z = Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-zoom')) || 1;
+    edgeShift = Math.round(shift / z);
   }
 
   function clickButton(id: string): void {
