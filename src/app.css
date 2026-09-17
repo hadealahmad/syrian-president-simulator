@@ -324,23 +324,58 @@
     border-radius: 0px !important;
   }
 }
-
-/* Custom Scrollbar in Dark Forest Slate Style */
+/* Stylized scrollbars — angular gold/teal system matching the modal frames.
+   Zero radius per the global reset; diagonal-sheen thumb echoes the striped
+   frame language. Firefox uses the thin + color pair below. */
+:root {
+  scrollbar-color: var(--color-wheat-gold) var(--color-forest-deep);
+}
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: var(--color-forest-deep);
+  border-inline-start: 1px solid var(--color-charcoal-mid);
 }
-
 ::-webkit-scrollbar-thumb {
-  background: var(--color-forest-surface);
+  background: linear-gradient(
+    -45deg,
+    var(--color-wheat-gold) 0 6px,
+    var(--color-forest-surface) 6px 12px
+  );
   border: 1px solid var(--color-charcoal-mid);
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-forest-accent);
+  background: linear-gradient(
+    -45deg,
+    var(--color-wheat-gold) 0 6px,
+    var(--color-forest-accent) 6px 12px
+  );
+  border-color: var(--color-wheat-gold);
+  box-shadow: 0 0 8px rgb(from var(--color-wheat-gold) r g b / 0.45);
+}
+::-webkit-scrollbar-thumb:active {
+  background: var(--color-wheat-gold);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-forest-deep);
+}
+
+/* Danger-tinted variant for crisis/fail surfaces (add alongside .scroll-area) */
+.scroll-umber::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    -45deg,
+    var(--color-umber-crimson) 0 6px,
+    var(--color-umber-mid) 6px 12px
+  );
+}
+.scroll-umber::-webkit-scrollbar-thumb:hover {
+  border-color: var(--color-umber-crimson);
+  box-shadow: 0 0 8px rgb(from var(--color-umber-crimson) r g b / 0.45);
+}
+.scroll-umber {
+  scrollbar-color: var(--color-umber-crimson) var(--color-umber-deep);
 }
 
 /* Striped modal frames (shared system — reuse for future modals, one variant

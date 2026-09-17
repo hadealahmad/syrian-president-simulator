@@ -131,7 +131,7 @@
       class="pointer-events-auto relative modal-tall h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-red shadow-2xl overflow-hidden flex flex-col rounded-none text-wheat-light modal-enter"
     >
       <!-- Content -->
-      <div class="scroll-area p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
+      <div class="scroll-area scroll-umber p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
         <div class="border-b border-charcoal-mid pb-3 shrink-0">
           <div class="flex items-center gap-2">
             <GameIcon name="siren" cls="w-5 h-5 shrink-0 text-umber-crimson" />

@@ -10,7 +10,7 @@
 
 {#if $gameStore.isGameOver && failState}
   <div
-    class="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4 select-none scroll-area overflow-y-auto font-arabic"
+    class="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4 select-none scroll-area scroll-umber overflow-y-auto font-arabic"
   >
     <div
       class="m-auto w-full max-w-[620px] bg-forest-deep/95 border-2 border-umber-crimson shadow-2xl p-8 space-y-6 text-center rounded-none text-wheat-light"
