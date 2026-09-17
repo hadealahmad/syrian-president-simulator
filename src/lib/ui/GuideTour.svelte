@@ -128,38 +128,38 @@
       class="absolute w-[348px] max-w-[calc(100vw-24px)] modal-card scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
       style="left:{pop.x}px;top:{pop.y}px;"
     >
-      <div class="flex items-center justify-between px-4 pt-3">
-        <span class="px-1.5 py-0.5 bg-wheat-gold/20 text-wheat-gold text-[9px] font-bold border border-wheat-gold/40">
-          {step.badge}
-        </span>
-        <button
-          onclick={stopGuideTour}
-          class="px-2 py-0.5 text-[11px] text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid transition-colors cursor-pointer font-heading"
-          aria-label="تخطي الجولة"
-        >
-          تخطي ✕
-        </button>
-      </div>
-
-      <div class="px-4 pt-1.5 pb-1 flex items-center gap-2 text-wheat-gold">
-        <GameIcon name={step.icon} cls="w-6 h-6 shrink-0" />
-        <h3 class="text-[15px] font-bold font-heading">{step.title}</h3>
-      </div>
-
-      <p class="tour-body px-4 pb-3 text-[12px] leading-[1.9] text-wheat-light/90">
-        {@html step.body}
-      </p>
-
-      <div class="flex items-center justify-between gap-2 px-4 py-3 bg-charcoal-deep border-t border-charcoal-mid">
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] text-wheat-dark font-mono">{idx + 1} / {TOUR_STEPS.length}</span>
-          <span class="flex items-center gap-1" aria-hidden="true">
-            {#each TOUR_STEPS as _, i}
-              <span class="inline-block w-1.5 h-1.5 {i <= idx ? 'bg-wheat-gold' : 'bg-charcoal-mid'}"></span>
-            {/each}
+      <div class="px-5 pt-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="px-1.5 py-0.5 bg-wheat-gold/20 text-wheat-gold text-[9px] font-bold border border-wheat-gold/40">
+            {step.badge}
           </span>
+          <button
+            onclick={stopGuideTour}
+            class="px-2 py-0.5 text-[11px] text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid transition-colors cursor-pointer font-heading"
+            aria-label="تخطي الجولة"
+          >
+            تخطي ✕
+          </button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2.5 pt-2">
+          <GameIcon name={step.icon} cls="w-8 h-8 shrink-0" />
+          <h3 class="text-[17px] font-bold font-heading leading-snug">{step.title}</h3>
+        </div>
+        <div class="h-[3px] w-14 bg-wheat-gold/80 mt-2"></div>
+      </div>
+
+      <div class="tour-body px-5 py-3 text-[12.5px] leading-[2] text-wheat-light/90">
+        {@html step.body}
+      </div>
+
+      <div class="px-5 pb-4 pt-1 bg-charcoal-deep border-t border-charcoal-mid">
+        <div class="flex items-center gap-2 py-2.5">
+          <div class="relative flex-1 h-1 bg-charcoal-mid" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
+            <div class="absolute inset-y-0 right-0 bg-wheat-gold transition-all" style="width: {((idx + 1) / TOUR_STEPS.length) * 100}%"></div>
+          </div>
+          <span class="text-[11px] text-wheat-dark font-mono shrink-0"><bdi>{idx + 1} / {TOUR_STEPS.length}</bdi></span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
           <button
             onclick={tourPrev}
             disabled={isFirst}
@@ -192,4 +192,37 @@
   .tour-body :global(strong) {
     color: #f2cf77;
   }
+  /* Numeric/mixed tokens stay LTR-isolated so comparisons never scramble */
+  .tour-body :global(bdi) {
+    unicode-bidi: isolate;
+    font-family: 'Thmanyah Sans', system-ui, sans-serif;
+  }
+  .tour-body :global(.lead) {
+    color: rgba(242, 234, 211, 0.95);
+  }
+  /* Takeaway lists: square gold markers match the zero-radius UI language */
+  .tour-body :global(ul) {
+    display: grid;
+    gap: 7px;
+    margin-top: 9px;
+  }
+  .tour-body :global(li) {
+    position: relative;
+    padding-right: 17px;
+    color: rgba(242, 234, 211, 0.82);
+  }
+  .tour-body :global(li::before) {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 13px;
+    width: 7px;
+    height: 7px;
+    background: #f2cf77;
+    opacity: 0.85;
+  }
+  /* RRI legend tones */
+  .tour-body :global(li[data-tone="good"]::before) { background: #4ec7b4; }
+  .tour-body :global(li[data-tone="warn"]::before) { background: #fbbf24; }
+  .tour-body :global(li[data-tone="bad"]::before) { background: #f87171; }
 </style>
