@@ -487,5 +487,64 @@ export const SOVEREIGNTY_EVENTS: EventCard[] = [
         ]
       }
     ]
+  },
+  {
+    id: 'event_suwayda_accord_spoiler',
+    titleAr: 'محاولة اغتيال تخريبية تستهدف مشايخ الوفاق في السويداء',
+    category: 'SOUTHERN',
+    sourceAr: 'اللجنة الأمنية للجنوب / مرجعيات جبل العرب',
+    descriptionAr: 'مع اقتراب الوفاق التاريخي من الاكتمال، نفذت خلية متشددة من رافضي المصالحة كميناً مسلحاً استهدف موكب مشايخ الوفاق على طريق شهبا، في محاولة مكشوفة لنسف المصالحة وإعادة المحافظة إلى مربع العصيان. الشارع الدرزي ينتظر رد الدولة: حماية الوفاق أم دفنه.',
+    targetGovernorateId: 'as_suwayda',
+    triggerCondition: (state) => (state.governorates['as_suwayda']?.suwaydaIntegrationIndex ?? 0) >= 40 && (state.governorates['as_suwayda']?.suwaydaSecessionProb ?? 99) < 60,
+    options: [
+      {
+        id: 'opt_spoiler_joint_tribunal',
+        labelAr: 'محكمة عشائرية مشتركة وحماية مشددة لرموز الوفاق',
+        descriptionAr: 'محاكمة علنية للخلية بمشاركة وجهاء الدروز والبدو معاً، وفرض طوق حماية دائم حول فعاليات المصالحة.',
+        costUSD: 0,
+        costSYP: 2_000_000_000,
+        costPC: 10,
+        effectTrust: 6,
+        effectRRI: -6,
+        effectCorruption: -2,
+        effectCompetence: 6,
+        customEffectAr: 'إنقاذ الوفاق بثمن: عدالة مشتركة تعزز الشرعية مع انتكاسة محدودة (-5 اندماج)',
+        governorateEffects: [
+          { governorateId: 'as_suwayda', prri: -8, suwaydaIntegrationIndex: -5, suwaydaSecessionProb: -5, tribalRageIndex: -15, customSummaryAr: 'حماية الوفاق وتهدئة اللجاة (-15 غضب عشائري، -5 اندماج فقط)' }
+        ]
+      },
+      {
+        id: 'opt_spoiler_security_sweep',
+        labelAr: 'حملة اعتقالات واسعة في قرى اللجاة والبادية',
+        descriptionAr: 'مداهمات ليلية واعتقالات احترازية واسعة لاقتلاع الخلايا المتشددة بالقوة الغاشمة.',
+        costUSD: 0,
+        costSYP: 1_200_000_000,
+        costPC: 6,
+        effectTrust: -8,
+        effectRRI: 8,
+        effectCorruption: 2,
+        effectCompetence: 4,
+        customEffectAr: 'ضربة أمنية ناجحة بكلفة سياسية: الوفاق ينزف (-15 اندماج) والشارع يغلي (+10 احتقان)',
+        governorateEffects: [
+          { governorateId: 'as_suwayda', prri: 10, suwaydaIntegrationIndex: -15, suwaydaSecessionProb: 8, tribalRageIndex: 10, customSummaryAr: 'اعتقالات اللجاة تهز الوفاق (-15 اندماج، +8 انفصال)' }
+        ]
+      },
+      {
+        id: 'opt_spoiler_concede_lever',
+        labelAr: 'استثمار الصدمة لانتزاع تنازلات حكم ذاتي أوسع',
+        descriptionAr: 'مساومة المرجعيات: صلاحيات أوسع مقابل تجاوز الحادثة وطي الملف دون محاسبة.',
+        costUSD: 0,
+        costSYP: 0,
+        costPC: -10,
+        effectTrust: -6,
+        effectRRI: 4,
+        effectCorruption: 4,
+        effectCompetence: -4,
+        customEffectAr: 'مكسب سياسي رخيص بثمن استراتيجي: الانفصال يقفز (+12) والوفاق يتراجع (-12)',
+        governorateEffects: [
+          { governorateId: 'as_suwayda', suwaydaIntegrationIndex: -12, suwaydaSecessionProb: 12, tribalRageIndex: -10, customSummaryAr: 'صفقة الحكم الذاتي الموسع (+12 انفصال، -12 اندماج)' }
+        ]
+      }
+    ]
   }
 ];

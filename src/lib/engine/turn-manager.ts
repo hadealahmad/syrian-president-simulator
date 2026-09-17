@@ -484,8 +484,21 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 3: GEOPOLITICAL & SOUTHERN THEATER DYNAMICS
   // =========================================================================
-  updateSouthernFront(next.governorates, directives);
-  if (directives.southernPolicy === 'HISTORIC_ACCORD') {
+  // Historic Accord upkeep: 4 PC/turn of shuttle diplomacy. Broke players
+  // fall back to vouchers for the turn (no hidden free ride).
+  let southPolicy = directives.southernPolicy;
+  if (southPolicy === 'HISTORIC_ACCORD') {
+    if (next.macro.politicalCapital >= 4) {
+      next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 4);
+    } else {
+      southPolicy = 'LOCAL_VOUCHERS';
+    }
+  }
+  const southDirectives = southPolicy === directives.southernPolicy
+    ? directives
+    : { ...directives, southernPolicy: southPolicy };
+  updateSouthernFront(next.governorates, southDirectives);
+  if (southPolicy === 'HISTORIC_ACCORD') {
     if (next.governorates['as_suwayda']) {
       next.governorates['as_suwayda'].prri = Math.max(0, next.governorates['as_suwayda'].prri - 20);
       next.governorates['as_suwayda'].tier = 'CALM';
@@ -495,7 +508,7 @@ export function simulateTurnTransitions(
       next.governorates['daraa'].tier = 'CALM';
     }
     next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 6);
-  } else if (directives.southernPolicy === 'BLOCKADE') {
+  } else if (southPolicy === 'BLOCKADE') {
     if (next.governorates['as_suwayda']) {
       next.governorates['as_suwayda'].prri = Math.min(100, next.governorates['as_suwayda'].prri + 30);
       next.governorates['as_suwayda'].tier = 'REVOLT';
@@ -511,6 +524,11 @@ export function simulateTurnTransitions(
     if (next.governorates['quneitra']) {
       next.governorates['quneitra'].prri = Math.max(0, next.governorates['quneitra'].prri - 10);
     }
+  }
+
+  // UNDOF liaison mission: visible blue-helmet presence buys a little trust.
+  if (directives.golanBorderStance === 'UN_LIAISON') {
+    next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
   }
 
   // =========================================================================

@@ -81,7 +81,9 @@ export function updateSouthernFront(
         tri = Math.min(100, tri + 20);
         break;
       case 'BLOCKADE':
-        sii = Math.max(0, sii - 15);
+        // Ratchet: one blockade halves accumulated integration gains back
+        // toward the base (8) — the accord must be rebuilt, not resumed.
+        sii = Math.max(8, Math.floor(sii / 2));
         ssp = Math.min(100, ssp + 30);
         tri = Math.max(0, tri - 15);
         suwayda.prri = Math.min(100, suwayda.prri + 25);
@@ -120,11 +122,31 @@ export function updateSouthernFront(
         ddi = Math.max(10, ddi - 8);
         nrc = Math.min(80, nrc + 5);
         break;
+      case 'UN_LIAISON':
+        // UNDOF liaison office (Quneitra dossier only): quiet de-escalation
+        // with no defiance movement — money buys calm, not control.
+        gti = Math.max(10, gti - 10);
+        break;
     }
 
     daraa.golanTensionIndex = gti;
     if (governorates['quneitra']) {
       governorates['quneitra'].golanTensionIndex = gti;
+    }
+    // Theater coupling: the southern strategy bleeds across the border.
+    // Accord diplomacy cools the frontier; blockade mobilization heats it.
+    if (directives.southernPolicy === 'HISTORIC_ACCORD') {
+      const cooled = Math.max(15, gti - 5);
+      daraa.golanTensionIndex = cooled;
+      if (governorates['quneitra']) {
+        governorates['quneitra'].golanTensionIndex = cooled;
+      }
+    } else if (directives.southernPolicy === 'BLOCKADE') {
+      const heated = Math.min(100, gti + 10);
+      daraa.golanTensionIndex = heated;
+      if (governorates['quneitra']) {
+        governorates['quneitra'].golanTensionIndex = heated;
+      }
     }
     daraa.daraaDefianceIndex = ddi;
     daraa.nassibRevenueCapturePct = nrc;

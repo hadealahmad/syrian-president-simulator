@@ -23,7 +23,7 @@ export const SERVICES_EVENTS: EventCard[] = [
         effectCompetence: 14,
         customEffectAr: 'بقاء 80% من الكوادر الطبية واستقرار العمليات الجراحية بالمشافي الجامعية (+14 ثقة)',
         governorateEffects: [
-          { governorateId: 'damascus', activeHospitalsPct: 15, prri: -12, customSummaryAr: 'استقرار مشافي المواساة والأسد بدمشق (+15 صحة)' },
+          { governorateId: 'damascus', activeHospitalsPct: 15, prri: -12, customSummaryAr: 'استقرار مشافي المواساة ودمشق (+15 صحة)' },
           { governorateId: 'aleppo', activeHospitalsPct: 12, prri: -10, customSummaryAr: 'حماية كوادر مشفى حلب الجامعي (+12 صحة)' }
         ]
       },

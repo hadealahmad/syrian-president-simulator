@@ -337,6 +337,9 @@ export function auditSemiannualBudget(
   // Emergency food/fuel import surge: populist market-flooding paid in hard currency
   const importSurgeUSD = directives.importSurge ? IMPORT_SURGE_COST_USD : 0;
 
+  // UNDOF liaison mission (Quneitra dossier): $8M/turn observer presence
+  const liaisonMissionUSD = directives.golanBorderStance === 'UN_LIAISON' ? 8_000_000 : 0;
+
   const expendedUSD =
     netWheatImportUSD +
     fuelImportUSD +
@@ -349,6 +352,7 @@ export function auditSemiannualBudget(
     emergencyDeminingUSD +
     powerBoostUSD +
     importSurgeUSD +
+    liaisonMissionUSD +
     directives.dollarAuctionUSD +
     provincialProjectsCostUSD;
 

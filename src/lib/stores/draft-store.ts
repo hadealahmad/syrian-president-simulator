@@ -92,6 +92,11 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     else if (actId === 'REPUDIATE_PARIS') committedPC -= 8;
   }
 
+  // 4b. Historic Accord upkeep (shuttle diplomacy; falls back to vouchers if broke)
+  if (draft.southernPolicy === 'HISTORIC_ACCORD') {
+    committedPC += 4;
+  }
+
   // 5. Oligarch Decisions
   if (draft.oligarchDecisions) {
     for (const [assetId, action] of Object.entries(draft.oligarchDecisions)) {
@@ -159,6 +164,11 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
   // 8. Grid CapEx
   committedUSD += draft.gridCapExUSD || 0;
+
+  // 8b. UNDOF liaison mission
+  if (draft.golanBorderStance === 'UN_LIAISON') {
+    committedUSD += 8_000_000;
+  }
 
   // 9. Central Bank Dollar Auction
   committedUSD += draft.dollarAuctionUSD || 0;

@@ -246,7 +246,7 @@ export const INDUSTRY_EVENTS: EventCard[] = [
         effectCompetence: 8,
         customEffectAr: 'وفرة دوائية فورية بالمشافي مع استنزاف $30M وضغط منافسة على الصناعة الدوائية المحلية',
         governorateEffects: [
-          { governorateId: 'damascus', activeHospitalsPct: 12, prri: -8, customSummaryAr: 'تأمين أدوية مشافي المواساة والأسد الجامعي' },
+          { governorateId: 'damascus', activeHospitalsPct: 12, prri: -8, customSummaryAr: 'تأمين أدوية مشافي المواساة ودمشق الجامعي' },
           { governorateId: 'homs', activeHospitalsPct: 8, customSummaryAr: 'سد النقص الدوائي بمشافي حمص' }
         ]
       }

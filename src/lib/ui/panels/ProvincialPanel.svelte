@@ -8,26 +8,86 @@
   import { governorateShape } from '../../spatial3d/syria-2d-paths';
   import { isProvincialActionRelated as isProvincialActionRelatedShared, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
 
-  function parseEffectPills(effectStr: string): { text: string; isNegative: boolean }[] {
-    if (!effectStr) return [];
-    return effectStr
-      .split(/[،,]/)
-      .map((s) => s.trim().replace(/\.$/, ''))
-      .filter(Boolean)
-      .map((text) => {
-        const isNegative =
-          text.startsWith('-') ||
-          text.includes('زيادة التوتر') ||
-          text.includes('زيادة الاحتقان') ||
-          text.includes('زيادة الشغب') ||
-          text.includes('ارتفاع الفساد') ||
-          text.includes('خسارة') ||
-          text.includes('كلفة') ||
-          text.includes('عجز') ||
-          text.includes('استنزاف');
-        return { text, isNegative };
+  // Before/after stat rows for the strategic-project table (mirrors engine clamps).
+  let projectEffectRows = $derived.by(() => {
+    const p = node?.strategicProject;
+    if (!node || !p) return [];
+    const rows: { label: string; before: string; after: string; delta: string; good: boolean }[] = [];
+    const f1 = (v: number) => String(Math.round(v * 10) / 10);
+    const signed = (v: number) => (v > 0 ? `+${v}` : `${v}`);
+    rows.push({
+      label: 'الاحتقان', before: `${Math.round(node.prri)}`,
+      after: `${Math.max(0, Math.round(node.prri + p.prriDelta))}`,
+      delta: signed(p.prriDelta), good: p.prriDelta <= 0,
+    });
+    rows.push({
+      label: 'التقنين سا/يوم', before: f1(node.dailyBlackoutHours),
+      after: f1(Math.max(2, node.dailyBlackoutHours + p.blackoutHoursDelta)),
+      delta: signed(p.blackoutHoursDelta), good: p.blackoutHoursDelta <= 0,
+    });
+    if (p.mineClearancePct > 0) {
+      rows.push({
+        label: 'الألغام %', before: f1(node.mineSaturationPct),
+        after: f1(Math.max(0, node.mineSaturationPct - p.mineClearancePct)),
+        delta: `-${p.mineClearancePct}`, good: true,
       });
-  }
+    }
+    if (p.damageRepairedUSD > 0) {
+      rows.push({
+        label: 'الضرر $B', before: (node.unrepairedDamageUSD / 1e9).toFixed(2),
+        after: (Math.max(0, node.unrepairedDamageUSD - p.damageRepairedUSD) / 1e9).toFixed(2),
+        delta: `-${(p.damageRepairedUSD / 1e9).toFixed(2)}`, good: true,
+      });
+    }
+    if ((p.recurringRevenueSYPPerTurn ?? 0) > 0) {
+      rows.push({
+        label: 'إيراد متكرر/دور', before: '—',
+        after: `+${((p.recurringRevenueSYPPerTurn ?? 0) / 1e9).toFixed(2)}B`, delta: '', good: true,
+      });
+    }
+    if ((p.wheatImportSavingsUSD ?? 0) > 0) {
+      rows.push({
+        label: 'فاتورة القمح', before: '—',
+        after: `-$${(p.wheatImportSavingsUSD ?? 0) / 1e6}M دائمة`, delta: '', good: true,
+      });
+    }
+    if (p.sectarianAnxietyDelta) {
+      rows.push({
+        label: 'القلق الطائفي', before: `${Math.round(node.sectarianAnxiety)}`,
+        after: `${Math.max(0, Math.round(node.sectarianAnxiety + (p.sectarianAnxietyDelta ?? 0)))}`,
+        delta: signed(p.sectarianAnxietyDelta ?? 0), good: (p.sectarianAnxietyDelta ?? 0) <= 0,
+      });
+    }
+    if (p.tribalRageDelta && node.tribalRageIndex !== undefined) {
+      rows.push({
+        label: 'الغضب العشائري', before: `${Math.round(node.tribalRageIndex)}`,
+        after: `${Math.max(0, Math.round(node.tribalRageIndex + (p.tribalRageDelta ?? 0)))}`,
+        delta: signed(p.tribalRageDelta ?? 0), good: (p.tribalRageDelta ?? 0) <= 0,
+      });
+    }
+    if (p.golanTensionDelta && node.golanTensionIndex !== undefined) {
+      rows.push({
+        label: 'توتر الجولان', before: `${Math.round(node.golanTensionIndex)}`,
+        after: `${Math.max(0, Math.min(100, node.golanTensionIndex + (p.golanTensionDelta ?? 0)))}`,
+        delta: signed(p.golanTensionDelta ?? 0), good: (p.golanTensionDelta ?? 0) <= 0,
+      });
+    }
+    if (p.suwaydaIntegrationBonus && node.suwaydaIntegrationIndex !== undefined) {
+      rows.push({
+        label: 'اندماج السويداء', before: `${Math.round(node.suwaydaIntegrationIndex)}`,
+        after: `${Math.min(100, Math.round(node.suwaydaIntegrationIndex + (p.suwaydaIntegrationBonus ?? 0)))}`,
+        delta: `+${p.suwaydaIntegrationBonus ?? 0}`, good: true,
+      });
+    }
+    if (p.skilledLaborBonus) {
+      rows.push({
+        label: 'الكفاءات', before: node.skilledLaborCount.toLocaleString('en-US'),
+        after: (node.skilledLaborCount + (p.skilledLaborBonus ?? 0)).toLocaleString('en-US'),
+        delta: `+${(p.skilledLaborBonus ?? 0).toLocaleString('en-US')}`, good: true,
+      });
+    }
+    return rows;
+  });
 
   // Default to the capital when nothing is selected so the panel always
   // shows a governorate dossier instead of an empty placeholder.
@@ -101,6 +161,43 @@
   let canAffordProject = $derived(
     isProjectAffordablePC && isProjectAffordable
   );
+
+  // Next-turn projections for the theater meters (mirror the engine clamps
+  // exactly, including the accord-upkeep fallback, so the striped overlay
+  // always matches what the draft will do).
+  function deltaChip(proj: number, cur: number): string {
+    const d = Math.round(proj - cur);
+    if (d === 0) return '';
+    return `(${d > 0 ? '+' : ''}${d})`;
+  }
+  let southProj = $derived.by(() => {
+    const sii = node?.suwaydaIntegrationIndex ?? 8;
+    const ssp = node?.suwaydaSecessionProb ?? 24;
+    let policy = $draftStore.southernPolicy;
+    if (policy === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 4) policy = 'LOCAL_VOUCHERS';
+    switch (policy) {
+      case 'HISTORIC_ACCORD': return { sii: Math.min(100, sii + 18), ssp: Math.max(0, ssp - 15) };
+      case 'UNCONDITIONAL_AID': return { sii: Math.min(55, sii + 3), ssp: Math.max(0, ssp - 10) };
+      case 'BLOCKADE': return { sii: Math.max(8, Math.floor(sii / 2)), ssp: Math.min(100, ssp + 30) };
+      default: return { sii: Math.min(65, sii + 4), ssp: Math.max(0, ssp - 5) };
+    }
+  });
+  let golanProj = $derived.by(() => {
+    let gti = node?.golanTensionIndex ?? 45;
+    let ddi = node?.daraaDefianceIndex ?? 54;
+    let nrc = node?.nassibRevenueCapturePct ?? 32;
+    switch ($draftStore.golanBorderStance) {
+      case 'RESTRAINT': gti = Math.max(15, gti - 15); ddi = Math.min(100, ddi + 18); break;
+      case 'DEPLOY_ARMOR': gti = Math.min(100, gti + 25); ddi = Math.max(10, ddi - 20); break;
+      case 'LOCAL_GENDARMERIE': gti = Math.min(100, gti + 5); ddi = Math.max(10, ddi - 8); nrc = Math.min(80, nrc + 5); break;
+      case 'UN_LIAISON': gti = Math.max(10, gti - 10); break;
+    }
+    let south = $draftStore.southernPolicy;
+    if (south === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 4) south = 'LOCAL_VOUCHERS';
+    if (south === 'HISTORIC_ACCORD') gti = Math.max(15, gti - 5);
+    else if (south === 'BLOCKADE') gti = Math.min(100, gti + 10);
+    return { gti, ddi, nrc };
+  });
 </script>
 
 <div class="space-y-3">
@@ -110,75 +207,71 @@
   </div>
 
   {#if node}
-    <!-- Sovereign Strategic Project Card -->
-    <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2.5 transition-all duration-300 {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-      <!-- Title & Field Challenge (content moved outside card under title) -->
-      <div class="space-y-1">
-        <h3 class="text-xs font-bold text-wheat-gold font-heading leading-tight">
-          {node.strategicProject.titleAr}
-        </h3>
+    {#if node.strategicProject.isExecuted}
+      <!-- Done: title + solution + checkmark only -->
+      <div class="px-2 py-2 border border-forest-accent/40 bg-forest-surface/40 opacity-90 space-y-1">
+        <div class="flex items-center gap-1.5">
+          <GameIcon name="check-mark" cls="w-4 h-4 text-forest-accent shrink-0" />
+          <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{node.strategicProject.titleAr}</span>
+        </div>
         <p class="text-wheat-dark leading-relaxed text-[11px]">
-          {node.strategicProject.issueDescriptionAr}
-        </p>
-      </div>
-
-      <!-- Presidential Solution Card (Empty challenge card removed) -->
-      <div class="py-1.5 border-b border-charcoal-mid/50 space-y-0.5">
-        <span class="text-xs font-bold text-wheat-gold font-heading block">القرار الرئاسي المقترح:</span>
-        <p class="text-wheat-light leading-relaxed text-[11px]">
           {node.strategicProject.solutionDescriptionAr}
         </p>
       </div>
-
-      <!-- Cost & Impact Breakdown with Red/Green Pills -->
-      <div class="py-1.5 border-b border-charcoal-mid/50 text-[11px] space-y-2">
-        <div class="flex justify-between items-center flex-wrap gap-1">
-          <span class="text-xs font-bold text-wheat-gold font-heading">الكلفة المطلوبة:</span>
-          <div class="flex items-center gap-1.5 flex-wrap">
-            <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-              -${node.strategicProject.costUSD / 1_000_000}M
-            </span>
-            <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
-              -{(node.strategicProject.costSYP / 1_000_000_000).toFixed(2)}B SP
-            </span>
-            {#if isProjectCoveredByFX && !isProjectCommitted}
-              <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
-                مغطى بالنقد الأجنبي
-              </span>
-            {/if}
-            {#if node.strategicProject.costPoliticalCapital > 0}
-              <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
-                -{node.strategicProject.costPoliticalCapital} رصيد سياسي
-              </span>
-            {/if}
-            {#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0}
-              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
-                +{((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) / 1_000_000_000).toFixed(2)}B إيراد متكرر/دور
-              </span>
-            {/if}
-            {#if (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0}
-              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
-                -${(node.strategicProject.wheatImportSavingsUSD ?? 0) / 1_000_000}M فاتورة قمح دائمة
-              </span>
-            {/if}
-          </div>
+    {:else}
+    {@const projBlocked = !isProjectCommitted && !canAffordProject}
+    <!-- Single bordered card: title, brief, solution, costs, before/after table, decision -->
+    <div class="relative px-2 py-2 space-y-2 border bg-forest-deep/60 transition-all {projBlocked ? SUSPENDED_CARD_CLASS : 'border-charcoal-mid'} {selectedStat ? (isProvincialActionRelated('project') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
+      <div class="space-y-2 {projBlocked ? SUSPENDED_CONTENT_CLASS : ''}">
+        <div class="space-y-1">
+          <h3 class="text-xs font-bold text-wheat-gold font-heading leading-tight">
+            {node.strategicProject.titleAr}
+          </h3>
+          <p class="text-wheat-dark leading-relaxed text-[11px]">
+            {node.strategicProject.issueDescriptionAr}
+          </p>
+          <p class="text-wheat-light leading-relaxed text-[11px]">
+            {node.strategicProject.solutionDescriptionAr}
+          </p>
         </div>
 
-        <!-- Direct Effects as color-coded Pills -->
-        <div class="space-y-1 pt-1.5 border-t border-charcoal-mid/60">
-          <span class="text-xs font-bold text-wheat-gold font-heading block">الأثر المباشر:</span>
-          <div class="flex flex-wrap gap-1">
-            {#each parseEffectPills(node.strategicProject.effectDescriptionAr) as effect}
-              <span class="px-2 py-0.5 rounded-full text-[9px] font-medium border {effect.isNegative ? 'bg-umber-deep border-umber-border text-umber-crimson' : 'bg-forest-surface border-forest-accent/60 text-forest-accent'}">
-                {effect.text}
-              </span>
-            {/each}
-          </div>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+            -${node.strategicProject.costUSD / 1_000_000}M
+          </span>
+          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+            -{(node.strategicProject.costSYP / 1_000_000_000).toFixed(2)}B SP
+          </span>
+          {#if isProjectCoveredByFX && !isProjectCommitted}
+            <span class="px-1.5 py-0.5 rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[9px]">
+              مغطى بالنقد الأجنبي
+            </span>
+          {/if}
+          {#if node.strategicProject.costPoliticalCapital > 0}
+            <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-charcoal-mid text-wheat-gold font-mono font-bold text-[10px]">
+              -{node.strategicProject.costPoliticalCapital} رصيد سياسي
+            </span>
+          {/if}
         </div>
-      </div>
 
-      <!-- Decision Execution Button -->
-      {#if !node.strategicProject.isExecuted}
+        <!-- Before/after stat table -->
+        <div class="border border-charcoal-mid/60">
+          <div class="grid grid-cols-[1fr_auto_auto] gap-1 px-2 py-1 bg-charcoal-surface text-[9px] font-bold text-wheat-dark font-heading">
+            <span>البند</span>
+            <span class="font-mono">قبل</span>
+            <span class="font-mono">بعد</span>
+          </div>
+          {#each projectEffectRows as row}
+            <div class="grid grid-cols-[1fr_auto_auto] gap-1 px-2 py-1 border-t border-charcoal-mid/50 text-[10px] items-baseline">
+              <span class="text-wheat-light">{row.label}</span>
+              <span dir="ltr" class="font-mono text-wheat-dark">{row.before}</span>
+              <span dir="ltr" class="font-mono font-bold {row.good ? 'text-forest-accent' : 'text-umber-crimson'}">
+                {row.after}{#if row.delta} <span class="text-[8.5px] opacity-80">({row.delta})</span>{/if}
+              </span>
+            </div>
+          {/each}
+        </div>
+
         <button
           onclick={() => {
             if (node?.strategicProject) {
@@ -186,7 +279,8 @@
             }
           }}
           disabled={!isProjectCommitted && !canAffordProject}
-          class="w-full py-2 px-3 text-xs font-bold border transition-colors rounded-none flex items-center justify-center gap-2 {isProjectCommitted ? 'bg-wheat-gold text-forest-deep border-wheat-gold hover:bg-wheat-mid cursor-pointer' : canAffordProject ? 'bg-forest-mid hover:bg-forest-surface text-wheat-light border-charcoal-light hover:border-wheat-mid cursor-pointer' : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
+          title={!isProjectCommitted && !canAffordProject ? (!isProjectAffordablePC ? `رصيد سياسي غير كافٍ (${node.strategicProject.costPoliticalCapital})` : !isProjectAffordableUSD ? 'ميزانية دولارية غير كافية' : 'سيولة الخزينة غير كافية وتتجاوز تغطية النقد الأجنبي') : ''}
+          class="w-full h-12 flex items-center justify-center gap-2 px-3 text-xs font-bold font-heading text-center transition-colors rounded-none {isProjectCommitted ? 'bg-wheat-gold text-forest-deep border border-wheat-gold hover:bg-wheat-mid cursor-pointer' : canAffordProject ? 'bg-charcoal-surface text-wheat-light border border-charcoal-mid hover:bg-forest-mid hover:border-wheat-mid/60 cursor-pointer gloss-hover' : 'bg-charcoal-surface text-wheat-dark border border-charcoal-mid cursor-not-allowed opacity-60'}"
         >
           {#if isProjectCommitted}
             <span>إلغاء اعتماد تمويل المشروع</span>
@@ -206,13 +300,14 @@
             <span>اعتماد وإطلاق المشروع الاستراتيجي</span>
           {/if}
         </button>
-      {/if}
-      {#if node.strategicProject.isExecuted && ((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0 || (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0)}
-        <div class="text-[10px] font-mono text-forest-accent">
-          مكتمل: {#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0}<span dir="ltr">+{((node.strategicProject.recurringRevenueSYPPerTurn ?? 0) / 1_000_000_000).toFixed(2)}B</span> إيراد متكرر/دور{/if}{#if (node.strategicProject.recurringRevenueSYPPerTurn ?? 0) > 0 && (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0} · {/if}{#if (node.strategicProject.wheatImportSavingsUSD ?? 0) > 0}<span dir="ltr">-${(node.strategicProject.wheatImportSavingsUSD ?? 0) / 1_000_000}M</span> فاتورة قمح{/if}
+      </div>
+      {#if projBlocked}
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
         </div>
       {/if}
     </div>
+    {/if}
 
     <!-- Mine Clearance Directive (hidden where never needed; resolved notice once cleared) -->
     {#if neededDeminingFromStart}
@@ -348,11 +443,45 @@
       <!-- Southern Policy Command Selector -->
       <div class="space-y-1.5 pt-2 border-t border-charcoal-mid">
         <span class="text-xs font-bold text-wheat-gold font-heading block">توجيه سياسة الجبهة الجنوبية:</span>
+        <!-- Live meters with fate thresholds: integration 80 = accord ending; secession 60 = cantons, 85 = balkanization -->
+        <div class="space-y-1 px-0.5 pb-1">
+          <div class="flex items-center gap-1.5 text-[9px]">
+            <span class="text-wheat-dark w-14 shrink-0">اندماج</span>
+            <div class="relative flex-1 h-1.5 bg-charcoal-surface" title="عتبة الوفاق: 80">
+              <div class="absolute inset-y-0 right-0 bg-forest-accent/80" style="width: {Math.min(100, node.suwaydaIntegrationIndex ?? 0)}%"></div>
+              {#if southProj.sii !== Math.round(node.suwaydaIntegrationIndex ?? 0)}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold"
+                  style="right: {Math.min(node.suwaydaIntegrationIndex ?? 0, southProj.sii)}%; width: {Math.abs(southProj.sii - (node.suwaydaIntegrationIndex ?? 0))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="متوقع: {southProj.sii}"
+                ></div>
+              {/if}
+              <div class="absolute inset-y-[-2px] w-px bg-wheat-gold" style="right: 80%" title="نهاية الوفاق: 80"></div>
+            </div>
+            <span dir="ltr" class="font-mono font-bold text-forest-accent min-w-7 text-left">{southProj.sii}{#if deltaChip(southProj.sii, node.suwaydaIntegrationIndex ?? 0)} <span class="text-wheat-gold text-[8px]">{deltaChip(southProj.sii, node.suwaydaIntegrationIndex ?? 0)} متوقع</span>{/if}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[9px]">
+            <span class="text-wheat-dark w-14 shrink-0">انفصال</span>
+            <div class="relative flex-1 h-1.5 bg-charcoal-surface" title="الكانتونات: 60 — البلقنة: 85">
+              <div class="absolute inset-y-0 right-0 bg-umber-crimson/80" style="width: {Math.min(100, node.suwaydaSecessionProb ?? 0)}%"></div>
+              {#if southProj.ssp !== Math.round(node.suwaydaSecessionProb ?? 0)}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold"
+                  style="right: {Math.min(node.suwaydaSecessionProb ?? 0, southProj.ssp)}%; width: {Math.abs(southProj.ssp - (node.suwaydaSecessionProb ?? 0))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="متوقع: {southProj.ssp}"
+                ></div>
+              {/if}
+              <div class="absolute inset-y-[-2px] w-px bg-amber-400" style="right: 60%" title="الكانتونات: 60"></div>
+              <div class="absolute inset-y-[-2px] w-px bg-umber-crimson" style="right: 85%" title="البلقنة: 85"></div>
+            </div>
+            <span dir="ltr" class="font-mono font-bold text-umber-crimson min-w-7 text-left">{southProj.ssp}{#if deltaChip(southProj.ssp, node.suwaydaSecessionProb ?? 0)} <span class="text-wheat-gold text-[8px]">{deltaChip(southProj.ssp, node.suwaydaSecessionProb ?? 0)} متوقع</span>{/if}</span>
+          </div>
+        </div>
         <div class="grid grid-cols-2 gap-1.5">
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'HISTORIC_ACCORD')}
-            title="وفاق السهل والجبل: +18 اندماج، −15 انفصال، −25 غضب عشائري، تهدئة السويداء ودرعا، +6 ثقة شعبية"
+            title="وفاق السهل والجبل: +18 اندماج، −15 انفصال، −25 غضب عشائري، −5 توتر الجولان، تهدئة السويداء ودرعا، +6 ثقة — بكلفة 4 رصيد سياسي/دور (عند النفاد يتراجع تلقائياً للقسائم)"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'HISTORIC_ACCORD' ? 'bg-forest-surface border-forest-accent text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-forest-accent">الوفاق التاريخي</div>
@@ -360,14 +489,16 @@
             <div class="flex items-center gap-1 flex-wrap pt-1">
               <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+18 اندماج</span>
               <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−15 انفصال</span>
+              <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−25 غضب</span>
               <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+6 ثقة</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−4 سياسي/دور</span>
             </div>
           </button>
 
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'LOCAL_VOUCHERS')}
-            title="دعم مقنن وهدنة هادئة: +4 اندماج، −5 انفصال (الوضع الافتراضي، دون كلفة)"
+            title="دعم مقنن وهدنة هادئة: +4 اندماج (بسقف 65 — لا يوصل للوفاق الكامل)، −5 انفصال (الوضع الافتراضي، دون كلفة)"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'LOCAL_VOUCHERS' ? 'bg-forest-surface border-wheat-gold text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-wheat-gold">قسائم الإغاثة</div>
@@ -395,13 +526,14 @@
           <button
             type="button"
             onclick={() => draftStore.setField('southernPolicy', 'BLOCKADE')}
-            title="الحصار الأمني: +30 انفصال، تمرد مسلح في السويداء ودرعا، −10 ثقة شعبية"
+            title="الحصار الأمني: +30 انفصال، تصفير نصف مكاسب الاندماج المتراكمة، +10 توتر الجولان، تمرد مسلح في السويداء ودرعا، −10 ثقة شعبية"
             class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.southernPolicy === 'BLOCKADE' ? 'bg-umber-deep border-umber-border text-umber-crimson shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
           >
             <div class="font-bold text-[10px] leading-tight text-umber-crimson">الحصار الأمني</div>
             <div class="text-[8.5px] text-wheat-dark leading-snug">عزل وتصعيد خطير</div>
             <div class="flex items-center gap-1 flex-wrap pt-1">
               <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-crimson text-umber-glow font-mono font-bold text-[8px]">+30 انفصال</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">÷2 اندماج</span>
               <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">تمرد −10 ثقة</span>
             </div>
           </button>
@@ -409,10 +541,60 @@
       </div>
     {/if}
 
-    {#if node.id === 'daraa'}
+    {#if node.id === 'daraa' || node.id === 'quneitra'}
       <div class="space-y-1.5 pt-2 border-t border-charcoal-mid">
         <span class="text-xs font-bold text-wheat-gold font-heading block">توجيه موقف حدود الجولان:</span>
-        <div class="grid grid-cols-3 gap-1.5">
+        <!-- Live meters: tension 20 = sovereignty events; defiance 25 = Hauran events; nassib 80 = full capture -->
+        <div class="space-y-1 px-0.5 pb-1">
+          <div class="flex items-center gap-1.5 text-[9px]">
+            <span class="text-wheat-dark w-14 shrink-0">توتر الجولان</span>
+            <div class="relative flex-1 h-1.5 bg-charcoal-surface" title="أحداث السيادة فوق 20">
+              <div class="absolute inset-y-0 right-0 bg-amber-500/80" style="width: {Math.min(100, node.golanTensionIndex ?? 0)}%"></div>
+              {#if golanProj.gti !== Math.round(node.golanTensionIndex ?? 0)}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold"
+                  style="right: {Math.min(node.golanTensionIndex ?? 0, golanProj.gti)}%; width: {Math.abs(golanProj.gti - (node.golanTensionIndex ?? 0))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="متوقع: {golanProj.gti}"
+                ></div>
+              {/if}
+              <div class="absolute inset-y-[-2px] w-px bg-umber-crimson" style="right: 20%" title="أحداث السيادة: 20"></div>
+            </div>
+            <span dir="ltr" class="font-mono font-bold text-amber-400 min-w-7 text-left">{golanProj.gti}{#if deltaChip(golanProj.gti, node.golanTensionIndex ?? 0)} <span class="text-wheat-gold text-[8px]">{deltaChip(golanProj.gti, node.golanTensionIndex ?? 0)} متوقع</span>{/if}</span>
+          </div>
+          {#if node.id === 'daraa'}
+          <div class="flex items-center gap-1.5 text-[9px]">
+            <span class="text-wheat-dark w-14 shrink-0">تحدٍّ درعاوي</span>
+            <div class="relative flex-1 h-1.5 bg-charcoal-surface" title="أحداث حوران فوق 25">
+              <div class="absolute inset-y-0 right-0 bg-amber-500/80" style="width: {Math.min(100, node.daraaDefianceIndex ?? 0)}%"></div>
+              {#if golanProj.ddi !== Math.round(node.daraaDefianceIndex ?? 0)}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold"
+                  style="right: {Math.min(node.daraaDefianceIndex ?? 0, golanProj.ddi)}%; width: {Math.abs(golanProj.ddi - (node.daraaDefianceIndex ?? 0))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="متوقع: {golanProj.ddi}"
+                ></div>
+              {/if}
+              <div class="absolute inset-y-[-2px] w-px bg-umber-crimson" style="right: 25%" title="أحداث حوران: 25"></div>
+            </div>
+            <span dir="ltr" class="font-mono font-bold text-amber-400 min-w-7 text-left">{golanProj.ddi}{#if deltaChip(golanProj.ddi, node.daraaDefianceIndex ?? 0)} <span class="text-wheat-gold text-[8px]">{deltaChip(golanProj.ddi, node.daraaDefianceIndex ?? 0)} متوقع</span>{/if}</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-[9px]">
+            <span class="text-wheat-dark w-14 shrink-0">تحصيل نصيب</span>
+            <div class="relative flex-1 h-1.5 bg-charcoal-surface" title="السقف الكامل: 80%">
+              <div class="absolute inset-y-0 right-0 bg-wheat-gold/80" style="width: {Math.min(100, node.nassibRevenueCapturePct ?? 0)}%"></div>
+              {#if golanProj.nrc !== Math.round(node.nassibRevenueCapturePct ?? 0)}
+                <div
+                  class="absolute inset-y-0 h-full text-wheat-gold"
+                  style="right: {Math.min(node.nassibRevenueCapturePct ?? 0, golanProj.nrc)}%; width: {Math.abs(golanProj.nrc - (node.nassibRevenueCapturePct ?? 0))}%; background: repeating-linear-gradient(-45deg, currentColor 0 3px, transparent 3px 6px);"
+                  title="متوقع: {golanProj.nrc}%"
+                ></div>
+              {/if}
+              <div class="absolute inset-y-[-2px] w-px bg-wheat-gold" style="right: 80%" title="السقف: 80%"></div>
+            </div>
+            <span dir="ltr" class="font-mono font-bold text-wheat-gold min-w-7 text-left">{golanProj.nrc}%{#if deltaChip(golanProj.nrc, node.nassibRevenueCapturePct ?? 0)} <span class="text-[8px]">{deltaChip(golanProj.nrc, node.nassibRevenueCapturePct ?? 0)} متوقع</span>{/if}</span>
+          </div>
+          {/if}
+        </div>
+        <div class="grid {node.id === 'quneitra' ? 'grid-cols-2' : 'grid-cols-3'} gap-1.5">
           <button
             type="button"
             onclick={() => draftStore.setField('golanBorderStance', 'RESTRAINT')}
@@ -438,6 +620,7 @@
             <div class="flex items-center gap-1 flex-wrap pt-1">
               <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−8 تحدٍّ</span>
               <span class="px-1 py-px rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8px]">+5% نصيب</span>
+              <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">+5 توتر</span>
             </div>
           </button>
 
@@ -455,6 +638,23 @@
               <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−9.0B SP</span>
             </div>
           </button>
+
+          {#if node.id === 'quneitra'}
+            <button
+              type="button"
+              onclick={() => draftStore.setField('golanBorderStance', 'UN_LIAISON')}
+              title="مكتب ارتباط أندوف (القنيطرة فقط): −10 توتر الجولان دون تحريك التحدي، +2 ثقة، بكلفة بعثة $8M/دور"
+              class="p-2 text-right border transition-all rounded-none cursor-pointer {$draftStore.golanBorderStance === 'UN_LIAISON' ? 'bg-forest-surface border-wheat-gold text-wheat-gold shadow' : 'bg-charcoal-surface border-charcoal-mid text-wheat-mid hover:text-wheat-light hover:border-wheat-mid/40'}"
+            >
+              <div class="font-bold text-[10px] leading-tight text-wheat-gold">ارتباط أندوف</div>
+              <div class="text-[8.5px] text-wheat-dark leading-snug">تهدئة زرقاء بلا تحدٍّ (القنيطرة فقط)</div>
+              <div class="flex items-center gap-1 flex-wrap pt-1">
+                <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">−10 توتر</span>
+                <span class="px-1 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">+2 ثقة</span>
+                <span class="px-1 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">−$8M/دور</span>
+              </div>
+            </button>
+          {/if}
         </div>
       </div>
     {/if}

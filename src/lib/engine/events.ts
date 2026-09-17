@@ -54,6 +54,20 @@ export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
     }
   }
 
+  // Quest spoiler priority: the Suwayda accord-setback must reliably fire
+  // inside its narrow mid-quest window, which the uniform lottery would
+  // usually miss. 50%/turn while eligible, alongside any drawn event.
+  const spoiler = ALL_EVENTS.find((e) => e.id === 'event_suwayda_accord_spoiler');
+  if (
+    spoiler &&
+    !state.flags[`event_resolved_${spoiler.id}`] &&
+    !drawnRaw.some((d) => d.id === spoiler.id) &&
+    (!spoiler.triggerCondition || spoiler.triggerCondition(state)) &&
+    prng.chance(0.5)
+  ) {
+    drawnRaw.push(spoiler);
+  }
+
   // Clone events safely and evaluate option availability dynamically against current state.
   // NOTE: triggerCondition is a function and must NEVER enter GameState:
   // state is structuredClone()d on every event choice and JSON-persisted on
