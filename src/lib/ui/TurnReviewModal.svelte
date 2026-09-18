@@ -151,44 +151,44 @@
         </div>
       </div>
 
-      <!-- Standing automatic deductions (debt collection visibility) -->
-      <div class="p-3 bg-charcoal-surface border border-charcoal-mid rounded-none shrink-0 space-y-1.5">
-        <span class="text-xs text-wheat-gold font-bold font-heading block">
-          استقطاعات تلقائية تُحصّل هذا الدور:
-        </span>
-        <div class="flex items-center justify-between text-[11px] font-mono">
-          <span class="text-wheat-dark">خدمة الدين المعترف به</span>
-          <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.debtServiceUSD)}M</span>
-        </div>
-        <div class="flex items-center justify-between text-[11px] font-mono">
-          <span class="text-wheat-dark">القسط النفطي الإيراني</span>
-          {#if (($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1 || ($draftStore.activePoliticalActions ?? []).includes('REPUDIATE_IRAN_FORMAL'))}
-            <span class="font-bold text-forest-accent">مُسقط ✓ ($0.0M)</span>
-          {:else}
-            <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.iranOilCouponUSD)}M</span>
-          {/if}
-        </div>
-        {#if ($previewRangesStore.facilityInflowUSD ?? 0) > 0}
-          <div class="flex items-center justify-between text-[11px] font-mono">
-            <span class="text-forest-accent">تدفق التسهيلات المشروطة المتوقع</span>
-            <span class="font-bold text-forest-accent">+${formatMillionUSD($previewRangesStore.facilityInflowUSD)}M</span>
-          </div>
-          {#each $previewRangesStore.facilityStatusAr ?? [] as line}
-            <div class="text-[10px] font-mono text-forest-accent/90 pr-2">· {line}</div>
-          {/each}
-        {/if}
-        <div class="flex items-center justify-between text-[11px] font-mono">
-          <span class="text-wheat-dark">العجز التشغيلي المتوقع (المقلق)</span>
-          <span class="font-bold text-umber-crimson">${formatBillionSYP($previewRangesStore.operatingDeficitSYP ?? 0)}B</span>
-        </div>
-        <div class="flex items-center justify-between text-[11px] font-mono">
-          <span class="text-wheat-dark">الإنفاق الاستثماري (يبني الغد)</span>
-          <span class="font-bold text-forest-accent">${formatBillionSYP($previewRangesStore.investmentSYP ?? 0)}B</span>
-        </div>
-      </div>
-
       <!-- Action Items Ledger List (Scrollable) -->
       <div class="scroll-area space-y-2 overflow-y-auto flex-1 min-h-0 pr-1 text-xs">
+        <!-- Standing automatic deductions (debt collection visibility) -->
+        <div class="p-3 bg-charcoal-surface border border-charcoal-mid rounded-none space-y-1.5">
+          <span class="text-xs text-wheat-gold font-bold font-heading block">
+            استقطاعات تلقائية تُحصّل هذا الدور:
+          </span>
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-wheat-dark">خدمة الدين المعترف به</span>
+            <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.debtServiceUSD)}M</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-wheat-dark">القسط النفطي الإيراني</span>
+            {#if (($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1 || ($draftStore.activePoliticalActions ?? []).includes('REPUDIATE_IRAN_FORMAL'))}
+              <span class="font-bold text-forest-accent">مُسقط ✓ ($0.0M)</span>
+            {:else}
+              <span class="font-bold text-wheat-light">${formatMillionUSD($previewRangesStore.iranOilCouponUSD)}M</span>
+            {/if}
+          </div>
+          {#if ($previewRangesStore.facilityInflowUSD ?? 0) > 0}
+            <div class="flex items-center justify-between text-[11px] font-mono">
+              <span class="text-forest-accent">تدفق التسهيلات المشروطة المتوقع</span>
+              <span class="font-bold text-forest-accent">+${formatMillionUSD($previewRangesStore.facilityInflowUSD)}M</span>
+            </div>
+            {#each $previewRangesStore.facilityStatusAr ?? [] as line}
+              <div class="text-[10px] font-mono text-forest-accent/90 pr-2">· {line}</div>
+            {/each}
+          {/if}
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-wheat-dark">العجز التشغيلي المتوقع (المقلق)</span>
+            <span class="font-bold text-umber-crimson">${formatBillionSYP($previewRangesStore.operatingDeficitSYP ?? 0)}B</span>
+          </div>
+          <div class="flex items-center justify-between text-[11px] font-mono">
+            <span class="text-wheat-dark">الإنفاق الاستثماري (يبني الغد)</span>
+            <span class="font-bold text-forest-accent">${formatBillionSYP($previewRangesStore.investmentSYP ?? 0)}B</span>
+          </div>
+        </div>
+
         {#if !hasAnyActions}
           <div class="p-8 text-center bg-charcoal-surface border border-charcoal-mid rounded-none text-wheat-dark space-y-2">
             <p class="font-heading text-sm text-wheat-light">لم يتم اعتماد أي قرارات أو تعديل في السياسات لهذا الدور</p>

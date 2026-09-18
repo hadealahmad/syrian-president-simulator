@@ -276,7 +276,7 @@
           class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 select-none font-arabic"
         >
           <div
-            class="modal-confirm h-[56vh] aspect-[3/4] max-w-[90%] bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light scroll-area overflow-y-auto"
+            class="modal-confirm h-[56vh] max-h-full aspect-[3/4] max-w-[90%] bg-forest-deep border-2 border-wheat-gold shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light scroll-area overflow-y-auto"
           >
             <!-- Confirmation Header -->
             <div class="border-b border-charcoal-mid pb-3">
@@ -356,7 +356,7 @@
           class="absolute inset-0 z-30 bg-black/85 backdrop-blur-sm flex items-center justify-center p-6 select-none font-arabic"
         >
           <div
-            class="w-full max-w-lg bg-forest-deep border-2 border-umber-crimson shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light"
+            class="w-full max-w-lg max-h-full bg-forest-deep border-2 border-umber-crimson shadow-[0_25px_60px_rgba(0,0,0,0.95)] p-6 space-y-4 rounded-none text-wheat-light scroll-area scroll-umber overflow-y-auto"
           >
             <div class="border-b border-charcoal-mid pb-3">
               <div class="flex items-center gap-2">

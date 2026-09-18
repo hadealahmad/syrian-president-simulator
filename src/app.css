@@ -505,3 +505,18 @@
 .modal-card {
   max-height: calc(var(--vp-h) - 32px);
 }
+/* Phones in landscape: a 3:4 card locked to 70% of a ~390px-tall viewport
+   is ~205px wide — long headers and footers wrap and crush the scrollable
+   middle. Fill the wide viewport instead. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .modal-tall {
+    height: calc(var(--vp-h) - 16px);
+    width: min(94vw, 56rem);
+    aspect-ratio: auto;
+  }
+  .modal-confirm {
+    height: calc(var(--vp-h) - 80px);
+    width: min(90%, 44rem);
+    aspect-ratio: auto;
+  }
+}
