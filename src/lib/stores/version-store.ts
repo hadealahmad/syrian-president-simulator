@@ -25,6 +25,30 @@ function createVersionStore() {
     lastChecked: null,
   });
 
+  let serviceWorkerUpdater: ((reloadPage?: boolean) => Promise<void>) | null = null;
+  let serviceWorkerUpdateReady = false;
+
+  function setServiceWorkerUpdater(fn: (reloadPage?: boolean) => Promise<void>): void {
+    serviceWorkerUpdater = fn;
+  }
+
+  function notifyServiceWorkerUpdateReady(latestVersion: string | null = null): void {
+    serviceWorkerUpdateReady = true;
+    update((s) => ({
+      ...s,
+      hasUpdate: true,
+      latestVersion: latestVersion ?? s.latestVersion,
+    }));
+  }
+
+  function requestServiceWorkerUpdate(): void {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker
+      .getRegistration()
+      .then((registration) => registration?.update())
+      .catch(() => {});
+  }
+
   async function checkForUpdates(): Promise<boolean> {
     update((s) => ({ ...s, isChecking: true }));
     try {
@@ -48,6 +72,7 @@ function createVersionStore() {
       const remoteVersion = data.version;
 
       if (remoteVersion && remoteVersion !== initialVersion) {
+        requestServiceWorkerUpdate();
         update((s) => ({
           ...s,
           isChecking: false,
@@ -60,10 +85,10 @@ function createVersionStore() {
         update((s) => ({
           ...s,
           isChecking: false,
-          hasUpdate: false,
+          hasUpdate: serviceWorkerUpdateReady,
           lastChecked: Date.now(),
         }));
-        return false;
+        return serviceWorkerUpdateReady;
       }
     } catch {
       update((s) => ({ ...s, isChecking: false, lastChecked: Date.now() }));
@@ -91,11 +116,44 @@ function createVersionStore() {
     window.location.href = url.toString();
   }
 
+  async function applyUpdate(): Promise<void> {
+    if (serviceWorkerUpdateReady && serviceWorkerUpdater) {
+      serviceWorkerUpdateReady = false;
+      const activated = await activateServiceWorkerUpdate();
+      if (activated) {
+        window.location.reload();
+        return;
+      }
+    }
+    await clearAllCachesAndReload();
+  }
+
+  async function activateServiceWorkerUpdate(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
+
+    const controllerChanged = new Promise<boolean>((resolve) => {
+      const timer = window.setTimeout(() => resolve(false), 5000);
+      navigator.serviceWorker.addEventListener(
+        'controllerchange',
+        () => {
+          window.clearTimeout(timer);
+          resolve(true);
+        },
+        { once: true }
+      );
+    });
+
+    await serviceWorkerUpdater?.(false);
+    return controllerChanged;
+  }
+
   return {
     subscribe,
     checkForUpdates,
-    applyUpdate: clearAllCachesAndReload,
+    applyUpdate,
     forceHardReload: clearAllCachesAndReload,
+    setServiceWorkerUpdater,
+    notifyServiceWorkerUpdateReady,
   };
 }
 

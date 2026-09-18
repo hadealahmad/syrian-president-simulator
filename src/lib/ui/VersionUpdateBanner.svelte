@@ -23,7 +23,7 @@
       class="px-3 py-1 bg-amber-400 hover:bg-amber-300 text-forest-deep font-bold text-xs cursor-pointer shadow transition-all active:scale-95 flex items-center gap-1 font-heading"
     >
       <GameIcon name="cycle" cls="w-3.5 h-3.5 shrink-0" />
-      <span>تحديث فوري وإفراغ الذاكرة</span>
+      <span>تحديث فوري وإعادة التشغيل</span>
     </button>
   </aside>
 {/if}

@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
+import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
@@ -92,7 +93,61 @@ function versionPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [tailwindcss(), svelte(), versionPlugin()],
+  plugins: [
+    tailwindcss(),
+    svelte(),
+    versionPlugin(),
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: null,
+      manifest: {
+        id: './',
+        name: 'رئيس الجمهورية — محاكاة إدارة واقتصاد سوريا ما بعد الحرب',
+        short_name: 'رئيس الجمهورية',
+        description:
+          'محاكاة استراتيجية لإدارة الدولة والاقتصاد في سوريا ما بعد الحرب: قرارات رئاسية، وميزانية، وديون، وبناء مؤسسات.',
+        lang: 'ar',
+        dir: 'rtl',
+        start_url: './',
+        scope: './',
+        display: 'standalone',
+        orientation: 'any',
+        theme_color: '#0a1b18',
+        background_color: '#071210',
+        categories: ['games', 'simulation', 'strategy'],
+        icons: [
+          {
+            src: 'icon-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: 'icon-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,ttf}'],
+        globIgnores: ['**/version.json'],
+        navigateFallback: 'index.html',
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: false,
+        ignoreURLParametersMatching: [/^v$/, /^utm_/, /^fbclid$/],
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        runtimeCaching: [
+          {
+            urlPattern: /version\.json/,
+            handler: 'NetworkOnly',
+          },
+        ],
+      },
+    }),
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_TIME__: JSON.stringify(buildTime),

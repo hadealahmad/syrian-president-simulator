@@ -30,8 +30,7 @@
   }
 
   function updateGame(): void {
-    // Same action as the old update button: wipe caches, hard-reload newest build.
-    void versionStore.forceHardReload();
+    void versionStore.applyUpdate();
   }
 
   function pickTheme(id: ThemeId): void {
