@@ -2,6 +2,7 @@
   import { uiStore } from '../stores/ui-store';
   import { versionStore } from '../stores/version-store';
   import { theme } from '../stores/theme-store';
+  import { pwaStore } from '../stores/pwa-store';
   import { THEMES, THEME_IDS, type ThemeId } from '../themes';
   import { startGuideTour } from './guide-tour';
   import GameIcon from './GameIcon.svelte';
@@ -9,10 +10,13 @@
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let themesOpen = $state(false);
+  let iosInstallHintOpen = $state(false);
+  let canInstallApp = $derived(!$pwaStore.isInstalled && ($pwaStore.canInstall || $pwaStore.isIos));
 
   function closeSettings(): void {
     uiStore.setSettingsOpen(false);
     themesOpen = false;
+    iosInstallHintOpen = false;
   }
 
   function openSettings(): void {
@@ -36,6 +40,14 @@
   function pickTheme(id: ThemeId): void {
     // Applies instantly; the modal stays open so themes can be previewed.
     theme.setTheme(id);
+  }
+
+  async function installApp(): Promise<void> {
+    if ($pwaStore.canInstall) {
+      await pwaStore.promptInstall();
+      return;
+    }
+    iosInstallHintOpen = !iosInstallHintOpen;
   }
 </script>
 
@@ -140,6 +152,26 @@
               onchange={(v) => uiStore.setCrtTube(v)}
             />
           </div>
+
+          {#if canInstallApp}
+            <button
+              onclick={installApp}
+              class="h-14 flex items-center justify-center gap-2 px-3 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-center transition-colors cursor-pointer gloss-hover"
+            >
+              <GameIcon name="download" cls="w-4 h-4 shrink-0 text-wheat-gold" />
+              <span class="text-center">
+                <span class="block text-xs font-bold text-wheat-light font-heading">تثبيت اللعبة كتطبيق</span>
+                <span class="block text-[10px] text-wheat-dark">تشغيل دون اتصال وبملء الشاشة</span>
+              </span>
+            </button>
+          {/if}
+          {#if iosInstallHintOpen}
+            <p
+              class="px-3 py-2 text-[10px] text-wheat-dark leading-relaxed border border-charcoal-mid bg-charcoal-deep/60 text-center"
+            >
+              اضغط زر المشاركة في متصفح سفاري، ثم اختر «إضافة إلى الشاشة الرئيسية».
+            </p>
+          {/if}
 
           <a
             href="https://www.youtube.com/channel/UCQkqyo2DYRee_1qlHZ1M6Dg/join"
