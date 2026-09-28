@@ -86,7 +86,7 @@ so explicitly rather than implying confirmation.
 | [constitutional-declaration.md](facts/constitutional-declaration.md) | 13 March 2025 declaration, 5-year term | Verified, with a gap |
 | [decrees-19-20-transitional-justice.md](facts/decrees-19-20-transitional-justice.md) | Missing Persons vs Transitional Justice | **Verified — game is correct** |
 | [decrees-13-16-illicit-wealth.md](facts/decrees-13-16-illicit-wealth.md) | Decree 16 property restitution | **Verified — report overstated it** |
-| [decrees-59-98-100-101.md](facts/decrees-59-98-100-101.md) | May 2026 reshuffle; Decree 13/2026 | **Verified vs SANA — game correct**; Decree 59 unverified |
+| [decrees-59-98-100-101.md](facts/decrees-59-98-100-101.md) | Decrees 59, 98, 100, 101, 13/2026 | **All verified vs SANA — game correct on every decree it cites** |
 | [monetary-reform-2026.md](facts/monetary-reform-2026.md) | Redenomination execution, unpegging, CB change | **MISSING FROM GAME** |
 
 ### Geopolitics, commodities, assets
@@ -111,9 +111,6 @@ so explicitly rather than implying confirmation.
 - The geopolitical, commodity and asset files (Sections 3) were **not**
   independently re-verified. They record what the audit claimed and flag it as
   inherited, not confirmed.
-- No source is cited for several `UNVERIFIED` files because the original
-  `sfuturem.org` placeholder citation was the only reference and it is not a
-  resolvable source.
 - The 14 per-governorate damage figures are confirmed **in total** and for the
   three headline governorates. The remaining eleven were not re-extracted from
   World Bank Table 1 line by line; they are confirmed only by summing to the

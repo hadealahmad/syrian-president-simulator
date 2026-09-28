@@ -879,7 +879,19 @@ export const BASELINE_COMMISSIONS: Record<string, CommissionState> = {
   },
 };
 
-// Confiscated Assets & Oligarch Monopolies Pipeline (Decree 13 / Illicit Enrichment)
+// Confiscated Assets & Oligarch Monopolies Pipeline
+//
+// Legal basis, verified 2026-09-28:
+//   - Legislative Decree 16 of 2025 (Art. 48 Constitutional Declaration) lifts
+//     precautionary seizure orders 2012-2024. It does NOT repeal Law 63/2012 and
+//     excludes court-ordered Anti-Terrorism Court confiscations.
+//   - The Anti-Illicit Enrichment Commission is real and is run by the
+//     Minister of Agriculture, Basel Hafez al-Suwaidan, who announced a six-month
+//     voluntary disclosure window on 28 Jan 2026. NO founding decree number was
+//     located; an earlier "Decree 13" attribution is not correct — Decree 13 of
+//     2026 concerns Kurdish citizenship, not illicit enrichment.
+//   - Valuations below are game balance parameters, not disclosed transaction
+//     values. See notes/facts/confiscated-assets-and-restitution.md.
 export const BASELINE_CONFISCATED_ASSETS: ConfiscatedAsset[] = [
   {
     id: 'syriatel_mtn',

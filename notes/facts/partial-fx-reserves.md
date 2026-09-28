@@ -41,8 +41,8 @@ not.
   higher.
 - The fact-check report's "$320M–$450M" range could not be traced to any IMF, EIU
   or other publication. The report's own citation for most claims is the
-  git-ignored design document, and for this one the reference was a placeholder
-  (`sfuturem.org`).
+  git-ignored design document, which is absent, so the attribution to those
+  bodies is uncheckable.
 - The game's "~2.4 months import cover" gloss is not supported by any source
   located.
 

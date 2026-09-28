@@ -87,7 +87,10 @@ administered by name-list, is a precise model of selective redress — and it is
 exactly the kind of thing a player in a transitional state would have to exploit
 or resist.
 
-**Decree 13: UNVERIFIED.**
+**A founding decree number: still UNLOCATED.** The Commission is real and is run
+by the Minister of Agriculture, al-Suwaidan. Note that "Decree 13" is the wrong
+attribution — the real Decree 13 of 2026 concerns Kurdish citizenship. See
+[decrees-59-98-100-101.md](decrees-59-98-100-101.md).
 
 ## Game impact
 

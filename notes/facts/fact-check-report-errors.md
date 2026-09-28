@@ -18,8 +18,11 @@ next audit does not re-inherit them.
   therefore unverifiable by a reader.
 - `plan/` is **also git-ignored**, and 6 of its 14 files declare themselves
   superseded. The report audits against them for "100% alignment".
-- Row 2.7 cites **`sfuturem.org`** as its source for Decree 59. That is a
-  placeholder, not a citation, and the row is marked `[VERIFIED FACTUAL]`.
+- **CORRECTION — I was wrong here.** Row 2.7 cites `sfuturem.org`, which I
+  previously called a placeholder. It is **Syrian Future Movement** (تيار
+  المستقبل السوري), a real outlet, and it publishes the full text of Decree 59.
+  Row 2.7 is **correct and now verified against SANA**. See
+  [decrees-59-98-100-101.md](decrees-59-98-100-101.md).
 
 ## Specific rows that are wrong
 
@@ -49,6 +52,18 @@ ten thematic decks, and `event_03_livestock_drain`, `event_07_poultry_feed_shock
 `event_08_gas_pipeline` and `event_09_euphrates_flow` were all retired.
 Current IDs: `event_12_awassi_export`, `event_11_poultry_feed_shock`,
 `event_09_gas_severance`, `event_07_euphrates_flow`.
+
+## Row 2.5 is refuted
+
+The report attributes "Decision/Decree No. 13 of May 4, 2025 — National Committee
+for Combating Illicit Enrichment" and marks it `[VERIFIED FACTUAL]`.
+
+**Decree No. 13 of 2026** is about **Kurdish citizenship** — abolishing the 1962
+Hasakah census, granting nationality to previously unregistered Kurds, and making
+Nowruz a paid national holiday. Decree numbers are year-scoped, so the two are
+different instruments. No founding decree for the Anti-Illicit Enrichment
+Commission was located; the Commission is real and is run by the Minister of
+Agriculture, but its legal basis is Decree 16 plus the Commission itself.
 
 ## The biggest omission
 

@@ -85,6 +85,29 @@ modelled deficit is larger than reality.
 
 ---
 
+## 5b. No reconstruction institution
+
+**MISSING.** **Decree 59 of 2026** (issued 8 March) established a national
+committee to rehabilitate infrastructure in destroyed areas ahead of returns —
+chaired by the Minister of Emergency and Disaster Management, with the finance,
+public works, social affairs and local administration ministers, the governors of
+**Aleppo, Hama and Idlib**, and the foreign ministry's international cooperation
+director. It **meets every 15 days** and files a **monthly report to the
+Presidency**, and has a **financial subcommittee** for budgets.
+
+The game has Raed al-Saleh as emergency minister and models $216B of
+reconstruction as a number, but no institution, no reporting clock, and no
+separate budget channel. Northern Syria still holds ~800 camps with 120,000+
+people. See [decrees-59-98-100-101.md](decrees-59-98-100-101.md).
+
+## 5c. No citizenship or registration question
+
+**MISSING.** **Decree 13 of 2026** abolished the laws and exceptional measures
+arising from the **1962 Hasakah census**, granted nationality to Kurdish-origin
+residents including those **previously unregistered**, and made **Nowruz a paid
+national holiday**. The game has no citizenship, registration or documentation
+axis at all — arguably the largest unmodelled social question in the project.
+
 ## 6. No legislature
 
 **MISSING — see [constitutional-declaration.md](constitutional-declaration.md).**
@@ -240,6 +263,8 @@ reactively; there is no slow-moving climate trend behind them.
 | 9b | Multiple competing currencies (lira/USD/SYP) | Missing | High |
 | 9c | Turkish import competition | Missing | Medium |
 | 13 | Concessions run the wrong way | Inverted | Very high |
+| 5b | No reconstruction institution (Decree 59) | Missing | High |
+| 5c | No citizenship/registration (Decree 13/2026) | Missing | High |
 | 10 | Redenomination / unpegging | Missing + wrong | High |
 | 11 | $923B cumulative losses | Partial | Framing |
 | 12 | Climate / drought trend | Missing | Medium |

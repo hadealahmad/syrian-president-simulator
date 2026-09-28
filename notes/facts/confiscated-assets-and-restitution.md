@@ -80,7 +80,9 @@ Commission.
   report got this right.
 - **The four domestic asset valuations: UNVERIFIED**, and mislabelled by the
   report.
-- **Decree 13: UNVERIFIED** (see
+- **A founding decree number for the Anti-Illicit Enrichment Commission: still
+  UNLOCATED**, and "Decree 13" is the wrong attribution — the real Decree 13 of
+  2026 is about Kurdish citizenship. Removed from `constants.ts` (see
   [decrees-13-16-illicit-wealth.md](decrees-13-16-illicit-wealth.md)).
 - **NEW AND SIGNIFICANT:** selective de-freezing of confiscated assets is being
   used as a channel for foreign direct investment, at a scale — $7B and 5,000 MW
