@@ -7,6 +7,7 @@
   import { startGuideTour } from './guide-tour';
   import GameIcon from './GameIcon.svelte';
   import ToggleSwitch from './ToggleSwitch.svelte';
+  import { PROJECT_LINKS } from '../project-links';
 
   let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
   let themesOpen = $state(false);
@@ -31,6 +32,11 @@
   function startNewGame(): void {
     closeSettings();
     uiStore.setRestartModal(true);
+  }
+
+  function openAbout(): void {
+    closeSettings();
+    uiStore.setAboutOpen(true);
   }
 
   function updateGame(): void {
@@ -140,19 +146,6 @@
             </span>
           </button>
 
-          <!-- CRT screen effect toggle (map only; off = raw map, lighter on weak GPUs) -->
-          <div class="h-14 flex items-center justify-between gap-3 px-3 bg-charcoal-surface border border-charcoal-mid">
-            <span class="text-center">
-              <span class="block text-xs font-bold text-wheat-light font-heading">مؤثر شاشة CRT</span>
-              <span class="block text-[10px] text-wheat-dark">{$uiStore.crtTube ? 'مفعّل' : 'معطّل'}</span>
-            </span>
-            <ToggleSwitch
-              checked={$uiStore.crtTube}
-              label="تبديل مؤثر شاشة CRT"
-              onchange={(v) => uiStore.setCrtTube(v)}
-            />
-          </div>
-
           {#if canInstallApp}
             <button
               onclick={installApp}
@@ -184,6 +177,32 @@
           </a>
 
           <button
+            onclick={openAbout}
+            class="h-12 flex items-center justify-center gap-2 px-3 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-center transition-colors cursor-pointer gloss-hover"
+          >
+            <GameIcon name="scroll-quill" cls="w-4 h-4 shrink-0 text-wheat-gold" />
+            <span class="text-center">
+              <span class="block text-xs font-bold text-wheat-light font-heading">عن اللعبة</span>
+              <span class="block text-[10px] text-wheat-dark">الفكرة، الأرقام ومصادرها، الرخصة</span>
+            </span>
+          </button>
+
+          <a
+            href={PROJECT_LINKS.repo}
+            target="_blank"
+            rel="noreferrer"
+            class="h-12 flex items-center justify-center gap-2 px-3 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-center transition-colors cursor-pointer gloss-hover"
+          >
+            <GameIcon name="brand-github" cls="w-4 h-4 shrink-0 text-wheat-gold" />
+            <span class="text-center">
+              <span class="block text-xs font-bold text-wheat-light font-heading"
+                >الشيفرة على GitHub</span
+              >
+              <span class="block text-[10px] text-wheat-dark" dir="ltr">MIT · syrian-president-simulator</span>
+            </span>
+          </a>
+
+          <button
             onclick={updateGame}
             aria-label="تحديث اللعبة — فرض إعادة التحميل"
             title="تحديث اللعبة — فرض إعادة التحميل"
@@ -199,10 +218,11 @@
 
           <div class="flex items-center justify-center gap-2">
             <a
-              href="https://github.com/hadealahmad"
+              href={PROJECT_LINKS.authorGithub}
               target="_blank"
               rel="noreferrer"
-              aria-label="GitHub: hadealahmad"
+              aria-label="حساب المطوّر على GitHub"
+              title="حساب المطوّر على GitHub"
               class="h-9 w-9 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer gloss-hover"
             >
               <GameIcon name="brand-github" cls="w-4 h-4 shrink-0" />
@@ -262,6 +282,21 @@
               </span>
             </button>
           {/each}
+
+          <!-- CRT screen effect (map only; off = raw map, lighter on weak GPUs) -->
+          <div
+            class="mt-3 h-14 flex items-center justify-between gap-3 px-3 bg-charcoal-surface border border-charcoal-mid"
+          >
+            <span class="text-center">
+              <span class="block text-xs font-bold text-wheat-light font-heading">مؤثر شاشة CRT</span>
+              <span class="block text-[10px] text-wheat-dark">{$uiStore.crtTube ? 'مفعّل' : 'معطّل'}</span>
+            </span>
+            <ToggleSwitch
+              checked={$uiStore.crtTube}
+              label="تبديل مؤثر شاشة CRT"
+              onchange={(v) => uiStore.setCrtTube(v)}
+            />
+          </div>
         </div>
       {/if}
     </div>

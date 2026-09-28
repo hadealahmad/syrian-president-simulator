@@ -10,6 +10,7 @@
   import FailStateModal from './lib/ui/FailStateModal.svelte';
   import CenturyReport from './lib/ui/CenturyReport.svelte';
   import RestartConfirmModal from './lib/ui/RestartConfirmModal.svelte';
+  import About from './lib/ui/About.svelte';
   import GuideTour from './lib/ui/GuideTour.svelte';
   import RotatePrompt from './lib/ui/RotatePrompt.svelte';
   import VersionUpdateBanner from './lib/ui/VersionUpdateBanner.svelte';
@@ -86,4 +87,9 @@
     <GuideTour />
     <RotatePrompt />
   </div>
+
+  <!-- About page: outside .hud-layer on purpose. Inside it the HUD zoom
+       transform would scale a long reading page by 130% on 2K screens, and
+       the layer's own z-index would put it under the rotate prompt (z-100). -->
+  <About />
 </main>

@@ -1,8 +1,14 @@
 {
-  "name": "temp-app",
+  "name": "syrian-president-simulator",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hadealahmad/syrian-president-simulator.git"
+  },
+  "homepage": "https://github.com/hadealahmad/syrian-president-simulator#readme",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

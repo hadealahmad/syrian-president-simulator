@@ -9,6 +9,8 @@ export interface UIState {
       top, review recedes underneath) -> closed. */
   turnFlowStage: 'closed' | 'review' | 'results' | 'events';
   isSettingsOpen: boolean;
+  /** Full-screen About page (project idea, sourced facts, MIT licence, author). */
+  isAboutOpen: boolean;
   tourCompleted: boolean;
   checklist: { decrees: boolean; province: boolean; endTurn: boolean };
   selectedStatForOptions: string | null;
@@ -37,6 +39,7 @@ function createUIStore() {
     isRestartModalOpen: false,
     turnFlowStage: 'closed',
     isSettingsOpen: false,
+    isAboutOpen: false,
     tourCompleted: checkTourSeen(),
     checklist: { decrees: false, province: false, endTurn: false },
     selectedStatForOptions: null,
@@ -67,6 +70,9 @@ function createUIStore() {
     },
     setSettingsOpen: (open: boolean) => {
       update((s) => ({ ...s, isSettingsOpen: open }));
+    },
+    setAboutOpen: (open: boolean) => {
+      update((s) => ({ ...s, isAboutOpen: open }));
     },
     completeTour: () => {
       update((s) => ({ ...s, tourCompleted: true }));
