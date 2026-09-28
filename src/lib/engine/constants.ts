@@ -553,9 +553,19 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     archetype: 'autonomous_frontier',
     hexQ: -2,
     hexR: 3,
-    population: 446_493,
-    hostPopulation: 372_692,
-    idpPopulation: 70_842,
+    // As-Suwayda governorate census (end-2023) gives ~650,000 residents, of
+    // which no more than ~35,000 are Bedouin. The previous 446,463 under-counted
+    // the governorate by ~46% and inflated the Bedouin share ~9x.
+    //
+    // idpPopulation is 155,000: the figure the OHCHR Commission of Inquiry
+    // counted as still displaced inside the governorate in March 2026, after the
+    // July 2025 escalation killed more than 1,700 people and displaced 155,000-
+    // 187,000 — overwhelmingly Druze, not Bedouin. Most of those IDPs are
+    // outside this governorate in practice, but the count belongs here because
+    // this is where the displacement happened.
+    population: 650_000,
+    hostPopulation: 495_000,
+    idpPopulation: 155_000,
     returneePopulation: 2_959,
     prri: 42,
     tier: 'TENSE',
@@ -569,6 +579,19 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     totalArableHectares: 140_000,
     mineSaturationPct: 5,
     skilledLaborCount: 12_000,
+    // Southern front indices. Anchored to the July 2025 escalation and the
+    // March 2026 OHCHR assessment, but the VALUES are design parameters, not
+    // measurements — there is no "integration index" in reality.
+    //   suwaydaIntegrationIndex 8  — de facto control outside government control
+    //                                 with an active call for separation, and a
+    //                                 Syria-US-Jordan roadmap (16 Sep 2025)
+    //                                 whose implementation is "moving slowly".
+    //   suwaydaSecessionProb 24     — low by design: it measures FORMAL secession
+    //                                 risk, while de facto fragmentation is already
+    //                                 happening and is not on this axis.
+    //   tribalRageIndex 74          — intensity within the ~35,000 Bedouin
+    //                                 population, which was itself a target of Druze
+    //                                 retaliation in July 2025.
     suwaydaIntegrationIndex: 8,
     suwaydaSecessionProb: 24,
     tribalRageIndex: 74,
@@ -952,19 +975,40 @@ export const BASELINE_FOREIGN_LOANS: ForeignLoanPackage[] = [
 // Emergency Concessionary Mortgaging of Sovereign Assets
 export const BASELINE_SOVEREIGN_MORTGAGES: SovereignMortgageOption[] = [
   {
+    // NOT a Russian lease. The 49-year Stroytransgaz concession was terminated by
+    // the transitional authorities in January 2025 (Tartous customs cited STG's
+    // failure to meet the 2019 investment terms) and STG disputed it until the
+    // matter was settled. In August 2026 Syria signed a 30-year, $800M terminal
+    // and logistics concession with DP World (UAE); the first civilian cargo used
+    // the formerly-Russian Pier No. 4 on 12 August 2026.
+    //
+    // The state is therefore NOT the pledgor here. This option represents
+    // *attempting to buy back or renegotiate* a concession it has already
+    // granted: the cash is what a counterparty would pay to release it early,
+    // and the sovereign penalty is the reputational cost of tearing up a deal
+    // signed with a Gulf investor. Requires an existing DP World agreement.
     id: 'mortgage_tartus_port',
-    titleAr: 'عقد تشغيل وامتياز محطة حاويات مرفأ طرطوس التجاري',
-    assetNameAr: 'أرصفة ورافعات مرفأ طرطوس الدولي',
-    concessionDurationYears: 49,
-    immediateCashUSD: 450_000_000,
-    turnRevenueLossUSD: 40_000_000,
-    sovereigntyPenaltyAr: 'خسارة السيادة البحرية وحرمان الموازنة من الرسوم الجمركية الترانزيتية المباشرة',
+    titleAr: 'تفاوض على استرداد امتياز مرفأ طرطوس مع المشغّل الدولي (DP World)',
+    assetNameAr: 'رصيف الحاويات 4 ومرافق مرفأ طرطوس التجارية',
+    concessionDurationYears: 30,
+    immediateCashUSD: 150_000_000,
+    turnRevenueLossUSD: 55_000_000,
+    sovereigntyPenaltyAr: 'خسارة ثقة المستثمر الخليجي ومخاطرة إلغاء صفقة امتياز موقّعة مع جهة دولية — حرمان الموازنة من الرسوم الجمركية الترانزيتية المباشرة',
     isMortgaged: false,
   },
   {
+    // The 2018 50-year Stroytransgaz Palmyra phosphate concession was frozen
+    // after December 2024. In November 2025 the state reopened the Sharqiya
+    // wash-and-drying plant itself (1.2M t/y) after a ten-year hiatus, and in
+    // December 2025 it signed an exploration/export agreement with the Serbian
+    // company Elixir Group (1.5M t in 2026), ending the Russian monopoly. There
+    // is a national target of 7-8M t.
+    //
+    // Phosphate is now a state-operated asset, so it IS pledgeable — the one
+    // strategic reserve the state genuinely still owns outright.
     id: 'mortgage_khneifis_phosphate',
-    titleAr: 'حقوق استخراج ونقل خامات فوسفات خنيفيس والشرقية',
-    assetNameAr: 'مناجم الفوسفات في بادية تدمر',
+    titleAr: 'رهن حقوق استخراج الفوسفات في خنيفيس والشرقية (ملك دولة)',
+    assetNameAr: 'مناجم الفوسفات المملوكة للدولة في بادية تدمر',
     concessionDurationYears: 30,
     immediateCashUSD: 300_000_000,
     turnRevenueLossUSD: 60_000_000,

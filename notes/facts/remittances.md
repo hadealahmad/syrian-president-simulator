@@ -50,6 +50,13 @@ cash position.
 
 ## Game impact
 
+- **CORRECTED IN GAME (period).** The engine held `totalRemittancesUSD =
+  1_000_000_000` with the comment "Expatriates remit ~$1.0B USD per 6-month turn".
+  The *value* matched this file's figure, but a turn is six months, so applying
+  $1.0bn per turn booked **$2bn/yr — double the real flow**. Now
+  `500_000_000` ($1.0bn/yr ÷ 2 turns). The emergency branch above the hawala
+  threshold is an absolute USD surge rather than a share of the pool, so it was
+  deliberately left unscaled.
 - **INCORRECT (scale):** the $2.2B figure, which the report marked
   `[VERIFIED FACTUAL]`.
 - **SOUND: the mechanic.** `remittanceCaptureSpread` is one of the better-designed

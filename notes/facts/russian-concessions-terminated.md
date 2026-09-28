@@ -125,10 +125,19 @@ position than owning them outright, and one the state cannot undo.
   **65% of profits**. The DP World and Elixir arrangements presumably have
   comparable terms. A revenue-share mechanic is a better fit than a one-off cash
   payment, and it recurs.
-- **STRUCTURAL:** the mortgage mechanic grants cash with **no repayment
+- **CORRECTED IN GAME (mechanic inverted).** `mortgage_tartus_port` is no longer a
+  pledge of a Russian lease: it is now *negotiating a buy-back of the DP World
+  concession Syria has already granted* — 30 years (not 49), $150M up front
+  (not $450M) because that is what a counterparty pays to release it early, and a
+  $55M/turn revenue loss with a sovereign penalty about losing Gulf investor
+  confidence. `mortgage_khneifis_phosphate` is reframed as a **state-owned**
+  asset (Sharqiya reopened Nov 2025, Elixir partnership Dec 2025) and is now the
+  one strategic reserve the state genuinely still owns, so it remains pledgeable.
+- **STRUCTURAL (still open):** the mechanic grants cash with **no repayment
   obligation and no expiry**, and `SOVEREIGN_LEVERAGE_CAP = 65` equals baseline
-  leverage — so mortgaging is close to a free win on the leverage axis. Combined
-  with the inversion, this mechanic should be rebuilt rather than re-scaled.
+  leverage — so mortgaging is close to a free win on the leverage axis. A
+  revenue-share obligation matching the historical 65/35 profit split would be a
+  better fit than a one-off payment.
 
 ## Sources
 

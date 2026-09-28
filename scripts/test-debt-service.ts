@@ -51,16 +51,19 @@ console.log('\n=== TEST 4: Mortgage revenue drain ===');
 {
   const s = createInitialGameState(100);
   const dir = getDefaultTurnDirectives();
-  dir.executedMortgageIds = ['mortgage_tartus_port']; // -$40M/turn
+  // Tartus is now a buy-back negotiation, not a pledge: -$55M/turn, and only
+  // $150M up front (it is a concession Syria granted, so the cash is what a
+  // counterparty pays to release it early).
+  dir.executedMortgageIds = ['mortgage_tartus_port'];
   const after = executeTurnLifecycle(s, dir);
-  check('tartus drain $40M', after.lastTurnAudit!.mortgageDrainUSD === 40_000_000, `got ${after.lastTurnAudit!.mortgageDrainUSD}`);
+  check('tartus drain $55M', after.lastTurnAudit!.mortgageDrainUSD === 55_000_000, `got ${after.lastTurnAudit!.mortgageDrainUSD}`);
   const plain = executeTurnLifecycle(createInitialGameState(100), getDefaultTurnDirectives());
   const diff = plain.lastTurnAudit!.netUSDDelta - after.lastTurnAudit!.netUSDDelta;
-  // Pre-existing port concession cut ($24M->$6M = -$18M at source) PLUS new
-  // $40M/turn drain: net delta is -$58M vs plain. The +$450M disbursement lands
+  // Pre-existing port concession cut ($24M->$6M = -$18M at source) PLUS the
+  // $55M/turn drain: net delta is -$73M vs plain. The $150M disbursement lands
   // directly in reserves (turn-manager), not through the audit.
-  check('net reflects -18M port cut -40M drain', diff === 58_000_000, `got ${diff}`);
-  check('reserves +450M -58M', after.macro.reservesUSD - plain.macro.reservesUSD === 392_000_000,
+  check('net reflects -18M port cut -55M drain', diff === 73_000_000, `got ${diff}`);
+  check('reserves +150M -73M', after.macro.reservesUSD - plain.macro.reservesUSD === 77_000_000,
     `got ${after.macro.reservesUSD - plain.macro.reservesUSD}`);
 }
 

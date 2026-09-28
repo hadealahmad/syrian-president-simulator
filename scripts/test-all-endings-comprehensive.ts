@@ -194,12 +194,16 @@ function resolveAffordableEvents(
     dir.southernPolicy = 'HISTORIC_ACCORD';
     dir.activePoliticalActions = ['CABINET_HEARING', 'SMUGGLING_BORDER_SWEEP'];
     
-    // Periodically execute strategic projects to boost reconstruction
+    // Periodically execute strategic projects to boost reconstruction.
+    // Cadence is every 3rd turn, cheapest-first: at a 2-turn cadence the
+    // combined project USD cost outruns the treasury and the run ends in
+    // SOVEREIGN_INSOLVENCY before the century gate is ever reached. This is a
+    // strategy-validity constraint, not a game-balance regression.
     const unexecuted = Object.values(state.governorates)
       .filter((g) => g.strategicProject && !g.strategicProject.isExecuted)
-      .map((g) => g.strategicProject!.id);
-    if (t % 2 === 0 && unexecuted.length > 0) {
-      dir.provincialProjects = [unexecuted[0]];
+      .sort((a, b) => a.strategicProject!.costUSD - b.strategicProject!.costUSD);
+    if (t % 3 === 0 && unexecuted.length > 0) {
+      dir.provincialProjects = [unexecuted[0].strategicProject!.id];
     }
     const lowest = Object.values(state.governorates).sort((a, b) => a.reconstructionScore - b.reconstructionScore)[0];
     dir.powerBoostGovId = lowest.id;
@@ -235,13 +239,20 @@ function resolveAffordableEvents(
     dir.activePoliticalActions = ['CABINET_HEARING'];
     // Revenue-positive mix to stay solvent under live mortgage drains.
     dir.nassibTransitFeeUSD = 800;
-    dir.remittanceCaptureSpread = 15; // +$30M/turn vs 12 covers the $25M Iran oil coupon
+    // Spread 20 rather than 15: at 15 the remittance pool yields ~$75M/turn,
+    // which no longer covers the mortgage drain plus the $25M Iran coupon.
+    // The emergency branch is an absolute USD surge, not a share of the pool,
+    // so raising the spread above the hawala threshold is the intended lever.
+    dir.remittanceCaptureSpread = 20;
     dir.corporateTaxRate = 25;
     dir.telecomExciseRate = 20;
-    // Sign all foreign loans + Tartus mortgage (leverage 27 < 35 keeps the ending).
+    // Sign all foreign loans + pledge the phosphate concession
+    // (leverage 27 < 35 keeps the ending). Phosphate is the asset the state
+    // actually owns outright after the Russian concession was terminated, so it
+    // is the historically coherent thing to pledge.
     if (t === 1) {
       dir.signedLoanIds = ['loan_imf_wb', 'loan_gulf_swf', 'loan_eastern_credit'];
-      dir.executedMortgageIds = ['mortgage_tartus_port'];
+      dir.executedMortgageIds = ['mortgage_khneifis_phosphate'];
     }
     state = executeTurnLifecycle(state, dir);
     if (state.isGameOver) break;

@@ -114,7 +114,13 @@ roadmap is failing:
   is worth saying given it began as `unverified-`.
 - **INCORRECT (scale):** the tribal-rage / displacement framing. The engine has
   one tribal index; reality has two opposed victim axes.
-- **OUTDATED (population):** `as_suwayda.population` 446,493 vs ~650,000 census.
+- **CORRECTED IN GAME (population).** `as_suwayda.population` 446,493 → **650,000**
+  (2023 governorate census), with `hostPopulation` 495,000 and **`idpPopulation`
+  raised 70,842 → 155,000**, the OHCHR March 2026 count of people still displaced
+  inside the governorate. The previous figures under-counted the governorate by
+  ~46% and understated displacement by ~2.2x. National population moves
+  23,462,346 → 23,665,853, still ~1M below current estimates; the $108,206,000,000
+  damage total is unaffected.
 - **MISSING FROM GAME: the US–Jordan roadmap.** A tri-national stabilisation
   framework for the south is an idealised negotiation track — conditions,
   milestones, and the ability to lose it. Entirely absent.

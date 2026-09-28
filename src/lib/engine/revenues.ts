@@ -110,12 +110,19 @@ export function auditSemiannualBudget(
   }
 
   // Remittance Skimming & Dual Exchange Rate Mechanism
-  // Expatriates remit ~$1.0B USD per 6-month turn
-  const totalRemittancesUSD = 1_000_000_000;
+  //
+  // Period matters here. The sourced figure is ~$1.0bn per YEAR (World Bank
+  // "Personal remittances, received", Syria). A turn is six months, so the
+  // per-turn pool is ~$500M. This constant previously held the full $1.0bn and
+  // was applied per turn, booking $2bn/yr — double the real flow.
+  //
+  // The emergency branch below is unaffected: it is an absolute surge in USD,
+  // not a percentage of the pool, so it is deliberately not scaled by the pool.
+  const totalRemittancesUSD = 500_000_000; // $1.0bn/yr ÷ 2 turns
   const spreadPct = directives.remittanceCaptureSpread ?? 10;
   let remittanceCapturedUSD = 0;
   if (spreadPct <= 15) {
-    // Standard safe capture without informal flight ($50M to $150M)
+    // Standard safe capture without informal flight ($50M to $75M per turn)
     remittanceCapturedUSD = Math.round(totalRemittancesUSD * (spreadPct / 100));
   } else {
     // Emergency Predatory Haircut (Dire situations):
