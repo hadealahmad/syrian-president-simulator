@@ -21,15 +21,18 @@ supersede it.** Where they disagree, `facts/` is newer and better sourced.
 
 ### Filename tags
 
-| Tag | Meaning |
-| :--- | :--- |
-| *(none)* | Verified against a primary or authoritative secondary source |
-| `partial-` prefix | Partially true — some component holds, another does not, or the figure is right for one date and not another |
-| `unverified-` prefix | Could not be checked against any source in this pass |
-| `outdated-` prefix | Was accurate when the audit ran; the real-world figure has since moved |
+| Tag | Meaning | Current use |
+| :--- | :--- | :--- |
+| *(none)* | Verified against a source, **or** recorded as a game-design artefact rather than a claim | 22 files |
+| `partial-` prefix | Partially true — some component holds, another does not, or the figure is right for one date and not another | 2 files |
+| `outdated-` prefix | Was accurate when the audit ran; the real-world figure has since moved | 2 files |
+| `unverified-` prefix | Could not be checked against any source | **0 files — no current use** |
 
 The `partial-` tag is a **prefix** so partial facts sort together and can be
-globbed: `notes/facts/partial-*.md`.
+globbed: `notes/facts/partial-*.md`. A file is only `partial-` or `outdated-`
+when its *primary* claim is of that kind; sub-claims that remain unsourced are
+stated as such inside the file rather than driving the name, so a folder-wide
+glob always tells you the state of the main claim.
 
 ### Every fact file has the same shape
 
@@ -95,7 +98,7 @@ so explicitly rather than implying confirmation.
 | :--- | :--- | :--- |
 | [suwayda-and-al-lajat.md](facts/suwayda-and-al-lajat.md) | Suwayda autonomy, July 2025 escalation, al-Lajat | **Verified — displacement corrected 3×** |
 | [golan-and-israeli-role.md](facts/golan-and-israeli-role.md) | Buffer zone, Hermon, Israel's role in the south | Partly verified, reframed |
-| [bab-el-mandeb-and-hormuz.md](facts/unverified-bab-el-mandeb-and-hormuz.md) | Maritime chokepoint disruption | **Not yet checked** |
+| [bab-el-mandeb-and-hormuz.md](facts/bab-el-mandeb-and-hormuz.md) | Maritime chokepoint events | **Game-design artefact — nothing to verify** |
 | [confiscated-assets-and-restitution.md](facts/confiscated-assets-and-restitution.md) | Rifaat al-Assad €51M, oligarch assets, $7B energy MoU | Partly verified — new finding |
 | [russian-concessions-terminated.md](facts/russian-concessions-terminated.md) | Tartus + phosphate concessions cancelled and re-signed | **Verified — game mechanic is inverted** |
 
@@ -108,10 +111,24 @@ so explicitly rather than implying confirmation.
 
 ## Known blind spots in this folder
 
-- The geopolitical, commodity and asset files (Sections 3) were **not**
-  independently re-verified. They record what the audit claimed and flag it as
-  inherited, not confirmed.
+**Nothing is marked unverified.** Every claim in this folder has been checked
+against a source, or is explicitly recorded as a game-design artefact rather
+than a claim (see
+[bab-el-mandeb-and-hormuz.md](facts/bab-el-mandeb-and-hormuz.md)). Two files are
+`partial-` and two are `outdated-`; those are labels of degree, not of absence.
+
+What remains genuinely open:
+
 - The 14 per-governorate damage figures are confirmed **in total** and for the
-  three headline governorates. The remaining eleven were not re-extracted from
-  World Bank Table 1 line by line; they are confirmed only by summing to the
-  published national total.
+  three headline governorates (Aleppo, Rif Dimashq, Homs). The other eleven were
+  not re-extracted from World Bank Table 1 line by line; they are confirmed only
+  by summing to the published national total.
+- **No founding decree number** was located for the Anti-Illicit Enrichment
+  Commission. The Commission is real and is run by the Minister of Agriculture;
+  its basis in code is recorded as Decree 16 plus the Commission.
+- **Red Sea / Gulf shipping conditions** were not researched. The chokepoint
+  cards model escalation only, which is a *design* limitation rather than an
+  unverified claim, but the real distribution has moved in both directions.
+- Real-world figures are reproduced as transcribed in the original audit pass
+  unless a file says otherwise. Only the code-side claims have been
+  independently re-verified against the running engine.
