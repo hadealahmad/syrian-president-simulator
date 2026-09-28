@@ -1,6 +1,7 @@
 import type { GameState, TurnDirectives, RevenueAudit } from './types';
 import { IRAN_OIL_COUPON_USD, GROWTH_TUNING } from './constants';
 import { computeFacilityTurn, getFacilityDef } from './facilities';
+import { computeAuctionAbsorbedSYP } from './currency';
 
 // Patronage economics: cash/FX spent to buy political capital.
 export const POPULIST_GRANT_COST_SYP = 7_500_000_000;
@@ -236,7 +237,11 @@ export function auditSemiannualBudget(
 
   // Grid CapEx adjusted for ministry procurement competence
   const competenceWaste = avgMinistryCompetence < 40 ? 0.25 : 0.05;
-  const gridCapExUSD = directives.gridCapExUSD;
+  // Coalesced: a malformed draft (missing/NaN gridCapExUSD) previously produced
+  // NaN capacity, NaN investment spend and — via the operating/investment split
+  // at the end of this function — NaN operating spend. Matches the `?? 0` guard
+  // the growth-valve capacity code already used.
+  const gridCapExUSD = Number.isFinite(directives.gridCapExUSD) ? directives.gridCapExUSD : 0;
   const effectiveGridCapExUSD = gridCapExUSD * (1 - competenceWaste);
   macro.gridCapacityMW += Math.round((effectiveGridCapExUSD / 1_000_000) * 12);
 
@@ -375,11 +380,14 @@ export function auditSemiannualBudget(
   // Utility Bills
   const utilityBillsSYP = Math.round(11_000_000_000 * (macro.dailyPowerHours / 12) * complianceRate);
 
-  // Central Bank Dollar Auction: TRUE ABSORPTION. The SYP collected from the
-  // street is destroyed (M2 falls in the turn manager), never credited to the
-  // treasury — killing the old double-benefit where it funded spending too.
-  const auctionAbsorbedSYP = Math.round(
-    (directives.dollarAuctionUSD ?? 0) * (macro.parallelRateSYP * 0.95)
+  // Central Bank Dollar Auction. The SYP collected at the auction never reaches
+  // the treasury — it is withdrawn from the money supply (see
+  // computeAuctionAbsorbedSYP). Only the *sterilized* share is a real M2
+  // reduction, so that is what this receipt reports; it previously reported the
+  // full gross collection, overstating the destruction by 2.5x-3.3x.
+  const auctionAbsorbedSYP = computeAuctionAbsorbedSYP(
+    directives.dollarAuctionUSD ?? 0,
+    macro.parallelRateSYP
   );
 
   // Growth valve: productive capacity scales the domestic revenue base.
@@ -487,13 +495,20 @@ export function auditSemiannualBudget(
 
   const netSYPDelta = grossCapturedSYP + seignioragePrintedSYP - expendedSYP;
 
-  // Runway in turns (sibling of the month-based runway above, for the treasury card).
+  // Runway in turns (sibling of the month-based runway below, for the treasury card).
+  // Both runway metrics measure the balance the state will actually hold AFTER
+  // this turn's netUSDDelta is applied (turn-manager applies the delta once the
+  // audit returns), so they must read reserves + netUSDDelta, not the opening
+  // balance — otherwise the tier is derived from a figure the player never sees
+  // and a near-insolvent turn reports STABLE.
+  const reservesAfterTurnUSD = Math.max(0, macro.reservesUSD + netUSDDelta);
+
   let runwayTurnsEstimate = 99;
   if (netUSDDelta < 0) {
     const drainPerTurn = Math.abs(netUSDDelta);
-    if (drainPerTurn > 0 && macro.reservesUSD > 0) {
-      runwayTurnsEstimate = Math.max(0, Math.min(99, Math.floor(macro.reservesUSD / drainPerTurn)));
-    } else if (macro.reservesUSD <= 0) {
+    if (drainPerTurn > 0) {
+      runwayTurnsEstimate = Math.max(0, Math.min(99, Math.floor(reservesAfterTurnUSD / drainPerTurn)));
+    } else {
       runwayTurnsEstimate = 0;
     }
   }
@@ -507,8 +522,10 @@ export function auditSemiannualBudget(
   let runwayMonths = 99;
   if (netUSDDelta < 0) {
     const drainPerTurn = Math.abs(netUSDDelta);
-    const turnsRemaining = macro.reservesUSD / drainPerTurn;
-    runwayMonths = Math.max(0.1, Number((turnsRemaining * 6).toFixed(1)));
+    const turnsRemaining = reservesAfterTurnUSD / drainPerTurn;
+    // Capped at 99 like its siblings; without the cap a shallow drain rendered
+    // an absurd month count straight into the projected-turn summary.
+    runwayMonths = Math.max(0.1, Math.min(99, Number((turnsRemaining * 6).toFixed(1))));
   }
 
   let runwayAlertTier: 'STABLE' | 'WARNING' | 'CRITICAL' = 'STABLE';

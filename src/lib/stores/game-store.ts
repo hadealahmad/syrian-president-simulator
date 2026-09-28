@@ -5,6 +5,7 @@ import { BASELINE_GOVERNORATES } from '../engine/constants';
 import { executeTurnLifecycle } from '../engine/turn-manager';
 import { resolveEventOption, applyUnresolvedCrisisPenalty } from '../engine/events';
 import { checkFailStates } from '../engine/fail-states';
+import { cloneGameState } from '../engine/state-clone';
 
 const STORAGE_KEY = 'president_game_state_v1';
 
@@ -32,6 +33,22 @@ function loadStoredGameState(): GameState {
             if (BASELINE_GOVERNORATES[id]) {
               parsed.governorates[id].hexQ = BASELINE_GOVERNORATES[id].hexQ;
               parsed.governorates[id].hexR = BASELINE_GOVERNORATES[id].hexR;
+              // Backfill the optional indices the event decks apply. Saves
+              // written before these fields existed left them undefined, which
+              // made the corresponding authored effects no-ops.
+              for (const key of [
+                'tribalRageIndex',
+                'golanTensionIndex',
+                'daraaDefianceIndex',
+                'nassibRevenueCapturePct',
+                'suwaydaIntegrationIndex',
+                'suwaydaSecessionProb',
+              ] as const) {
+                const baseline = (BASELINE_GOVERNORATES[id] as unknown as Record<string, unknown>)[key];
+                if (baseline !== undefined) {
+                  parsed.governorates[id][key] = parsed.governorates[id][key] ?? baseline;
+                }
+              }
             }
           });
           return parsed as GameState;
@@ -45,18 +62,15 @@ function loadStoredGameState(): GameState {
 }
 
 /**
- * structuredClone() throws DataCloneError on functions. Active event cards
- * drawn before the triggerCondition strip (or from a stale session) may still
- * carry one in memory, so scrub before cloning — resolution re-resolves the
- * canonical card from ALL_EVENTS by id and never needs it.
+ * structuredClone() throws DataCloneError on functions, and JSON cloning
+ * silently turns a NaN into null. cloneGameState() handles both: it drops the
+ * `triggerCondition` predicate that a card can still carry (drawn before the
+ * strip in drawEventsForTurn, or restored from a stale session — resolution
+ * re-resolves the canonical card from ALL_EVENTS by id and never needs it) and
+ * coalesces non-finite numbers so they cannot propagate into a saved game.
  */
 function clonePlayableState(current: GameState): GameState {
-  for (const ev of current.activeEvents ?? []) {
-    if (typeof (ev as { triggerCondition?: unknown }).triggerCondition === 'function') {
-      delete (ev as { triggerCondition?: unknown }).triggerCondition;
-    }
-  }
-  return structuredClone(current);
+  return cloneGameState(current);
 }
 
 function persistGameState(state: GameState): void {

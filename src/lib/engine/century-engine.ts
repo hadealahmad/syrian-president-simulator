@@ -8,9 +8,14 @@ import { calculateRealWageUSD } from './currency';
 export function projectCenturyOutcome(state: GameState): CenturyEnding {
   const { macro, governorates } = state;
   const realWage = calculateRealWageUSD(macro.civilServiceWageSYP, macro.parallelRateSYP);
+  const governorateList = Object.values(governorates);
+  // Guarded: an empty governorate map produced NaN here, and because every
+  // ending branch compares finalScore, a NaN made all of them false — silently
+  // falling through to the 'hollowed_republic' default instead of failing loudly.
   const avgReconstruction =
-    Object.values(governorates).reduce((acc, g) => acc + g.reconstructionScore, 0) /
-    Object.keys(governorates).length;
+    governorateList.length > 0
+      ? governorateList.reduce((acc, g) => acc + g.reconstructionScore, 0) / governorateList.length
+      : 0;
 
   const suwayda = governorates['as_suwayda'];
   const hasHistoricAccord = (suwayda?.suwaydaIntegrationIndex ?? 0) >= 80;

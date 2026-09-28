@@ -1,4 +1,16 @@
-import { ALL_EVENTS } from '../src/lib/engine/deck';
+import {
+  ALL_EVENTS,
+  MASTER_EVENTS,
+  SOUTHERN_EVENTS,
+  MONETARY_EVENTS,
+  ENERGY_EVENTS,
+  AGRICULTURE_EVENTS,
+  INDUSTRY_EVENTS,
+  SERVICES_EVENTS,
+  DISASTER_EVENTS,
+  DEBT_EVENTS,
+  SOVEREIGNTY_EVENTS,
+} from '../src/lib/engine/deck';
 import { drawEventsForTurn, resolveEventOption, validateOptionAvailability } from '../src/lib/engine/events';
 import { createInitialGameState } from '../src/lib/engine/baseline';
 import { PRNG } from '../src/lib/engine/prng';
@@ -7,8 +19,39 @@ import type { GameState } from '../src/lib/engine/types';
 console.log('=== VERIFYING ALL EVENT DECKS ===');
 console.log(`Total events loaded in master deck: ${ALL_EVENTS.length}`);
 
-if (ALL_EVENTS.length !== 64) {
-  throw new Error(`Expected 64 events (14 original + 50 new), got ${ALL_EVENTS.length}`);
+// Deck composition, not a hard-coded total. The previous assertion pinned the
+// count at 64 while the decks had grown past it, so this script threw on its
+// first line and none of the checks below it ever ran. Asserting the aggregate
+// against its own parts catches a deck that is declared but not spread into
+// ALL_EVENTS, and stays correct as cards are added.
+const DECKS: Record<string, readonly unknown[]> = {
+  MASTER_EVENTS,
+  SOUTHERN_EVENTS,
+  MONETARY_EVENTS,
+  ENERGY_EVENTS,
+  AGRICULTURE_EVENTS,
+  INDUSTRY_EVENTS,
+  SERVICES_EVENTS,
+  DISASTER_EVENTS,
+  DEBT_EVENTS,
+  SOVEREIGNTY_EVENTS,
+};
+for (const [name, deck] of Object.entries(DECKS)) {
+  console.log(`  ${name}: ${deck.length}`);
+}
+const deckTotal = Object.values(DECKS).reduce((sum, deck) => sum + deck.length, 0);
+if (ALL_EVENTS.length !== deckTotal) {
+  throw new Error(
+    `ALL_EVENTS has ${ALL_EVENTS.length} cards but the decks declare ${deckTotal} — a deck is missing from the spread.`
+  );
+}
+if (ALL_EVENTS.length === 0) {
+  throw new Error('Master deck is empty.');
+}
+
+const duplicateIds = ALL_EVENTS.map((e) => e.id).filter((id, i, all) => all.indexOf(id) !== i);
+if (duplicateIds.length > 0) {
+  throw new Error(`Duplicate event ids in master deck: ${[...new Set(duplicateIds)].join(', ')}`);
 }
 
 const VALID_GOVS = new Set([
@@ -67,7 +110,7 @@ const prng = new PRNG(12345);
 // 1. Player with excellent finances ($800M reserves, 10T treasury, 5% inflation)
 const richState: GameState = createInitialGameState();
 richState.macro.reservesUSD = 800_000_000;
-richState.macro.treasurySYP = 1_000_000_000;
+richState.macro.treasurySYP = 10_000_000_000_000;
 richState.macro.annualInflationPct = 5;
 richState.macro.civicTrust = 85;
 richState.governorates['as_suwayda'].prri = 15;
@@ -157,4 +200,4 @@ if (simState.activeEvents.length !== 0) {
   throw new Error('Active events list not cleared!');
 }
 
-console.log('\n ALL TESTS PASSED SUCCESSFULLY! Master deck of 64 events verified.');
+console.log(`\n ALL TESTS PASSED SUCCESSFULLY! Master deck of ${ALL_EVENTS.length} events verified.`);

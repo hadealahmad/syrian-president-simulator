@@ -39,6 +39,13 @@ export const BASELINE_MACRO = {
   militiaAbsorptionBonus: 0,            // Compliance bonus from formalized ex-fighters (0 → 0.04)
 };
 
+/**
+ * Baseline civil-service / security headcount. Named so the fallback in the
+ * nationalisation path and the ABSORB/PRUNE multipliers in the fiscal engine
+ * cannot drift apart — they previously used 850_000 and 1_400_000 respectively.
+ */
+export const BASELINE_CIVIL_SERVICE_HEADCOUNT = 1_400_000;
+
 // ─── Growth valve tuning (all in one block so playtest tuning touches only this) ─
 export const GROWTH_TUNING = {
   /** Revenue multiplier = (capacity − baseline) × rate → +0% at 20, +32% at 100. */
@@ -334,6 +341,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     returneePopulation: 5_503,
     prri: 49,
     tier: 'TENSE',
+    tribalRageIndex: 0,
     sectarianAnxiety: 58,
     securityEfficacy: 55,
     totalCapitalUSD: 22_000_000_000,
@@ -641,6 +649,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     returneePopulation: 9_964,
     prri: 44,
     tier: 'TENSE',
+    tribalRageIndex: 0,
     sectarianAnxiety: 52,
     securityEfficacy: 54,
     totalCapitalUSD: 16_000_000_000,
@@ -685,6 +694,7 @@ export const BASELINE_GOVERNORATES: Record<string, GovernorateNode> = {
     returneePopulation: 9_656,
     prri: 51,
     tier: 'TENSE',
+    tribalRageIndex: 40,
     sectarianAnxiety: 38,
     securityEfficacy: 46,
     totalCapitalUSD: 11_200_000_000,

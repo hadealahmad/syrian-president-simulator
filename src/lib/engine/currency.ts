@@ -40,6 +40,68 @@ export function calculateRealWageUSD(nominalWageSYP: number, parallelRateSYP: nu
 }
 
 /**
+ * Dual-currency affordability test shared by every player-purchasable action
+ * (turn directives, provincial projects, event options).
+ *
+ * A SYP-denominated cost is payable from the treasury, or from FX reserves
+ * covering whatever the treasury cannot — converted at the parallel rate. The
+ * accumulated overdraft is deliberately NOT part of the test: the treasury is
+ * allowed to run negative (README: negative balances accrue 5%/turn interest
+ * rather than forcing immediate seigniorage), so only the *new* cost needs
+ * backing. Lives here, free of engine-state imports, so both `events.ts` and
+ * `turn-manager.ts` can use it without a circular dependency.
+ */
+export function canAffordDirectiveCost(
+  reservesUSD: number,
+  treasurySYP: number,
+  costUSD: number,
+  costSYP: number,
+  parallelRate: number
+): boolean {
+  if (costUSD > reservesUSD) return false;
+  const usableSYP = Math.max(0, treasurySYP);
+  if (usableSYP >= costSYP) return true;
+  const sypShortfall = costSYP - usableSYP;
+  const usdNeededForSYP = sypShortfall / Math.max(1, parallelRate);
+  return reservesUSD >= costUSD + usdNeededForSYP;
+}
+
+/**
+ * Central Bank Dollar Auction — the single source of truth for the auction.
+ *
+ * Three numbers used to be written out separately in `revenues.ts` and
+ * `turn-manager.ts`, which is how the turn receipt came to claim the full
+ * collected SYP while the money supply only ever fell by 40% of it — the
+ * receipt overstated the destruction by 2.5x-3.3x. Everything now derives from
+ * `computeAuctionAbsorbedSYP` below, so the figure on the receipt and the figure
+ * subtracted from M2 cannot drift apart again.
+ */
+
+/** Auction clearing price as a share of the parallel street rate. The 5% discount is what drains street liquidity. */
+export const AUCTION_CLEARING_DISCOUNT = 0.95;
+
+/**
+ * Share of the SYP collected at the auction that is actually withdrawn from the
+ * money supply. The remainder re-enters circulation through the banking system,
+ * so gross collections are NOT equal to M2 destruction.
+ */
+export const AUCTION_STERILIZATION_FACTOR = 0.4;
+
+/** Defensive floor on the money supply; the central bank will not sterilize below this. */
+export const M2_FLOOR_SYP = 10_000_000_000;
+
+/**
+ * SYP actually destroyed (withdrawn from M2) by an auction of `auctionUSD` at
+ * `parallelRateSYP`. This is the value that belongs on the turn receipt and the
+ * value that must be subtracted from the money supply.
+ */
+export function computeAuctionAbsorbedSYP(auctionUSD: number, parallelRateSYP: number): number {
+  if (!(auctionUSD > 0) || !(parallelRateSYP > 0)) return 0;
+  const collectedSYP = auctionUSD * parallelRateSYP * AUCTION_CLEARING_DISCOUNT;
+  return Math.round(collectedSYP * AUCTION_STERILIZATION_FACTOR);
+}
+
+/**
  * Central Bank Dollar Auction execution.
  * Sells hard currency to absorb domestic SYP and compress parallel spread.
  * Throws an error if attempted without sufficient reserves.
@@ -57,11 +119,10 @@ export function executeDollarAuction(
   }
   
   // Domestic SYP absorbed from circulation at near-parallel market clearing rate
-  const clearingRate = macro.parallelRateSYP * 0.95;
-  const sypAbsorbed = auctionUSD * clearingRate;
+  const sypAbsorbed = auctionUSD * macro.parallelRateSYP * AUCTION_CLEARING_DISCOUNT;
   
   const newReservesUSD = macro.reservesUSD - auctionUSD;
-  const newM2SYP = Math.max(10_000_000_000, macro.m2MoneySupplySYP - sypAbsorbed);
+  const newM2SYP = Math.max(M2_FLOOR_SYP, macro.m2MoneySupplySYP - computeAuctionAbsorbedSYP(auctionUSD, macro.parallelRateSYP));
   
   return { sypAbsorbed, newReservesUSD, newM2SYP };
 }

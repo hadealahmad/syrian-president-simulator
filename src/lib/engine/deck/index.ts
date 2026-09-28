@@ -24,7 +24,9 @@ export {
 };
 
 /**
- * Consolidated master pool of all 64 events (14 original + 50 new thematic events).
+ * Consolidated master pool: 12 master + 2 southern + 54 thematic cards (68 total).
+ * The count is asserted in scripts/verify-events-engine.ts against the decks
+ * themselves rather than a hard-coded number, so it cannot go stale again.
  */
 export const ALL_EVENTS: EventCard[] = [
   ...MASTER_EVENTS,

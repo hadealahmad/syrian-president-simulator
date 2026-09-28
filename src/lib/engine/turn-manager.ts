@@ -14,13 +14,30 @@ import {
   LOAN_TERMINATION_PC_EARNED,
   LOAN_TERMINATION_LEVERAGE_EARNED,
 } from './revenues';
-import { calculateParallelRate, calculateRealWageUSD } from './currency';
+import {
+  calculateParallelRate,
+  calculateRealWageUSD,
+  canAffordDirectiveCost,
+  computeAuctionAbsorbedSYP,
+  M2_FLOOR_SYP,
+} from './currency';
 import { drawEventsForTurn } from './events';
 import { checkFailStates } from './fail-states';
 import { projectCenturyOutcome } from './century-engine';
-import { updateSouthernFront, applySpatialContagion, processInterProvincialMigration } from './spatial';
+import {
+  updateSouthernFront,
+  applySpatialContagion,
+  processInterProvincialMigration,
+  getUnrestTier,
+} from './spatial';
 import { PRNG } from './prng';
-import { GROWTH_TUNING } from './constants';
+import {
+  GROWTH_TUNING,
+  MAX_TURNS,
+  BASELINE_GOVERNORATES,
+  BASELINE_CIVIL_SERVICE_HEADCOUNT,
+} from './constants';
+import { cloneGameState } from './state-clone';
 import { applyFacilityTurn } from './facilities';
 import {
   getOligarchSettlementIncome,
@@ -67,23 +84,14 @@ export function getDefaultTurnDirectives(): TurnDirectives {
 }
 
 
-export function canAffordDirectiveCost(
-  reservesUSD: number,
-  treasurySYP: number,
-  costUSD: number,
-  costSYP: number,
-  parallelRate: number
-): boolean {
-  if (costUSD > reservesUSD) return false;
-  // Softened: only the NEW cost needs FX backing, not the whole accumulated
-  // overdraft. A negative treasury no longer multiplies the coverage bar —
-  // the overdraft itself stays legal and keeps accruing 5%/turn interest.
-  const usableSYP = Math.max(0, treasurySYP);
-  if (usableSYP >= costSYP) return true;
-  const sypShortfall = costSYP - usableSYP;
-  const usdNeededForSYP = sypShortfall / Math.max(1, parallelRate);
-  return reservesUSD >= costUSD + usdNeededForSYP;
-}
+export { canAffordDirectiveCost };
+
+/**
+ * Baseline tribal rage for Deir ez-Zor, used only to backfill saves written
+ * before the field existed in BASELINE_GOVERNORATES. Reads the constant rather
+ * than hardcoding a number so the fallback can never drift from the baseline.
+ */
+const DEIR_EZ_ZOR_BASELINE_TRIBAL_RAGE = BASELINE_GOVERNORATES['deir_ez_zor'].tribalRageIndex ?? 0;
 
 export function hasDraftSelections(directives: TurnDirectives): boolean {
   if (!directives) return false;
@@ -123,21 +131,37 @@ export function evaluateRehearsalDirectives(
   state: GameState,
   directives: TurnDirectives
 ): PredictivePreviewRanges {
-  const audit = auditSemiannualBudget(state, directives);
+  // The audit is a *reporting* pass that also settles a few derived macro
+  // values (tax compliance, grid capacity, civil-service headcount) onto the
+  // state it is handed. The rehearsal feeds it a throwaway clone so that merely
+  // rendering a preview can never move the live, persisted game state — the
+  // draft-rehearsal contract in plan/11 §3 ("sliders mutate an isolated draft
+  // buffer"). The commit path is unaffected: it audits the post-Phase-0..4
+  // clone inside simulateTurnTransitions.
+  const audit = auditSemiannualBudget(cloneGameState(state), directives);
 
   const deficitSYP = Math.max(0, audit.expendedSYP - audit.grossCapturedSYP);
-  const seigniorageNeeded = Math.max(0, deficitSYP - state.macro.treasurySYP);
   const netUSDDelta = audit.netUSDDelta;
   const fxDrainUSD = Math.max(0, -netUSDDelta);
 
+  // Mirror the commit path exactly: turn-manager.ts passes
+  // audit.seignioragePrintedSYP (which is directives.moneyPrintingSYP) and the
+  // post-audit reserve balance. Deriving a synthetic seigniorage figure here
+  // instead made the band diverge from the committed rate by ~2x at high prints.
+  const seigniorageNeeded = audit.seignioragePrintedSYP;
+
   const estParallelRate = calculateParallelRate(
     state.macro.parallelRateSYP,
-    state.macro.m2MoneySupplySYP,
+    // The commit path folds the print into M2 *before* pricing the rate, so the
+    // m2Delta/m2Current term divides by the post-print supply. Mirror that
+    // denominator here or the band drifts low at large prints.
+    state.macro.m2MoneySupplySYP + seigniorageNeeded,
     seigniorageNeeded,
     fxDrainUSD,
     Math.max(0, state.macro.reservesUSD + netUSDDelta),
     2.5,
-    directives.dollarAuctionUSD || 0
+    // Same clamp the commit path applies: an auction can never exceed reserves.
+    Math.min(Math.max(0, directives.dollarAuctionUSD || 0), Math.max(0, state.macro.reservesUSD))
   );
 
   const fxRateMin = Math.round(estParallelRate * 0.96);
@@ -188,7 +212,7 @@ export function simulateTurnTransitions(
   currentState: GameState,
   directives: TurnDirectives
 ): GameState {
-  const next: GameState = JSON.parse(JSON.stringify(currentState));
+  const next: GameState = cloneGameState(currentState);
   // Strategic projects executed this turn (feeds the growth-valve capacity gain).
   let projectsExecutedThisTurn = 0;
 
@@ -242,7 +266,14 @@ export function simulateTurnTransitions(
       if (next.macro.politicalCapital >= 8) {
         next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - 8);
         if (next.governorates['deir_ez_zor']) {
-          next.governorates['deir_ez_zor'].tribalRageIndex = Math.max(0, (next.governorates['deir_ez_zor'].tribalRageIndex || 50) - 25);
+          // The `|| 50` fallback used to invent a starting value on saves that
+          // predated the field, silently turning a pristine governorate into
+          // "50 tribal rage". deir_ez_zor now carries a real baseline in
+          // constants.ts, and old saves are backfilled on load.
+          next.governorates['deir_ez_zor'].tribalRageIndex = Math.max(
+            0,
+            (next.governorates['deir_ez_zor'].tribalRageIndex ?? DEIR_EZ_ZOR_BASELINE_TRIBAL_RAGE) - 25
+          );
           next.governorates['deir_ez_zor'].prri = Math.max(0, next.governorates['deir_ez_zor'].prri - 10);
         }
         next.enactedDecrees.push('TRIBAL_CUSTOMS_COUNCIL');
@@ -407,7 +438,7 @@ export function simulateTurnTransitions(
         } else if (action === 'NATIONALIZE_SOE') {
           asset.status = 'NATIONALIZED';
           const earnedPC = getOligarchNationalizePCEarned(asset.valuationUSD);
-          next.macro.civilServiceHeadcount = (next.macro.civilServiceHeadcount ?? 850_000) + 8000;
+          next.macro.civilServiceHeadcount = (next.macro.civilServiceHeadcount ?? BASELINE_CIVIL_SERVICE_HEADCOUNT) + 8000;
           next.macro.systemicCorruption = Math.min(100, next.macro.systemicCorruption + 5);
           next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + earnedPC);
         } else if (action === 'FOREIGN_LIQUIDATION') {
@@ -653,7 +684,24 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 5: FINANCIAL AUDIT & COMMODITY FLOWS
   // =========================================================================
-  const audit = auditSemiannualBudget(next, directives);
+  // Central-bank dollar auctions are the hard constraint documented in
+  // plan/08 D1.2: the state cannot sell USD it does not hold. The guard lived
+  // only in currency.ts executeDollarAuction, which nothing calls — the auction
+  // was open-coded here, so an oversized auction silently drained reserves to
+  // zero and triggered instant SOVEREIGN_INSOLVENCY on the next fail check.
+  // Clamp to the real balance here (the single place the auction is priced).
+  const requestedAuctionUSD = Math.max(0, directives.dollarAuctionUSD || 0);
+  const affordableAuctionUSD = Math.min(requestedAuctionUSD, Math.max(0, next.macro.reservesUSD));
+  if (affordableAuctionUSD < requestedAuctionUSD) {
+    console.warn(
+      `Dollar auction clamped to available reserves: requested $${requestedAuctionUSD.toLocaleString()}, ` +
+        `selling $${affordableAuctionUSD.toLocaleString()} of $${next.macro.reservesUSD.toLocaleString()} on hand.`
+    );
+  }
+  const effectiveDirectives =
+    affordableAuctionUSD === requestedAuctionUSD ? directives : { ...directives, dollarAuctionUSD: affordableAuctionUSD };
+
+  const audit = auditSemiannualBudget(next, effectiveDirectives);
   next.lastTurnAudit = audit;
 
   // Concessional facilities AFTER the audit: the audit's own pure tranche
@@ -698,15 +746,26 @@ export function simulateTurnTransitions(
     const reservesAfterTermination = Math.max(0, next.macro.reservesUSD - termination.totalPaidUSD);
     let toPay = Math.max(0, Math.min(directives.extraDebtRepaymentUSD ?? 0, reservesAfterTermination, totalRemaining));
     live.sort((a, b) => b.interestRatePct - a.interestRatePct);
+    let principalRetiredUSD = 0;
     for (const loan of live) {
       if (toPay <= 0) break;
       const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD;
       const pay = Math.min(remaining, toPay);
       loan.remainingPrincipalUSD = remaining - pay;
       next.macro.sovereignDebtUSD = Math.max(0, (next.macro.sovereignDebtUSD ?? 0) - pay);
+      principalRetiredUSD += pay;
       toPay -= pay;
     }
-    const paid = Math.min(directives.extraDebtRepaymentUSD ?? 0, next.macro.reservesUSD, totalRemaining) - toPay;
+    // The leverage award is driven by the principal actually retired in the loop
+    // above. The previous expression re-derived the amount with
+    // `Math.min(directive, reserves, totalRemaining) - toPay`; because the loop
+    // always drains `toPay` to exactly 0 that subtraction was dead, and it read
+    // `next.macro.reservesUSD` rather than `reservesAfterTermination`. It happened
+    // to be equivalent (reservesAfterTermination = originalReserves +
+    // liveRemaining, so the reserve clamp can never bind tighter than
+    // totalRemaining), but it duplicated the clamp instead of reporting the
+    // figure the loop had just computed.
+    const paid = principalRetiredUSD;
     if (paid > 0) {
       next.macro.sovereignLeverage = Math.min(
         SOVEREIGN_LEVERAGE_CAP,
@@ -737,13 +796,22 @@ export function simulateTurnTransitions(
     fxDrainUSD,
     next.macro.reservesUSD,
     2.5,
-    directives.dollarAuctionUSD || 0
+    affordableAuctionUSD
   );
 
-  // Central bank dollar auction M2 absorption and market stabilization
-  if (directives.dollarAuctionUSD && directives.dollarAuctionUSD > 0) {
-    const absorbedSYP = Math.round(directives.dollarAuctionUSD * (next.macro.parallelRateSYP * 0.95));
-    next.macro.m2MoneySupplySYP = Math.max(10_000_000_000, next.macro.m2MoneySupplySYP - Math.round(absorbedSYP * 0.40));
+  // Central bank dollar auction M2 absorption and market stabilization.
+  // Priced at the post-turn rate, which is what the previous inline calculation
+  // did, so the money-supply effect is unchanged. The realised amount is written
+  // back onto the receipt: the audit can only price the auction at the opening
+  // rate (it runs before the rate is updated), so without this the player saw
+  // an opening-rate estimate while a post-rate amount was actually destroyed.
+  // The floor is applied first so the receipt always equals the real delta, even
+  // on a turn where sterilisation would push M2 to its floor.
+  const auctionDestroyedSYP = computeAuctionAbsorbedSYP(affordableAuctionUSD, next.macro.parallelRateSYP);
+  if (auctionDestroyedSYP > 0) {
+    const m2AfterSterilisation = Math.max(M2_FLOOR_SYP, next.macro.m2MoneySupplySYP - auctionDestroyedSYP);
+    audit.auctionAbsorbedSYP = next.macro.m2MoneySupplySYP - m2AfterSterilisation;
+    next.macro.m2MoneySupplySYP = m2AfterSterilisation;
   }
 
   // Remittance Policy side-effects (Plan section 7.2)
@@ -828,14 +896,16 @@ export function simulateTurnTransitions(
     gov.prri = Math.max(5, Math.min(100, gov.prri + delta));
   }
 
-  const nationalPRRISum = Object.values(next.governorates).reduce((sum, g) => sum + g.prri, 0);
-  next.macro.nationalRRI = Math.round(nationalPRRISum / Object.keys(next.governorates).length);
+  const governorateList = Object.values(next.governorates);
+  const nationalPRRISum = governorateList.reduce((sum, g) => sum + g.prri, 0);
+  // Guarded: an empty governorate map used to produce NaN, which then
+  // persisted into the committed turn (NaN survives arithmetic silently).
+  next.macro.nationalRRI =
+    governorateList.length > 0 ? Math.round(nationalPRRISum / governorateList.length) : 0;
 
   for (const gov of Object.values(next.governorates)) {
-    if (gov.prri < 40) gov.tier = 'CALM';
-    else if (gov.prri < 65) gov.tier = 'TENSE';
-    else if (gov.prri < 85) gov.tier = 'RIOT';
-    else gov.tier = 'REVOLT';
+    // Single source of truth for the tier thresholds (spatial.ts getUnrestTier).
+    gov.tier = getUnrestTier(gov.prri);
   }
 
   applySpatialContagion(next.governorates);
@@ -917,11 +987,13 @@ export function calculateProjectedTurnSummary(
     };
   }
 
+  // Guarded to match the commit path (and calculateRealWageUSD), which both
+  // floor the rate at 1: a zero parallel rate produced Infinity/NaN here.
   const currentRealWageUSD = Math.round(
-    currentState.macro.civilServiceWageSYP / currentState.macro.parallelRateSYP
+    currentState.macro.civilServiceWageSYP / Math.max(1, currentState.macro.parallelRateSYP)
   );
   const projectedRealWageUSD = Math.round(
-    projected.macro.civilServiceWageSYP / projected.macro.parallelRateSYP
+    projected.macro.civilServiceWageSYP / Math.max(1, projected.macro.parallelRateSYP)
   );
 
   const deficitSYP = Math.max(
@@ -1045,8 +1117,8 @@ export function executeTurnLifecycle(
   if (failCheck.isFailed) {
     next.isGameOver = true;
     next.failState = failCheck;
-  } else if (next.turnNumber > 40) {
-    // Generational Projection Engine triggers upon successful 40 turns completion
+  } else if (next.turnNumber > MAX_TURNS) {
+    // Generational Projection Engine triggers upon successful MAX_TURNS completion
     next.isGameOver = true;
     next.centuryEnding = projectCenturyOutcome(next);
   }

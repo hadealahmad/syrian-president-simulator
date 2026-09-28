@@ -1,19 +1,29 @@
 import type { GameState, EventCard, EventOption } from './types';
 import { ALL_EVENTS, MASTER_EVENTS, SOUTHERN_EVENTS } from './deck';
 import { PRNG } from './prng';
+import { canAffordDirectiveCost } from './currency';
 
 /**
  * Validates whether the player meets requirements to select an option.
- * Strictly prevents choosing options when political credit or foreign reserves are insufficient.
+ *
+ * Gates on political capital and on the DUAL-currency cost of the option:
+ * `canAffordDirectiveCost` covers both the USD leg and the SYP leg, the latter
+ * payable from the treasury or from FX reserves covering the shortfall at the
+ * parallel rate. costSYP was previously never checked, so options such as
+ * `opt_subsidize_feed` (35B SYP) were selectable against an empty treasury —
+ * while the event modal's alert card promised a SYP-liquidity check.
  */
 export function validateOptionAvailability(state: GameState, option: EventOption): boolean {
   if (option.costPC > 0 && state.macro.politicalCapital < option.costPC) {
     return false;
   }
-  if (option.costUSD > 0 && state.macro.reservesUSD < option.costUSD) {
-    return false;
-  }
-  return true;
+  return canAffordDirectiveCost(
+    state.macro.reservesUSD,
+    state.macro.treasurySYP,
+    option.costUSD,
+    option.costSYP,
+    state.macro.parallelRateSYP
+  );
 }
 
 /**
@@ -100,10 +110,11 @@ export function resolveEventOption(
   const option = card.options.find((o) => o.id === optionId);
   if (!option) return;
 
-  // STRICT ENFORCEMENT: Never allow spending political capital or FX reserves if player does not have enough
+  // STRICT ENFORCEMENT: Never allow spending political capital or treasury
+  // liquidity (SYP, with FX coverage) / FX reserves if the player lacks them.
   if (!validateOptionAvailability(state, option)) {
     console.warn(
-      `Blocked attempt to select event option "${optionId}": requires ${option.costPC} PC (has ${state.macro.politicalCapital} PC) or $${option.costUSD} USD (has $${state.macro.reservesUSD} USD).`
+      `Blocked attempt to select event option "${optionId}": requires ${option.costPC} PC (has ${state.macro.politicalCapital} PC), $${option.costUSD} USD (has $${state.macro.reservesUSD} USD) or ${option.costSYP} SYP (has ${state.macro.treasurySYP} SYP).`
     );
     return;
   }
@@ -130,6 +141,19 @@ export function resolveEventOption(
   state.macro.nationalRRI = Math.max(0, Math.min(100, state.macro.nationalRRI + option.effectRRI));
   state.macro.systemicCorruption = Math.max(0, Math.min(100, state.macro.systemicCorruption + option.effectCorruption));
 
+  // Apply administrative-capacity delta. effectCompetence is authored on every
+  // option but was never read, so all 194 of those effects were inert. It is
+  // unscoped (no ministry is named), so it is defined against the national
+  // average — the figure the fiscal engine reads for tax compliance. Each
+  // ministry therefore takes the FULL delta, which moves the average by exactly
+  // `effectCompetence`; dividing it by the ministry count would move the average
+  // by delta/N instead. Clamped per ministry.
+  if (option.effectCompetence !== 0) {
+    for (const ministry of Object.values(state.ministries)) {
+      ministry.competence = Math.max(0, Math.min(100, ministry.competence + option.effectCompetence));
+    }
+  }
+
   // Apply governorate-specific stat effects
   if (option.governorateEffects && option.governorateEffects.length > 0) {
     for (const eff of option.governorateEffects) {
@@ -155,23 +179,27 @@ export function resolveEventOption(
         const delta = Math.abs(eff.reconstructionScore) > 1 ? eff.reconstructionScore / 100 : eff.reconstructionScore;
         gov.reconstructionScore = Math.max(0, Math.min(1.0, gov.reconstructionScore + delta));
       }
-      if (eff.suwaydaIntegrationIndex !== undefined && gov.suwaydaIntegrationIndex !== undefined) {
-        gov.suwaydaIntegrationIndex = Math.max(0, Math.min(100, gov.suwaydaIntegrationIndex + eff.suwaydaIntegrationIndex));
+      if (eff.suwaydaIntegrationIndex !== undefined) {
+        gov.suwaydaIntegrationIndex = Math.max(0, Math.min(100, (gov.suwaydaIntegrationIndex ?? 0) + eff.suwaydaIntegrationIndex));
       }
-      if (eff.suwaydaSecessionProb !== undefined && gov.suwaydaSecessionProb !== undefined) {
-        gov.suwaydaSecessionProb = Math.max(0, Math.min(100, gov.suwaydaSecessionProb + eff.suwaydaSecessionProb));
+      if (eff.suwaydaSecessionProb !== undefined) {
+        gov.suwaydaSecessionProb = Math.max(0, Math.min(100, (gov.suwaydaSecessionProb ?? 0) + eff.suwaydaSecessionProb));
       }
-      if (eff.tribalRageIndex !== undefined && gov.tribalRageIndex !== undefined) {
-        gov.tribalRageIndex = Math.max(0, Math.min(100, gov.tribalRageIndex + eff.tribalRageIndex));
+      // Southern/specialised indices default to 0 rather than being skipped when
+      // the governorate lacks the field. Skipping silently discarded authored
+      // effects (12 of them targeted deir_ez_zor / hasakeh / homs) and made them
+      // conditional on whether an unrelated decree had seeded the field first.
+      if (eff.tribalRageIndex !== undefined) {
+        gov.tribalRageIndex = Math.max(0, Math.min(100, (gov.tribalRageIndex ?? 0) + eff.tribalRageIndex));
       }
-      if (eff.golanTensionIndex !== undefined && gov.golanTensionIndex !== undefined) {
-        gov.golanTensionIndex = Math.max(0, Math.min(100, gov.golanTensionIndex + eff.golanTensionIndex));
+      if (eff.golanTensionIndex !== undefined) {
+        gov.golanTensionIndex = Math.max(0, Math.min(100, (gov.golanTensionIndex ?? 0) + eff.golanTensionIndex));
       }
-      if (eff.daraaDefianceIndex !== undefined && gov.daraaDefianceIndex !== undefined) {
-        gov.daraaDefianceIndex = Math.max(0, Math.min(100, gov.daraaDefianceIndex + eff.daraaDefianceIndex));
+      if (eff.daraaDefianceIndex !== undefined) {
+        gov.daraaDefianceIndex = Math.max(0, Math.min(100, (gov.daraaDefianceIndex ?? 0) + eff.daraaDefianceIndex));
       }
-      if (eff.nassibRevenueCapturePct !== undefined && gov.nassibRevenueCapturePct !== undefined) {
-        gov.nassibRevenueCapturePct = Math.max(0, Math.min(100, gov.nassibRevenueCapturePct + eff.nassibRevenueCapturePct));
+      if (eff.nassibRevenueCapturePct !== undefined) {
+        gov.nassibRevenueCapturePct = Math.max(0, Math.min(100, (gov.nassibRevenueCapturePct ?? 0) + eff.nassibRevenueCapturePct));
       }
       if (eff.skilledLaborCount !== undefined && gov.skilledLaborCount !== undefined) {
         gov.skilledLaborCount = Math.max(0, gov.skilledLaborCount + eff.skilledLaborCount);

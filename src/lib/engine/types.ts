@@ -271,7 +271,11 @@ export interface RevenueAudit {
   mortgageDrainUSD: number;
   /** Voluntary principal repaid this turn. */
   debtRepaymentPaidUSD: number;
-  /** SYP destroyed by the dollar auction (true absorption — never enters treasury). */
+  /**
+   * SYP actually withdrawn from the money supply by the dollar auction this turn
+   * (the sterilized share of the SYP collected — never enters the treasury).
+   * Equals the realignment applied to `macro.m2MoneySupplySYP`.
+   */
   auctionAbsorbedSYP: number;
   /** 5% interest charged on an overdrawn (negative) opening treasury. */
   overdraftInterestSYP: number;

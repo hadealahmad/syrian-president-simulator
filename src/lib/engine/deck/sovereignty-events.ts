@@ -313,7 +313,7 @@ export const SOVEREIGNTY_EVENTS: EventCard[] = [
     sourceAr: 'شعبة الاستخبارات العسكرية / وجهاء قبائل العكيدات والبقارة',
     descriptionAr: 'اندلعت اشتباكات عنيفة بين مقاتلي العشائر العربية ونقاط قوات قسد شرق الفرات، مع توجيه نداءات استغاثة للدولة السورية لتأمين الدعم الطبي واللوجستي وحماية العائلات النازحة عبر النهر.',
     targetGovernorateId: 'deir_ez_zor',
-    triggerCondition: (state) => (state.governorates['deir_ez_zor']?.tribalRageIndex ?? 40) > 30 || state.turnNumber >= 4,
+    triggerCondition: (state) => (state.governorates['deir_ez_zor']?.tribalRageIndex ?? 0) > 30 || state.turnNumber >= 4,
     options: [
       {
         id: 'opt_deir_ez_zor_humanitarian_bridge',
