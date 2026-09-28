@@ -1,0 +1,40 @@
+name: Verify
+
+# Pull requests only. Pushes to master/main are gated inline in deploy.yml,
+# which runs the same checks before it builds and publishes, so nothing runs twice.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 'verify-${{ github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  # Typecheck and run the headless engine suite. These catch the class of defect
+  # that previously reached main unnoticed: the deck-count assertion in
+  # verify-events-engine.ts had been red long enough that every check below it
+  # was dead code, and none of these ran in CI at all.
+  check-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run check
+
+      - name: Engine test suite
+        run: npm run test:engine

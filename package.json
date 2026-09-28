@@ -9,7 +9,23 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "deploy": "node scripts/deploy-gh-pages.js",
-    "test:endings": "npx tsx scripts/test-all-endings-comprehensive.ts"
+    "test": "npm run test:engine",
+    "test:engine": "npm run test:events && npm run test:event-effects && npm run test:audit-split && npm run test:budget && npm run test:debt && npm run test:debt-repudiation && npm run test:patronage && npm run test:facilities && npm run test:growth && npm run test:southern && npm run test:demining && npm run test:auction && npm run test:endings",
+    "test:events": "tsx scripts/verify-events-engine.ts",
+    "test:event-effects": "tsx scripts/test-event-effects.ts",
+    "test:auction": "tsx scripts/test-dollar-auction.ts",
+    "test:audit-split": "tsx scripts/test-audit-split.ts",
+    "test:budget": "tsx scripts/test-budget-enforcement.ts",
+    "test:debt": "tsx scripts/test-debt-service.ts",
+    "test:debt-repudiation": "tsx scripts/test-debt-repudiation.ts",
+    "test:patronage": "tsx scripts/test-pc-patronage.ts",
+    "test:facilities": "tsx scripts/test-facilities.ts",
+    "test:growth": "tsx scripts/test-growth-valve.ts",
+    "test:southern": "tsx scripts/test-southern-theater.ts",
+    "test:demining": "tsx scripts/test-demining-and-power.ts",
+    "test:endings": "tsx scripts/test-all-endings-comprehensive.ts",
+    "test:simulation": "tsx scripts/test-simulation.ts",
+    "test:ui": "tsx scripts/check-console-errors.ts && tsx scripts/test-browser-interaction.ts && tsx scripts/test-event-political-credit.ts && tsx scripts/test-localstorage-restart.ts && tsx scripts/test-layout-visibility.ts && tsx scripts/test-ux-refinements.ts && tsx scripts/test-hover-legend.ts && tsx scripts/test-hover-translation.ts && tsx scripts/verify-map-interaction.ts"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
@@ -18,6 +34,7 @@
     "@types/three": "^0.186.0",
     "svelte": "^5.57.0",
     "svelte-check": "^4.7.6",
+    "tsx": "^4.20.6",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",
     "vite-plugin-pwa": "^1.3.0"
