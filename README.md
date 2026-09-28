@@ -50,7 +50,7 @@
   - صندوق الكرامة السيادي (2.5B ل.س/دور → +3 نقاط/دور، تفعيل مستمر).
   - دفعة الاستيراد الإغاثية الطارئة ($40M → +6 نقاط وتخفيف التقنين).
   - الفسخ السيادي للقروض (سداد كامل المتبقي → +6 نقاط و+4 رافعة سيادية).
-  - > **ملاحظة العملة:** جميع مبالغ الليرة السورية في هذه الوثيقة بالليرة الجديدة (1 جديدة = 100 قديمة)، مطابقةً لثوابت `BASELINE_MACRO` في `src/lib/engine/constants.ts` (`treasurySYP: 42_000_000_000`، `POPULIST_GRANT_COST_SYP: 7_500_000_000`، `CHARITY_FUND_COST_SYP: 2_500_000_000`).
+  - > **ملاحظة العملة:** جميع مبالغ الليرة السورية في هذه الوثيقة بالليرة الجديدة (1 جديدة = 100 قديمة). `treasurySYP: 42_000_000_000` من `BASELINE_MACRO` في `src/lib/engine/constants.ts`، بينما `POPULIST_GRANT_COST_SYP: 7_500_000_000` و`CHARITY_FUND_COST_SYP: 2_500_000_000` و`IMPORT_SURGE_COST_USD: 40_000_000` معرَّفة في `src/lib/engine/revenues.ts`.
 
 ### 4. شريط المؤشرات التفاعلي والتوقعات الفورية (Predictive Preview Top Ribbon)
 - شريط علوي حي ومستمر يُظهر الإحصاءات القومية الرئيسية:
@@ -95,6 +95,7 @@
 ```text
 ├── src/
 │   ├── lib/
+│   │   ├── themes.ts             # ثيمات الألوان ومفتاح التخزين
 │   │   ├── engine/              # محرك المحاكاة الحسابي والنواة البرمجية
 │   │   │   ├── baseline.ts      # بيانات نقطة البداية الديموغرافية والمالية
 │   │   │   ├── century-engine.ts # محرك استشراف المئوية (الإسقاط حتى العام 100)
@@ -105,32 +106,50 @@
 │   │   │   ├── oligarch-helpers.ts # تسويات الأوليغارشية وتصفية الأصول
 │   │   │   ├── turn-manager.ts  # دورة حياة الدور والحسابات التنبؤية الفورية
 │   │   │   ├── events.ts        # سحب وتطبيق قرارات الأزمات الطارئة
+│   │   │   ├── facilities.ts    # التسهيلات الميسّرة (صندوق النقد، الخليج، إيران)
 │   │   │   ├── fail-states.ts   # فحص شروط الانهيار والإفلاس السيادي
 │   │   │   ├── prng.ts          # مولد الأرقام العشوائية الحتمي
+│   │   │   ├── state-clone.ts   # النسخ العميق الموحّد لحالة اللعبة
 │   │   │   ├── types.ts         # تعاريف النماذج البرمجية وأنماط TypeScript
-│   │   │   └── deck/            # حزم بطاقات الأحداث الإقليمية والوطنية
-│   │   ├── spatial3d/           # الخريطة السيادية (SVG ثنائي الأبعاد)
+│   │   │   └── deck/            # حزم بطاقات الأحداث الإقليمية والوطنية (68 بطاقة)
+│   │   ├── spatial3d/           # الخريطة السيادية (SVG ثنائي الأبعاد + Three.js)
 │   │   │   ├── SyriaMap.svelte  # الخريطة المتجهية للمحافظات السورية
-│   │   │   └── syria-2d-paths.ts # مسارات SVG ومراكز المحافظات الـ 14
+│   │   │   ├── SyriaMap3D.svelte # عرض ثلاثي الأبعاد مع مؤثرات CRT
+│   │   │   ├── syria-2d-paths.ts # مسارات SVG ومراكز المحافظات الـ 14
+│   │   │   └── syria-region-context.ts # البيانات الجغرافية المرجعية للمحافظات
 │   │   ├── stores/              # إدارة الحالة اللامركزية (Svelte Stores)
 │   │   │   ├── game-store.ts    # حالة اللعبة الرئيسية والدور النشط
 │   │   │   ├── draft-store.ts   # مسودة القرارات والموازنة الفورية التقديرية
 │   │   │   ├── ui-store.ts      # حالة النوافذ والحوارات والخرائط
+│   │   │   ├── pwa-store.ts     # التثبيت والشاشات الكاملة ووضع الاستقلال
+│   │   │   ├── theme-store.ts   # سمة الواجهة المحفوظة
 │   │   │   └── version-store.ts # نسخة البناء وكشف التحديثات
 │   │   └── ui/                  # واجهات المستخدم التفاعلية (Svelte Components)
 │   │       ├── TopRibbon.svelte         # الشريط العلوي والتوقعات التنبؤية
-│   │       ├── MinistryDrawer.svelte    # درج الوزارات والمراسيم السيادية
-│   │       ├── ProvincialDrawer.svelte  # درج المحافظة والمشاريع التنموية
+│   │       ├── CommandHub.svelte        # فهرس الأوامر العلوي
 │   │       ├── FloatingCommandDeck.svelte # منصة الأوامر العائمة وتنفيذ الدور
 │   │       ├── TurnReviewModal.svelte   # مراجعة القرارات والمصادقة النهائية
-│   │       ├── TurnSummaryModal.svelte  # التقرير الختامي لنتائج الدور المالي
+│   │       ├── TurnResultsView.svelte   # عرض نتائج الدور المالي
 │   │       ├── EventModal.svelte        # نافذة قرارات الأزمات الرئاسية
 │   │       ├── FailStateModal.svelte    # نافذة شروط الانهيار والخسارة
 │   │       ├── CenturyReport.svelte     # تقرير استشراف المئوية الختامي
-│   │       ├── PresidentGuideModal.svelte # الدليل الرئاسي التفاعلي
+│   │       ├── GuideTour.svelte         # الدليل الهامشي التفاعلي
+│   │       ├── RotatePrompt.svelte      # مطالبة تدوير الشاشة أفقياً
 │   │       ├── RestartConfirmModal.svelte # تأكيد إعادة بدء اللعبة
-│   │       ├── SidebarToggleLip.svelte  # لسان طيّ القوائم الجانبية
-│   │       └── VersionUpdateBanner.svelte # شريط تنبيه النسخة الجديدة
+│   │       ├── StatsSidebar.svelte      # الشريط الجانبي للإحصاءات
+│   │       ├── ToggleSwitch.svelte      # مفتاح التبديل
+│   │       ├── GameIcon.svelte          # أيقونات اللعبة (SVG sprite)
+│   │       ├── VersionUpdateBanner.svelte # شريط تنبيه النسخة الجديدة
+│   │       ├── guide-tour.ts / tour-steps.ts # آلة حالة الجولة الإرشادية
+│   │       └── panels/                  # الأدراج الجانبية (drawers)
+│   │           ├── ProvincialPanel.svelte # المحافظة والمشاريع التنموية
+│   │           ├── PoliciesPanel.svelte   # السياسات والقرارات السيادية
+│   │           ├── DecreesPanel.svelte    # طاولة المراسيم
+│   │           ├── TaxFinancePanel.svelte #ركيزة التمويل والضرائب
+│   │           ├── AssetsPanel.svelte     # الأصول المصادرة وأولويغارشية
+│   │           ├── EmergencyPanel.svelte  # الطوارئ والتسهيلات
+│   │           ├── StatsPanel.svelte      # تفصيل الإحصاءات
+│   │           └── shared.ts             # ثوابت ومكوّنات مشتركة بين الأدراج
 │   ├── App.svelte               # نقطة التركيب الرئيسية للتطبيق
 │   └── main.ts                  # تهيئة التطبيق
 ├── scripts/                     # نصوص اختبار المحاكاة والتحقق البرمجي

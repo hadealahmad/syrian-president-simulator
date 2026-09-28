@@ -1,14 +1,42 @@
 # Syria Post-War Economic Simulation: Comprehensive Empirical Fact-Check Report
 
-**Audit Date:** May 2026 / Turn 1 Baseline Audit  
-**Audited Sources:**  
-- [Syria Post-War Economic Simulation Design.md](file:///run/media/hadi/SSD2/Coding/President-game/Syria%20Post-War%20Economic%20Simulation%20Design.md)
-- [plan/01_macroeconomic_and_fiscal_engine.md](file:///run/media/hadi/SSD2/Coding/President-game/plan/01_macroeconomic_and_fiscal_engine.md)
-- [plan/02_spatial_provincial_systems.md](file:///run/media/hadi/SSD2/Coding/President-game/plan/02_spatial_provincial_systems.md)
-- [plan/03_governance_institutions_and_decrees.md](file:///run/media/hadi/SSD2/Coding/President-game/plan/03_governance_institutions_and_decrees.md)
-- [plan/04_game_loop_and_turn_lifecycle.md](file:///run/media/hadi/SSD2/Coding/President-game/plan/04_game_loop_and_turn_lifecycle.md)
-- [plan/05_event_engine_and_deck_ledger.md](file:///run/media/hadi/SSD2/Coding/President-game/plan/05_event_engine_and_deck_ledger.md)
-- Codebase constants and event decks: [`src/lib/engine/constants.ts`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/constants.ts), [`src/lib/engine/baseline.ts`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/baseline.ts), [`src/lib/engine/deck/master-events.ts`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/deck/master-events.ts), [`src/lib/engine/deck/southern-events.ts`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/deck/southern-events.ts), and [`src/lib/ui/PresidentGuideModal.svelte`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/ui/PresidentGuideModal.svelte).
+> ## ⚠️ Status of this document — read before relying on it
+>
+> **This report is a point-in-time audit of a design that has since changed. Its
+> code references and headline claims were re-checked on 2026-09-28; the
+> corrections are listed below. Two structural limits cannot be fixed by editing
+> this file:**
+>
+> 1. **The primary cited source is not in this repository.**
+>    `Syria Post-War Economic Simulation Design.md` is listed in `.gitignore`
+>    (line 31) and is not present on disk. Every `Design Doc Line N` citation
+>    below (~20 of them) therefore **cannot be independently verified** by a
+>    reader of this repo. Treat those rows as unverifiable provenance, not as
+>    confirmed line-level references.
+> 2. **No external source was re-checked.** The World Bank / UN OCHA / UNMAS /
+>    WFP / FAO / IATA figures were transcribed in the original audit pass. The
+>    re-check confirmed the *code* matches what the report says the code says;
+>    it did not re-verify the underlying real-world figures. Confirm any figure
+>    you intend to publish against the primary source directly.
+>
+> **What *was* verified on 2026-09-28:** all in-game constant values, all 14
+> governorate damage and population figures and their totals, the existence of
+> every cited event ID, and the four Section 7 remediation claims. Corrections
+> applied: 5 dead file/line references, 4 dead event IDs, 1 phantom citation
+> (`sfuturem.org`), and the unreconciled 94.2% / 100% headline scores.
+
+**Audit Date:** May 2026 / Turn 1 Baseline Audit
+**Code references re-verified:** 2026-09-28
+**Audited Sources:**
+- `Syria Post-War Economic Simulation Design.md` — ⚠️ **not present in this repository** (gitignored, `.gitignore:31`). Cited below for provenance only; line references unverifiable.
+- `plan/01_macroeconomic_and_fiscal_engine.md` — ⚠️ **gitignored** (`.gitignore:27`) and part of a directory whose own `plan/README.md:4` declares it superseded design history
+- `plan/02_spatial_provincial_systems.md` — same status as above
+- `plan/03_governance_institutions_and_decrees.md` — same status as above
+- `plan/04_game_loop_and_turn_lifecycle.md` — same status as above
+- `plan/05_event_engine_and_deck_ledger.md` — same status as above
+- Codebase constants and event decks (present and re-verified): [`src/lib/engine/constants.ts`](src/lib/engine/constants.ts), [`src/lib/engine/baseline.ts`](src/lib/engine/baseline.ts), [`src/lib/engine/revenues.ts`](src/lib/engine/revenues.ts), [`src/lib/engine/deck/`](src/lib/engine/deck/) (all ten deck files)
+
+> **Removed reference:** the original header also listed `src/lib/ui/PresidentGuideModal.svelte`. No such file exists; the in-game guide is now `src/lib/ui/GuideTour.svelte` + `guide-tour.ts` + `tour-steps.ts`.
 
 ---
 
@@ -17,11 +45,13 @@
 This independent audit cross-references every empirical claim, economic metric, demographic census, legal decree, provincial damage figure, and infrastructure parameter against primary documentation from the **World Bank**, **UN OCHA (Humanitarian Needs Overview)**, **UNMAS (UN Mine Action Service)**, **WFP (World Food Programme)**, **FAO**, **IATA**, and official legislative bulletins issued by the Syrian transitional authorities following the December 8, 2024 fall of the Assad regime.
 
 ### Overall Verification Summary
-- **Empirical Authenticity Score:** **94.2%** of macroeconomic, provincial damage, demographic, ministerial, and legal claims are exact, verified matches to empirical data.
+- **Audit coverage:** 36 empirical claims carry a verdict — **33 `[VERIFIED FACTUAL]`**, **3 `[PARTIALLY FACTUAL (NUANCED)]`**. Unqualified claims: 33/36 (91.7%); claims fully or substantially confirmed: 34/36 (94.4%).
+- **Corrected 2026-09-28:** the previous headline claimed "94.2%" with no stated denominator, and the Conclusion separately claimed "100% factual fidelity". Neither number was reproducible from the report's own contents and they were mutually inconsistent. The figures above are derived from the verdict tallies in this document and can be re-derived by counting them.
+- **Not audited at all** — see [Section 6 addendum](#section-6-addendum-unaudited-sovereign-liabilities): the entire debt and sovereign-liability parameter set (the $45M legacy coupon, the $25M Iran coupon, the $7B Iran oil ledger, the $6.1B recognized debt stock, the three foreign loan packages, and the two sovereign mortgages). Section 6 is titled "Sovereign Liabilities" but originally contained no liability figures. These numbers are unaudited design choices, not verified facts.
 - **Notable Discoveries:**
-  1. **World Bank Damage Assessment:** The $216B national reconstruction-needs figure is World Bank context; the 14 provincial damage figures stored in-game (`unrepairedDamageUSD`, rounded to the nearest $10M) track Table 1 of the World Bank's *The Syrian Conflict: Physical Damage and Reconstruction Assessment (2011–2024)* (Aleppo $30.86B, Rif Dimashq $22.30B, Homs $10.83B, down to Tartus $383M).
-  2. **UN OCHA Demographics:** The total population (23.46M) and provincial host, IDP, and returnee counts across all 14 governorates match the official UNOCHA 2024–2025 HNO baseline dataset.
-  3. **Cabinet & Decrees:** Key historical figures (Ahmed al-Sharaa, Mohammed al-Bashir, Dr. Nidal al-Shaar, Raed al-Saleh, Abdulrahman al-Aama, Qutaiba Badawi) and presidential decrees (Decree 13, 16, 19, 20, 59, 98/100/101) represent actual legal and institutional developments in post-Assad Syria.
+  1. **World Bank Damage Assessment:** The $216B national reconstruction-needs figure is World Bank context; the 14 provincial damage figures stored in-game (`unrepairedDamageUSD`, rounded to the nearest $10M) track Table 1 of the World Bank's *The Syrian Conflict: Physical Damage and Reconstruction Assessment (2011–2024)* (Aleppo $30.86B, Rif Dimashq $22.30B, Homs $10.83B, down to Tartus $383M). Re-verified 2026-09-28: all 14 match, total **$108,206,000,000**.
+  2. **UN OCHA Demographics:** The total population (23.46M) and provincial host, IDP, and returnee counts across all 14 governorates match the official UNOCHA 2024–2025 HNO baseline dataset. Re-verified 2026-09-28: all 14 match, total **23,462,346**.
+  3. **Cabinet & Decrees:** Key historical figures (Ahmed al-Sharaa, Mohammed al-Bashir, Dr. Nidal al-Shaar, Raed al-Saleh, Abdulrahman al-Aama, Qutaiba Badawi) and presidential decrees (Decree 13, 16, 19, 20, 59, 98/100/101) represent actual legal and institutional developments in post-Assad Syria. Re-verified 2026-09-28: decrees 98, 100 and 101 are all present in `BASELINE_MINISTRIES` / `BASELINE_COMMISSIONS`, and Decree 20 on the transitional-justice commission.
   4. **Corrections Identified:** A minor decree numbering inversion exists between Decree 19 (Missing Persons) and Decree 20 (Transitional Justice); the May 2026 ministerial reshuffle was a three-decree bundle (Decrees 98, 100, and 101); and residual mentions of Law 10 and M5 checkpoints remain in certain code/documentation fields despite policy removal.
 
 ---
@@ -53,7 +83,7 @@ This independent audit cross-references every empirical claim, economic metric, 
 | 2.4 | **Decree No. 19 of May 2025 & Decree No. 20 of May 2025:** Transitional Justice and Missing Persons Commissions. | `Design Doc Line 20`<br>`BASELINE_COMMISSIONS` | **Partially Factual (Inverted Decree Numbers).** Both decrees were issued on May 17, 2025 by President al-Sharaa, but their numbers are inverted in the design document: **Decree 19 of 2025** established the *National Commission for Missing Persons* (headed by Dr. Mohammad Rida Jalkhi), whereas **Decree 20 of 2025** established the *National Commission for Transitional Justice* (headed by jurist Abdul Baset Abdul Latif). | `[PARTIALLY FACTUAL (NUANCED)]` |
 | 2.5 | **Decision/Decree No. 13 of May 4, 2025:** National Committee for Combating Illicit Enrichment (voluntary disclosures, asset recovery). | `Design Doc Line 22`<br>`plan/03 Section 3` | **Verified.** On May 4, 2025, Presidential Decision No. 13 of 2025 established the National Committee for Combating Illicit Enrichment (*اللجنة الوطنية لمكافحة الكسب غير المشروع*) to investigate illicitly acquired state wealth and oversee financial settlement frameworks. | `[VERIFIED FACTUAL]` |
 | 2.6 | **Legislative Decree No. 16 of May 10–11, 2025:** Revocation of administrative and precautionary asset-seizure orders issued between 2012 and 2024. | `Design Doc Line 23`<br>`plan/03 Section 3` | **Verified.** Issued on May 11, 2025 under Article 48 of the Constitutional Declaration, nullifying arbitrary administrative seizures issued under Decree 63 of 2012 and unfreezing assets of tens of thousands of displaced persons and dissidents. | `[VERIFIED FACTUAL]` |
-| 2.7 | **Presidential Decree No. 59 of March 10, 2026:** High Committee for Infrastructure Rehabilitation in preparation for return of displaced persons and refugees. | `Design Doc Line 19`<br>`sfuturem.org link` | **Verified.** On March 10, 2026, President al-Sharaa issued Decree 59 creating a high inter-ministerial committee chaired by the Minister of Emergency and Disaster Management (Raed al-Saleh) alongside Finance, Housing, Social Affairs, Local Admin, and the Governors of Aleppo, Hama, and Idlib. | `[VERIFIED FACTUAL]` |
+| 2.7 | **Presidential Decree No. 59 of March 10, 2026:** High Committee for Infrastructure Rehabilitation in preparation for return of displaced persons and refugees. | `Design Doc Line 19` *(unverifiable — the original citation was the placeholder string `sfuturem.org`)* | **Verified.** On March 10, 2026, President al-Sharaa issued Decree 59 creating a high inter-ministerial committee chaired by the Minister of Emergency and Disaster Management (Raed al-Saleh) alongside Finance, Housing, Social Affairs, Local Admin, and the Governors of Aleppo, Hama, and Idlib. | `[VERIFIED FACTUAL]` |
 | 2.8 | **"Decree 98 of May 9, 2026" Ministerial Reshuffle:** Abdulrahman al-Aama, Khaled Fawaz Zaarour, and Basil Hafez al-Suwaidan. | `BASELINE_MINISTRIES`<br>`plan/03 Section 2` | **Partially Factual (Three-Decree Package).** On May 9, 2026, President al-Sharaa issued a package of decrees: **Decree 98** appointed Abdulrahman al-Aama as Secretary-General of the Presidency; **Decree 100** appointed Khaled Fawaz Zaarour as Minister of Information; **Decree 101** appointed Basil Hafez al-Suwaidan as Minister of Agriculture. The game groups them under Decree 98 as a shorthand. | `[PARTIALLY FACTUAL (NUANCED)]` |
 | 2.9 | **Commissions Leadership:** Amer Namees al-Ali (Central Inspection Commission), Qutaiba Ahmad Badawi & Khaled Mohammad al-Barrad (Ports and Customs). | `BASELINE_COMMISSIONS`<br>`Design Doc Line 105` | **Verified.** Amer Namees al-Ali was appointed head of the Central Commission for Inspection and Oversight (*الهيئة المركزية للرقابة والتفتيش*) in May 2025. Qutaiba Badawi was appointed head of the General Authority for Ports and Customs via Decree 264 of 2025, with Khaled al-Barrad as deputy via Decree 265 of 2025. | `[VERIFIED FACTUAL]` |
 
@@ -87,11 +117,11 @@ The World Bank's report *The Syrian Conflict: Physical Damage and Reconstruction
 
 | # | Claim in Game / Documentation | Code Location / Doc Ref | Real-World Empirical Finding & Citation | Verdict |
 | :--- | :--- | :--- | :--- | :--- |
-| 4.1 | **Awassi Live Sheep Exports & Domestic Price Crisis:** Exporting male sheep to the Gulf ($280–$350/head) causes domestic meat prices to surge past 180,000 SYP/kg. | `event_03_livestock_drain`<br>`Design Doc Line 213` | **Verified.** Ministry of Agriculture authorized annual export quotas (100k–200k heads) of Awassi rams to Saudi Arabia, Kuwait, and Qatar, earning $300–$350/head. High export drainage pushed retail domestic lamb meat to 180,000–250,000 SYP/kg in Damascus and Aleppo. | `[VERIFIED FACTUAL]` |
-| 4.2 | **Poultry Feed Shock:** Yellow corn and soybean meal constitute 70%–75% of domestic poultry production costs; feed shortages force culling and trigger frozen imports from Brazil/Turkey. | `event_07_poultry_feed_shock`<br>`Design Doc Line 233` | **Verified.** General Organization for Poultry and Syrian feed mills establish that yellow corn (60–70% of mix) and soybean meal (20–30% of mix) account for 70–75% (and up to 80%) of broiler production cost. Imported in foreign currency; shortages caused massive flock liquidations and increased dependency on frozen Turkish/Brazilian imports. | `[VERIFIED FACTUAL]` |
+| 4.1 | **Awassi Live Sheep Exports & Domestic Price Crisis:** Exporting male sheep to the Gulf ($280–$350/head) causes domestic meat prices to surge past 180,000 SYP/kg. | `event_12_awassi_export` *(id corrected 2026-09-28: the cited `event_03_livestock_drain` no longer exists)*<br>`Design Doc Line 213` | **Verified.** Ministry of Agriculture authorized annual export quotas (100k–200k heads) of Awassi rams to Saudi Arabia, Kuwait, and Qatar, earning $300–$350/head. High export drainage pushed retail domestic lamb meat to 180,000–250,000 SYP/kg in Damascus and Aleppo. | `[VERIFIED FACTUAL]` |
+| 4.2 | **Poultry Feed Shock:** Yellow corn and soybean meal constitute 70%–75% of domestic poultry production costs; feed shortages force culling and trigger frozen imports from Brazil/Turkey. | `event_11_poultry_feed_shock` *(id corrected 2026-09-28: the cited `event_07_poultry_feed_shock` no longer exists)*<br>`Design Doc Line 233` | **Verified.** General Organization for Poultry and Syrian feed mills establish that yellow corn (60–70% of mix) and soybean meal (20–30% of mix) account for 70–75% (and up to 80%) of broiler production cost. Imported in foreign currency; shortages caused massive flock liquidations and increased dependency on frozen Turkish/Brazilian imports. | `[VERIFIED FACTUAL]` |
 | 4.3 | **Khnifis & Al-Sawwana Rock Phosphate Mines:** Located southwest of Palmyra; rail transport across Homs to Tartus port generates $80M–$160M USD/turn. | `Design Doc Line 140`<br>`plan/01 Section 4` | **Verified.** Khnifis and Al-Sawwana (Al-Sharqiya) hold over 1.8 billion tonnes of high-grade phosphate rock. Under Assad, concessions were leased to Russia's Stroytransgaz. Ore is moved via the central desert railway across Homs to dedicated bulk export berths at Tartus Port. | `[VERIFIED FACTUAL]` |
-| 4.4 | **Combined-Cycle Power Grid Stations:** Deir Ali (1,500 MW CCGT), Jandar (1,100 MW CCGT), Tishreen (1,050 MW thermal/gas), and Aleppo Thermal (Safira, 1,065 MW steam turbines). | `Design Doc Line 36`<br>`event_08_gas_pipeline` | **Verified.** These four stations form the exact operational backbone of the Syrian Public Establishment for Electricity Generation (PEEG). Deir Ali and Jandar are combined-cycle gas plants; Aleppo Thermal was heavily damaged in combat and requires ongoing boiler restoration. | `[VERIFIED FACTUAL]` |
-| 4.5 | **Euphrates River Discharge Crisis:** 1987 treaty stipulates 500 m³/s flow from Turkey; discharge falling below 200 m³/s disables Tishreen and Lake Tabqa hydroelectric turbines. | `event_09_euphrates_flow`<br>`Design Doc Line 243` | **Verified.** The 1987 Protocol on Economic Cooperation formally committed Turkey to guarantee a minimum average flow of 500 m³/s. Documented droughts and upstream dam fills dropped cross-border flow to <200 m³/s in recurring seasons, dropping Lake Tabqa below minimum turbine generation heads. | `[VERIFIED FACTUAL]` |
+| 4.4 | **Combined-Cycle Power Grid Stations:** Deir Ali (1,500 MW CCGT), Jandar (1,100 MW CCGT), Tishreen (1,050 MW thermal/gas), and Aleppo Thermal (Safira, 1,065 MW steam turbines). | `Design Doc Line 36`<br>`event_09_gas_severance` *(id corrected 2026-09-28: the cited `event_08_gas_pipeline` no longer exists)* | **Verified.** These four stations form the exact operational backbone of the Syrian Public Establishment for Electricity Generation (PEEG). Deir Ali and Jandar are combined-cycle gas plants; Aleppo Thermal was heavily damaged in combat and requires ongoing boiler restoration. | `[VERIFIED FACTUAL]` |
+| 4.5 | **Euphrates River Discharge Crisis:** 1987 treaty stipulates 500 m³/s flow from Turkey; discharge falling below 200 m³/s disables Tishreen and Lake Tabqa hydroelectric turbines. | `event_07_euphrates_flow` *(id corrected 2026-09-28: the cited `event_09_euphrates_flow` no longer exists)*<br>`Design Doc Line 243` | **Verified.** The 1987 Protocol on Economic Cooperation formally committed Turkey to guarantee a minimum average flow of 500 m³/s. Documented droughts and upstream dam fills dropped cross-border flow to <200 m³/s in recurring seasons, dropping Lake Tabqa below minimum turbine generation heads. | `[VERIFIED FACTUAL]` |
 | 4.6 | **Airspace Overflight Fees (IATA):** Syrian Civil Aviation Authority collects USD overflight fees ($18M–$35M/turn) via IATA clearing house. | `Design Doc Line 143`<br>`plan/01 Section 4` | **Verified.** International commercial flights overflying Syrian airspace pay navigational fees billed through the IATA Clearing House. Re-opening Syrian airspace to international carriers provides immediate hard-currency non-tax revenue. | `[VERIFIED FACTUAL]` |
 | 4.7 | **Nassib Border Crossing Transit (Daraa):** Major commercial gateway with Jordan yielding $35M–$60M USD transit/tariff potential, plagued by smuggling and local kickbacks. | `Design Doc Line 144`<br>`BASELINE_COMMISSIONS` | **Verified.** The Nassib-Jaber border crossing handles transit trucking between Turkey/Lebanon/Europe and Jordan/GCC countries. In 2025, transitional authorities appointed new customs leadership (Decree 264/265) to curtail revenue leakages. | `[VERIFIED FACTUAL]` |
 
@@ -123,35 +153,73 @@ The World Bank's report *The Syrian Conflict: Physical Damage and Reconstruction
 
 ## Audit Section 7: Obsolete Mechanics, Remnants & Implemented Fixes
 
-The following four legacy elements were identified during audit and have now been fully updated and reconciled across the codebase, UI, and design documentation:
+The following four legacy elements were identified during audit and have now been fully updated and reconciled across the codebase, UI, and design documentation.
+
+> **Re-verified 2026-09-28.** All four remediations are confirmed absent from the codebase, so all four `[FIXED & VERIFIED]` verdicts stand. However **every code reference in this section was wrong** — the cited line numbers point at unrelated code, and one cited file does not exist. The original references dated from an earlier revision of `constants.ts` and a UI that has since been replaced. Corrected references below.
 
 1. **Residual Mention of Law 10 in Rif Dimashq & UI [RESOLVED & UPDATED]:**
    - *Locations Updated:*
-     - [`src/lib/engine/constants.ts:307`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/constants.ts#L307): Replaced legacy Law 10 string with focus on UXO demining, rubble removal, and digital land registration under Legislative Decree 16 of 2025.
-     - [`src/lib/ui/MinistryDrawer.svelte:38`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/ui/MinistryDrawer.svelte#L38): Replaced Law 10 with Legislative Decree 16 property restitution framework.
-     - [`plan/02_spatial_provincial_systems.md:260`](file:///run/media/hadi/SSD2/Coding/President-game/plan/02_spatial_provincial_systems.md#L260): Updated provincial strategic project table row.
-     - [`plan/03_governance_institutions_and_decrees.md:86`](file:///run/media/hadi/SSD2/Coding/President-game/plan/03_governance_institutions_and_decrees.md#L86): Replaced Law 10 references with Decree 16 property restitution.
+     - [`src/lib/engine/constants.ts:404`](src/lib/engine/constants.ts#L404) — the Rif Dimashq strategic project `solutionDescriptionAr` now reads `تطبيق التوثيق العقاري الرقمي وفق المرسوم 16` (digital land registration under Legislative Decree 16 of 2025), replacing the legacy Law 10 wording. *(Was cited as `constants.ts:307`, which is an unrelated Hama pasture-grazing project.)*
+     - [`src/lib/ui/panels/shared.ts:48`](src/lib/ui/panels/shared.ts#L48) — the property-restitution policy description shown in the panels now reads `إنفاذ المرسوم 16 لرد الملكيات`. *(Was cited as `src/lib/ui/MinistryDrawer.svelte:38`; **that file does not exist** — the drawer UI was replaced by `src/lib/ui/panels/`.)*
+     - `plan/02_spatial_provincial_systems.md` and `plan/03_governance_institutions_and_decrees.md` — ⚠️ gitignored and superseded; not independently verifiable.
+   - *Verification:* `grep -rn "القانون 10" src/` returns no matches.
    - *Status:* **`[FIXED & VERIFIED]`**
 
 2. **Residual M5 Checkpoint Formalization Flag [RESOLVED & REMOVED]:**
-   - *Location Updated:* [`src/lib/engine/baseline.ts:33`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/baseline.ts#L33)
+   - *Location Updated:* [`src/lib/engine/baseline.ts:30-35`](src/lib/engine/baseline.ts#L30-L35) — the `flags` block of `createInitialGameState()`. It now seeds only `Flag_Southern_Accord_Progress`, `Flag_Bedouin_Restitution_Paid`, `Flag_Port_Graft_Active` and `Flag_Golan_Tension_Escalation`. *(Was cited as `baseline.ts:33`, which is now `Flag_Port_Graft_Active`.)*
    - *Action:* Completely purged `Flag_M5_Checkpoint_Formalized: 0` from initial game state flags, aligning with the user directive that internal highway checkpoint extortion is decommissioned and solved.
+   - *Verification:* `grep -rn "Flag_M5_Checkpoint_Formalized" src/` returns no matches. Note that `M5` still appears legitimately in `industry-events.ts` and `constants.ts` as the name of the *international highway* (a truckers' strike event and a Hama refinery project) — those are roads, not checkpoint-extortion mechanics, and are unrelated to this flag.
    - *Status:* **`[FIXED & VERIFIED]`**
 
 3. **Decree Numbering Swap (Decree 19 vs. Decree 20) [RESOLVED & CORRECTED]:**
    - *Locations Updated:*
-     - [`Syria Post-War Economic Simulation Design.md:1293-1296`](file:///run/media/hadi/SSD2/Coding/President-game/Syria%20Post-War%20Economic%20Simulation%20Design.md#L1293-L1296): Corrected Decree 19 as the *National Commission for the Missing* and Decree 20 as the *National Commission for Transitional Justice*.
-     - [`plan/03_governance_institutions_and_decrees.md:85-110`](file:///run/media/hadi/SSD2/Coding/President-game/plan/03_governance_institutions_and_decrees.md#L85-L110): Reconciled decree citations.
-     - [`src/lib/engine/constants.ts:742`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/constants.ts#L742): Commission titled with `(المرسوم 20)`.
+     - [`src/lib/engine/constants.ts:816-857`](src/lib/engine/constants.ts#L816-L857) — `BASELINE_COMMISSIONS`. The `transitional_justice` commission at [`:849`](src/lib/engine/constants.ts#L849) is titled `هيئة العدالة الانتقالية وفحص المظالم (المرسوم 20)`, i.e. attributed to **Decree 20**. *(Was cited as `constants.ts:742`, which is now the opening line of `BASELINE_MINISTRIES`.)*
+     - `Syria Post-War Economic Simulation Design.md` — ⚠️ **not present in this repository**; the claimed edit at "lines 1293-1296" cannot be verified.
+     - `plan/03_governance_institutions_and_decrees.md` — ⚠️ gitignored and superseded; not independently verifiable.
+   - *Verification:* Decree 20 is present on the transitional-justice commission. Decree 19's counterpart commission is the missing-persons commission in the same block.
    - *Status:* **`[FIXED & VERIFIED]`**
 
 4. **Decree 98 Package Scope Clarification [RESOLVED & CLARIFIED]:**
    - *Locations Updated:*
-     - [`src/lib/engine/constants.ts:686-715`](file:///run/media/hadi/SSD2/Coding/President-game/src/lib/engine/constants.ts#L686-L715): Clarified decrees: Basil al-Suwaidan appointed via **Decree 101**, Khaled Zaarour appointed via **Decree 100**, and Abdulrahman al-Aama appointed via **Decree 98**.
-     - [`plan/03_governance_institutions_and_decrees.md:40-55`](file:///run/media/hadi/SSD2/Coding/President-game/plan/03_governance_institutions_and_decrees.md#L40-L55): Updated cabinet table rows and reshuffle package header to reflect Decrees 98, 100, and 101.
+     - [`src/lib/engine/constants.ts:793`](src/lib/engine/constants.ts#L793) — `agriculture`: `باسل حافظ السويدان (المرسوم 101)` → **Decree 101**.
+     - [`src/lib/engine/constants.ts:803`](src/lib/engine/constants.ts#L803) — `media`: `خالد فواز زعرور (المرسوم 100)` → **Decree 100**.
+     - [`src/lib/engine/constants.ts:820`](src/lib/engine/constants.ts#L820) — commission leader `عبد الرحمن الأعمى (المرسوم 98)` → **Decree 98** (Secretary-General of the Presidency; modelled as a commission leader because the post is not a ministry).
+     - *(Was cited as `constants.ts:686-715`, which is now the `deir_ez_zor` governorate block.)*
+   - *Verification:* all three decree attributions are present in code. The report previously described this fix as "clarified" while citing a range containing none of it.
    - *Status:* **`[FIXED & VERIFIED]`**
 
 ---
 
+## Section 6 addendum: unaudited sovereign liabilities
+
+Added 2026-09-28. The table above is titled "Confiscated Oligarch Assets & **Sovereign Liabilities**" but contained only assets and port-lease concessions. The entire debt parameter set was never audited. **None of the following carries a `[VERIFIED FACTUAL]` verdict — they are unaudited design constants**, and should not be cited as empirical findings:
+
+| Parameter | In-game value | Location | Audit status |
+| :--- | :--- | :--- | :--- |
+| Legacy sovereign debt coupon | $45,000,000 / turn | `src/lib/engine/revenues.ts` (`LEGACY_DEBT_COUPON_USD`) | **Unaudited** — flat, hard-coded, not traceable to any Paris Club schedule |
+| Recognized sovereign debt stock | $6,100,000,000 at turn 1 | `src/lib/engine/constants.ts` (`BASELINE_MACRO.sovereignDebtUSD`) | **Unaudited** — covers Paris + Russia ledgers; the Paris/Russia split is asserted, not sourced |
+| Iran oil debt (side ledger) | $7,000,000,000 | `src/lib/engine/constants.ts` (`IRAN_OIL_DEBT_USD`) | **Unaudited** — excluded from `sovereignDebtUSD`; the most significant liability figure in the game has no sourcing at all |
+| Iran oil coupon | $25,000,000 / turn | `src/lib/engine/constants.ts` (`IRAN_OIL_COUPON_USD`) | **Unaudited** |
+| Iran informal claim | $30,000,000,000 | `src/lib/engine/constants.ts` (`IRAN_INFORMAL_CLAIM_USD`) | **Unaudited** |
+| Foreign loan packages | 3 (Western IFI $500M @ 2.5%, Gulf SWF $400M @ 3.5%, Eastern consortium $350M @ 4.0%) | `src/lib/engine/constants.ts` (`BASELINE_FOREIGN_LOANS`) | **Unaudited** — entirely invented instruments, not modelled on any real facility |
+| Sovereign mortgages | 2 (49-year Tartus/Khnifis-style concessions) | `src/lib/engine/constants.ts` (`BASELINE_SOVEREIGN_MORTGAGES`) | **Unaudited** |
+| Concessional facilities | 3 (IMF tranches, Gulf grant, Iran reschedule) | `src/lib/engine/constants.ts` (`CONCESSIONAL_FACILITIES`) | **Unaudited** |
+
+If any of these are intended to carry empirical authority, they need their own audit pass. As written they are balance parameters.
+
+---
+
 ## Conclusion
-The empirical foundation of the game engine and design documents is remarkably solid. The figures are grounded in primary humanitarian, financial, and legal sources. With all four remnants resolved (Law 10 purged, M5 checkpoint flag removed, Decree 19/20 swap corrected, and Decree 98/100/101 appointments disambiguated), the simulation code and documentation now achieve 100% factual fidelity and alignment with user policy directives.
+
+**Corrected 2026-09-28.** The previous conclusion asserted that "the simulation code and documentation now achieve 100% factual fidelity and alignment with user policy directives." That claim is not supportable and has been withdrawn: it contradicted the report's own headline of 94.2%, it counted `[PARTIALLY FACTUAL]` items as clean, and it was made against a primary source that is not in this repository and against design documents that declare themselves superseded.
+
+What the evidence actually supports:
+
+- **Of 36 audited empirical claims, 33 are unqualified matches and 3 carry explicit caveats** (Decree 19/20 inversion, the Decree 98/100/101 grouping shorthand, and the chronology of the FX unification). That is 33/36 unqualified, 34/36 counting the caveated ones as substantially confirmed.
+- **All in-game figures the report asserts about the code were re-verified on 2026-09-28 and match**, including all 14 governorate damage and population values and their totals, and all eight `BASELINE_MACRO` constants cited.
+- **All four remediation claims are genuinely true**, though every code reference used to support them was wrong and has been corrected.
+- **The real-world figures themselves were not re-verified** in this pass. They were transcribed in the original audit and are reproduced here on that basis.
+- **The entire sovereign-liability and debt parameter set is unaudited** and is now listed explicitly as such.
+- **Roughly twenty `Design Doc Line N` citations are unverifiable** because that document is gitignored and absent.
+
+The empirical grounding of the *demographic, damage, infrastructure and governance* content is genuinely strong and survives re-verification. The *financial* content — GDP, reconstruction need, reserves — is partly design context rather than stored constants, and the *debt* content was never audited at all.
