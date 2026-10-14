@@ -9,6 +9,9 @@ export interface UIState {
       top, review recedes underneath) -> closed. */
   turnFlowStage: 'closed' | 'review' | 'results' | 'events';
   isSettingsOpen: boolean;
+  /** Whether the visitor has started a game session (false on first visit so
+      the fullscreen classic menu acts as the opening title screen). */
+  hasStartedGame: boolean;
   /** Full-screen About page (project idea, sourced facts, MIT licence, author). */
   isAboutOpen: boolean;
   tourCompleted: boolean;
@@ -23,6 +26,8 @@ export interface UIState {
 }
 
 const TOUR_KEY = 'president_guide_tour_v2';
+const STARTED_KEY = 'president_has_started_v1';
+const GAME_STATE_KEY = 'president_game_state_v1';
 
 function checkTourSeen(): boolean {
   if (typeof window !== 'undefined' && window.localStorage) {
@@ -31,14 +36,35 @@ function checkTourSeen(): boolean {
   return false;
 }
 
+function checkGameStarted(): boolean {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      if (window.localStorage.getItem(STARTED_KEY) === 'true') return true;
+      if (window.localStorage.getItem(TOUR_KEY) === 'true') return true;
+      const raw = window.localStorage.getItem(GAME_STATE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.turnNumber === 'number' && parsed.turnNumber > 1) {
+          return true;
+        }
+      }
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 function createUIStore() {
-  const { subscribe, update, set } = writable<UIState>({
+  const initialStarted = checkGameStarted();
+  const { subscribe, update } = writable<UIState>({
     selectedGovernorateId: null,
     isMinistryDrawerOpen: false,
     isProvincialDrawerOpen: false,
     isRestartModalOpen: false,
     turnFlowStage: 'closed',
-    isSettingsOpen: false,
+    isSettingsOpen: !initialStarted,
+    hasStartedGame: initialStarted,
     isAboutOpen: false,
     tourCompleted: checkTourSeen(),
     checklist: { decrees: false, province: false, endTurn: false },
@@ -70,6 +96,16 @@ function createUIStore() {
     },
     setSettingsOpen: (open: boolean) => {
       update((s) => ({ ...s, isSettingsOpen: open }));
+    },
+    markGameStarted: () => {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        try {
+          window.localStorage.setItem(STARTED_KEY, 'true');
+        } catch {
+          /* ignore */
+        }
+      }
+      update((s) => ({ ...s, hasStartedGame: true, isSettingsOpen: false }));
     },
     setAboutOpen: (open: boolean) => {
       update((s) => ({ ...s, isAboutOpen: open }));

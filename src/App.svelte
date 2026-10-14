@@ -30,8 +30,11 @@
   let hudZoomed = $state(false);
 
   onMount(() => {
-    // First-run wizard: spotlight tour over the live UI, panels stay closed.
-    if (!hasSeenTour()) startGuideTour();
+    // First-run wizard: if the user already started a game session without
+    // completing the tour, launch the spotlight tour. Brand-new visitors
+    // start on the fullscreen curtain menu and trigger the tour upon clicking
+    // "New Game" (بدء لعبة جديدة).
+    if ($uiStore.hasStartedGame && !hasSeenTour()) startGuideTour();
   });
 
   onMount(() => {
