@@ -153,17 +153,17 @@
 
 <!-- System Controls: guide + settings - top left under the top bar -->
 <div
-  class="pointer-events-auto fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'left-[396px]' : 'left-3'}"
+  class="pointer-events-auto fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'lg:left-[396px] left-3' : 'left-3'}"
 >
   <!-- Presidential Guide Tour (icon only, stays outside the settings menu) -->
   <button
     data-tour="guide-btn"
     onclick={() => startGuideTour()}
-    class="h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none"
+    class="max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none"
     title="دليل البروتوكول الرئاسي وإرشادات إدارة الدولة وطريقة اللعب"
     aria-label="دليل البروتوكول الرئاسي"
   >
-    <GameIcon name="help" cls="w-4 h-4 shrink-0 text-wheat-gold" />
+    <GameIcon name="help" cls="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0 text-wheat-gold" />
   </button>
 
   <!-- Settings -->
@@ -173,12 +173,12 @@
     aria-expanded={$uiStore.isSettingsOpen}
     aria-label="الإعدادات"
     title="الإعدادات — لعبة جديدة، تحديث، المظهر"
-    class="relative h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none group"
+    class="relative max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none group"
   >
     {#if $versionStore.hasUpdate}
       <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
     {/if}
-    <GameIcon name="gear" cls="w-4 h-4 shrink-0 text-wheat-dark group-hover:text-wheat-gold transition-colors" />
+    <GameIcon name="gear" cls="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0 text-wheat-dark group-hover:text-wheat-gold transition-colors" />
   </button>
 
   <!-- Migration arrows overlay toggle -->
@@ -187,9 +187,9 @@
     aria-pressed={$uiStore.showMigrationArrows}
     aria-label="تبديل أسهم النزوح"
     title="تبديل أسهم النزوح"
-    class="h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none {$uiStore.showMigrationArrows ? 'border-wheat-mid/60 text-wheat-gold' : 'border-charcoal-mid text-wheat-dark hover:text-wheat-gold'}"
+    class="max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none {$uiStore.showMigrationArrows ? 'border-wheat-mid/60 text-wheat-gold' : 'border-charcoal-mid text-wheat-dark hover:text-wheat-gold'}"
   >
-    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" class="w-4 h-4 shrink-0">
+    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" class="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0">
       <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />
       <path d="M0.8 13.4c0-3.1 1.7-5 3.7-5s3.7 1.9 3.7 5" fill="currentColor" />
       <path d="M7.8 9.6 L12.4 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />

@@ -55,6 +55,10 @@ function checkGameStarted(): boolean {
   return false;
 }
 
+function isCompactViewport(): boolean {
+  return typeof window !== 'undefined' && window.innerWidth < 1024;
+}
+
 function createUIStore() {
   const initialStarted = checkGameStarted();
   const { subscribe, update } = writable<UIState>({
@@ -83,9 +87,12 @@ function createUIStore() {
         ...s,
         selectedGovernorateId: id,
         // Map clicks pin the provincial command panel (drawers retired).
-        // The stats sidebar is fully independent and never affected.
+        // On desktop (lg+), the stats sidebar is independent; on compact
+        // viewports (<1024px) we auto-close the sidebar so it doesn't cover
+        // the provincial panel.
         activeCommandPanel: id ? 'provincial' : s.activeCommandPanel,
         commandPanelPinned: id ? true : s.commandPanelPinned,
+        isStatsSidebarOpen: id && isCompactViewport() ? false : s.isStatsSidebarOpen,
       }));
     },
     setTurnFlowStage: (stage: UIState['turnFlowStage']) => {
@@ -129,8 +136,14 @@ function createUIStore() {
       update((s) => ({ ...s, selectedStatForOptions: null }));
     },
     openCommandPanel: (id: string | null, pinned: boolean = false) => {
-      // Bottom panels never touch the independent stats sidebar.
-      update((s) => ({ ...s, activeCommandPanel: id, commandPanelPinned: pinned }));
+      // On desktop (lg+) bottom panels never touch the independent stats sidebar;
+      // on compact screens (<1024px) opening a bottom panel closes the overlay sidebar.
+      update((s) => ({
+        ...s,
+        activeCommandPanel: id,
+        commandPanelPinned: pinned,
+        isStatsSidebarOpen: id && isCompactViewport() ? false : s.isStatsSidebarOpen,
+      }));
     },
     closeCommandPanel: () => {
       // Only the bottom panel; the stats sidebar has its own toggle and
@@ -138,8 +151,16 @@ function createUIStore() {
       update((s) => ({ ...s, activeCommandPanel: null, commandPanelPinned: false }));
     },
     toggleStatsSidebar: (open?: boolean) => {
-      // Fully independent toggle: never opens/closes bottom panels.
-      update((s) => ({ ...s, isStatsSidebarOpen: open ?? !s.isStatsSidebarOpen }));
+      update((s) => {
+        const nextOpen = open ?? !s.isStatsSidebarOpen;
+        const closeBottom = nextOpen && isCompactViewport();
+        return {
+          ...s,
+          isStatsSidebarOpen: nextOpen,
+          activeCommandPanel: closeBottom ? null : s.activeCommandPanel,
+          commandPanelPinned: closeBottom ? false : s.commandPanelPinned,
+        };
+      });
     },
     setMigrationArrows: (show: boolean) => {
       update((s) => ({ ...s, showMigrationArrows: show }));

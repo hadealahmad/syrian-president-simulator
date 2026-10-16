@@ -267,11 +267,32 @@
     ];
   }
 
-  // Tooltip + test-only weather override live outside the WebGL effect
-  // (plain Svelte reactivity; the effect reads them through closures).
+  // Tooltip + zoom/pan + test-only weather override live outside the WebGL
+  // effect (plain Svelte reactivity; the effect reads them through closures).
   let tooltip = $state<{ x: number; y: number; text: string } | null>(null);
   let weatherOverride: 'snow' | 'wind' | null = null;
   let hostKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+  let mapZoom = $state(1);
+  let mapPanX = $state(0);
+  let mapPanY = $state(0);
+  let refitCamera: (() => void) | null = null;
+
+  function stepZoom(delta: number): void {
+    const next = Math.max(1, Math.min(2.5, Math.round((mapZoom + delta) * 100) / 100));
+    mapZoom = next;
+    if (next === 1) {
+      mapPanX = 0;
+      mapPanY = 0;
+    }
+    refitCamera?.();
+  }
+
+  function resetZoom(): void {
+    mapZoom = 1;
+    mapPanX = 0;
+    mapPanY = 0;
+    refitCamera?.();
+  }
 
   // Baked CRT look — tuned over dev-panel sessions (2026-09) and promoted
   // to shipped defaults: subtle lens + chroma fringing, light scanlines/
@@ -393,30 +414,33 @@
         }
 
         vec3 col;
-        if (uChroma > 0.001) {
-          // Radial chromatic aberration: red pulled in, blue pushed out.
-          vec2 dir = (uv - 0.5) * uChroma * 0.02;
-          col.r = texture2D(tDiffuse, uv - dir).r;
-          col.g = texture2D(tDiffuse, uv).g;
-          col.b = texture2D(tDiffuse, uv + dir).b;
+        if (uChroma > 0.0001) {
+          // Radial chromatic aberration (wider toward the edges).
+          vec2 off = (uv - 0.5) * uChroma * 0.03;
+          col = vec3(
+            texture2D(tDiffuse, uv + off).r,
+            texture2D(tDiffuse, uv).g,
+            texture2D(tDiffuse, uv - off).b
+          );
         } else {
           col = texture2D(tDiffuse, uv).rgb;
         }
 
-        // Phosphor bloom: cheap 4-tap bright-pass glow.
+        // Cheap 4-tap phosphor bloom around bright pixels.
         if (uBloom > 0.001) {
-          vec2 o = 3.0 / uRes;
-          vec3 b = texture2D(tDiffuse, uv + vec2(o.x, o.y)).rgb
-                 + texture2D(tDiffuse, uv + vec2(-o.x, o.y)).rgb
-                 + texture2D(tDiffuse, uv + vec2(o.x, -o.y)).rgb
-                 + texture2D(tDiffuse, uv + vec2(-o.x, -o.y)).rgb;
-          b = max(b * 0.25 - 0.35, 0.0);
-          col += b * uBloom;
+          vec2 b = 2.5 / uRes;
+          vec3 glow = 0.25 * (
+            texture2D(tDiffuse, uv + vec2( b.x,  b.y)).rgb +
+            texture2D(tDiffuse, uv + vec2(-b.x,  b.y)).rgb +
+            texture2D(tDiffuse, uv + vec2( b.x, -b.y)).rgb +
+            texture2D(tDiffuse, uv + vec2(-b.x, -b.y)).rgb
+          );
+          col += max(vec3(0.0), glow - 0.35) * uBloom * 1.6;
         }
 
-        // Scanlines ride the tube's raster (they bend with the glass).
+        // Scanlines: horizontal sine mask at half screen pitch.
         if (uScan > 0.001) {
-          float line = 0.5 + 0.5 * sin(uv.y * uRes.y * 3.14159);
+          float line = 0.5 + 0.5 * sin(uv.y * uRes.y * 3.14159265);
           col *= 1.0 - uScan * line;
         }
 
@@ -494,14 +518,19 @@
     const fitCamera = (w: number, h: number): void => {
       const hudZoom =
         Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-zoom')) || 1;
-      const effH = Math.max(1, h - BOTTOM_SAFE_PX * hudZoom);
-      const scale = Math.min(w / WORLD_W, effH / WORLD_H);
+      const isShort = h < 540;
+      const bottomSafe = isShort ? 56 : BOTTOM_SAFE_PX;
+      const effH = Math.max(1, h - bottomSafe * hudZoom);
+      const baseScale = Math.min(w / WORLD_W, effH / WORLD_H);
+      const scale = baseScale * mapZoom;
       const halfW = w / (2 * scale);
       const halfH = h / (2 * scale);
-      camera.left = WORLD_W / 2 - halfW;
-      camera.right = WORLD_W / 2 + halfW;
-      camera.top = -WORLD_H / 2 + halfH * (effH / h);
-      camera.bottom = camera.top - 2 * halfH;
+      const cx = WORLD_W / 2 + mapPanX;
+      const cy = -WORLD_H / 2 + halfH * (effH / h) - halfH + mapPanY;
+      camera.left = cx - halfW;
+      camera.right = cx + halfW;
+      camera.top = cy + halfH;
+      camera.bottom = cy - halfH;
       camera.updateProjectionMatrix();
       // World units per screen px — snow sizes are authored in px.
       worldPerPx = 1 / scale;
@@ -1476,6 +1505,9 @@
       }
       fitCamera(curW, curH);
     };
+    refitCamera = () => {
+      if (curW > 0 && curH > 0) fitCamera(curW, curH);
+    };
     requestResize();
     applyResize();
     const ro = new ResizeObserver(requestResize);
@@ -1502,10 +1534,11 @@
       // icons are axis-aligned boxes at known world positions.
       const wx = camera.left + ((nx + 1) / 2) * (camera.right - camera.left);
       const wy = camera.bottom + ((ny + 1) / 2) * (camera.top - camera.bottom);
+      const hitR = e.pointerType === 'touch' ? 17 : 13;
       for (const [gid, recs] of govIcons) {
         for (let i = 0; i < recs.length; i++) {
           const r = recs[i];
-          if (Math.abs(wx - r.wx) <= 13 && Math.abs(wy - r.wy) <= 13) {
+          if (Math.abs(wx - r.wx) <= hitR && Math.abs(wy - r.wy) <= hitR) {
             return { govId: gid, statKey: STAT_KEYS[i] ?? null };
           }
         }
@@ -1533,7 +1566,46 @@
       return idx >= 0 ? arrowHitMeta[idx] : null;
     };
 
+    // Drag-to-pan state when mapZoom > 1
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragStartPanX = 0;
+    let dragStartPanY = 0;
+    let dragMovedPx = 0;
+
+    const onDown = (e: PointerEvent): void => {
+      if (mapZoom <= 1) {
+        dragMovedPx = 0;
+        return;
+      }
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragStartPanX = mapPanX;
+      dragStartPanY = mapPanY;
+      dragMovedPx = 0;
+    };
+
+    const onUp = (): void => {
+      isDragging = false;
+    };
+
     const onMove = (e: PointerEvent): void => {
+      if (isDragging && mapZoom > 1) {
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        dragMovedPx = Math.max(dragMovedPx, Math.hypot(dx, dy));
+        if (dragMovedPx > 4) {
+          const maxPanX = WORLD_W * 0.35;
+          const maxPanY = WORLD_H * 0.35;
+          mapPanX = Math.max(-maxPanX, Math.min(maxPanX, dragStartPanX - dx * worldPerPx));
+          mapPanY = Math.max(-maxPanY, Math.min(maxPanY, dragStartPanY + dy * worldPerPx));
+          fitCamera(curW, curH);
+          return;
+        }
+      }
+      if (e.pointerType === 'touch') return;
       const hit = pick(e);
       hovered = hit.govId;
       hoveredStat = hit.govId && hit.statKey ? { govId: hit.govId, key: hit.statKey } : null;
@@ -1544,15 +1616,15 @@
         if (a) {
           const rect = renderer.domElement.getBoundingClientRect();
           tooltip = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top,
+            x: Math.max(8, Math.min(rect.width - 260, e.clientX - rect.left)),
+            y: Math.max(8, Math.min(rect.height - 44, e.clientY - rect.top)),
             text: `نزوح داخلي من ${govNameAr(a.fromId)} إلى ${govNameAr(a.toId)} — الدورات السابقة: ${fmtPeople(a.history)}، المتوقع: ${fmtPeople(a.predicted)}`,
           };
         } else {
           tooltip = null;
         }
       }
-      renderer.domElement.style.cursor = hit.govId ? 'pointer' : 'default';
+      renderer.domElement.style.cursor = hit.govId ? 'pointer' : (mapZoom > 1 ? 'grab' : 'default');
     };
     const activateGov = (id: string): void => {
       const current = get(uiStore).selectedGovernorateId;
@@ -1564,13 +1636,47 @@
       }
     };
     const onClick = (e: PointerEvent): void => {
-      const id = pick(e).govId;
-      if (!id) {
-        uiStore.selectGovernorate(null);
-        uiStore.closeCommandPanel();
-      } else {
-        activateGov(id);
+      if (dragMovedPx > 6) {
+        dragMovedPx = 0;
+        return;
       }
+      const hit = pick(e);
+      if (hit.govId && hit.statKey) {
+        // Touch/click on a stat icon: toggle the stat flood + % pill without
+        // deselecting the governorate.
+        if (get(uiStore).selectedGovernorateId !== hit.govId) {
+          uiStore.selectGovernorate(hit.govId);
+        }
+        hovered = hit.govId;
+        hoveredStat =
+          hoveredStat?.govId === hit.govId && hoveredStat?.key === hit.statKey
+            ? null
+            : { govId: hit.govId, key: hit.statKey };
+        tooltip = null;
+        return;
+      }
+      if (hit.govId) {
+        hoveredStat = null;
+        tooltip = null;
+        activateGov(hit.govId);
+        return;
+      }
+      // Check if user tapped a migration arrow on touch devices
+      const a = pickArrow(e);
+      if (a) {
+        const rect = renderer.domElement.getBoundingClientRect();
+        hoveredStat = null;
+        tooltip = {
+          x: Math.max(8, Math.min(rect.width - 260, e.clientX - rect.left)),
+          y: Math.max(8, Math.min(rect.height - 44, e.clientY - rect.top)),
+          text: `نزوح داخلي من ${govNameAr(a.fromId)} إلى ${govNameAr(a.toId)} — الدورات السابقة: ${fmtPeople(a.history)}، المتوقع: ${fmtPeople(a.predicted)}`,
+        };
+        return;
+      }
+      hoveredStat = null;
+      tooltip = null;
+      uiStore.selectGovernorate(null);
+      uiStore.closeCommandPanel();
     };
     // Keyboard shape navigation: arrows move a shared highlight, Enter/Space
     // activates, Escape clears. (Pointer users get hover; hub buttons cover
@@ -1600,6 +1706,9 @@
         uiStore.closeCommandPanel();
       }
     };
+    renderer.domElement.addEventListener('pointerdown', onDown);
+    renderer.domElement.addEventListener('pointerup', onUp);
+    renderer.domElement.addEventListener('pointercancel', onUp);
     renderer.domElement.addEventListener('pointermove', onMove);
     renderer.domElement.addEventListener('click', onClick);
     hostKeyHandler = onKey;
@@ -1795,8 +1904,12 @@
       ro.disconnect();
       themeUnsub?.();
       hostKeyHandler = null;
+      refitCamera = null;
       crtUniforms = null;
       delete (window as unknown as Record<string, unknown>).__syria3d;
+      renderer.domElement.removeEventListener('pointerdown', onDown);
+      renderer.domElement.removeEventListener('pointerup', onUp);
+      renderer.domElement.removeEventListener('pointercancel', onUp);
       renderer.domElement.removeEventListener('pointermove', onMove);
       renderer.domElement.removeEventListener('click', onClick);
       scene.traverse((o) => {
@@ -1822,10 +1935,39 @@
   tabindex={0}
   onkeydown={(e: KeyboardEvent) => hostKeyHandler?.(e)}
 >
+  <!-- Compact Map Zoom Controls (bottom-left, above command hub) -->
+  <div class="absolute bottom-[calc(72px*var(--hud-zoom))] left-2.5 z-10 flex flex-col gap-1 pointer-events-auto">
+    <button
+      type="button"
+      onclick={(e) => { e.stopPropagation(); stepZoom(0.35); }}
+      disabled={mapZoom >= 2.5}
+      aria-label="تكبير الخارطة"
+      title="تكبير الخارطة"
+      class="h-8 w-8 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid text-wheat-mid hover:text-wheat-gold font-mono font-bold text-sm shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+    >+</button>
+    <button
+      type="button"
+      onclick={(e) => { e.stopPropagation(); stepZoom(-0.35); }}
+      disabled={mapZoom <= 1}
+      aria-label="تصغير الخارطة"
+      title="تصغير الخارطة"
+      class="h-8 w-8 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid text-wheat-mid hover:text-wheat-gold font-mono font-bold text-sm shadow cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+    >−</button>
+    {#if mapZoom > 1}
+      <button
+        type="button"
+        onclick={(e) => { e.stopPropagation(); resetZoom(); }}
+        aria-label="إعادة ضبط الخارطة"
+        title="إعادة ضبط الخارطة"
+        class="h-8 w-8 flex items-center justify-center bg-forest-surface hover:bg-forest-mid border border-wheat-mid/60 text-wheat-gold font-mono font-bold text-xs shadow cursor-pointer transition-colors"
+      >⟲</button>
+    {/if}
+  </div>
+
   {#if tooltip}
     <div
-      class="pointer-events-none absolute z-10 px-2 py-1 text-[11px] font-arabic text-wheat-light bg-forest-deep/95 border border-wheat-mid/40 rounded-none whitespace-nowrap"
-      style="left:{tooltip.x + 14}px;top:{tooltip.y + 12}px;"
+      class="pointer-events-none absolute z-10 px-2 py-1 text-[11px] font-arabic text-wheat-light bg-forest-deep/95 border border-wheat-mid/40 rounded-none max-w-[calc(100%-16px)] truncate"
+      style="left:{tooltip.x}px;top:{tooltip.y}px;"
     >{tooltip.text}</div>
   {/if}
 </div>

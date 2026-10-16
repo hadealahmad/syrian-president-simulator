@@ -1,295 +1,140 @@
 @import "tailwindcss";
 
+/* Thmanyah Sans — local variable font + tabular Arabic/English weights */
 @font-face {
   font-family: 'Thmanyah Sans';
-  src: url('/fonts/thmanyah/thmanyah-sans-light.woff2') format('woff2');
+  src: url('/fonts/Thmanyahsans12-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah Sans';
+  src: url('/fonts/Thmanyahsans12-Light.woff2') format('woff2');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Thmanyah Sans';
-  src: url('/fonts/thmanyah/thmanyah-sans-regular.woff2') format('woff2');
+  src: url('/fonts/Thmanyahsans12-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Thmanyah Sans';
-  src: url('/fonts/thmanyah/thmanyah-sans-medium.woff2') format('woff2');
+  src: url('/fonts/Thmanyahsans12-Medium.woff2') format('woff2');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Thmanyah Sans';
-  src: url('/fonts/thmanyah/thmanyah-sans-bold.woff2') format('woff2');
-  font-weight: 600 700;
+  src: url('/fonts/Thmanyahsans12-Bold.woff2') format('woff2');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
   font-family: 'Thmanyah Sans';
-  src: url('/fonts/thmanyah/thmanyah-sans-black.woff2') format('woff2');
-  font-weight: 800 900;
+  src: url('/fonts/Thmanyahsans12-Black.woff2') format('woff2');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
-
-/* Thmanyah Serif Display - The Official Headings & Section Title Font */
 @font-face {
-  font-family: 'Thmanyah Serif Display';
-  src: url('/fonts/thmanyah/thmanyah-serif-display-regular.woff2') format('woff2');
-  font-weight: 400;
+  font-family: 'Thmanyah Display';
+  src: url('/fonts/Thmanyahsansdisplay12-Bold.woff2') format('woff2');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
-
 @font-face {
-  font-family: 'Thmanyah Serif Display';
-  src: url('/fonts/thmanyah/thmanyah-serif-display-medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Thmanyah Serif Display';
-  src: url('/fonts/thmanyah/thmanyah-serif-display-bold.woff2') format('woff2');
-  font-weight: 600 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Thmanyah Serif Display';
-  src: url('/fonts/thmanyah/thmanyah-serif-display-black.woff2') format('woff2');
-  font-weight: 800 900;
+  font-family: 'Thmanyah Display';
+  src: url('/fonts/Thmanyahsansdisplay12-Black.woff2') format('woff2');
+  font-weight: 900;
   font-style: normal;
   font-display: swap;
 }
 
 @theme {
-  /* ==========================================================================
-     FOREST & SLATE PINE PALETTE (Primary Institutional State Matrix)
-     ========================================================================== */
-  /* Main dark viewport, drawers & ribbon background: Deep Nordic Pine */
-  --color-forest-deep: #0a1b18;
-  
-  /* Elevated card, dossier & section panel surface */
-  --color-forest-mid: #133832;
-  
-  /* Interactive hover, selected tab, and active card surface */
-  --color-forest-surface: #1a453e;
+  /* Palette tokens resolve at runtime via the CSS custom properties below so
+     switching data-theme on <html> recolors every Tailwind utility AND every
+     canvas/WebGL surface (see src/themes.ts) without rebuilding CSS. */
+  --color-forest-deep: #14362f;
+  --color-forest-mid: #1c473e;
+  --color-forest-surface: #23574c;
+  --color-forest-accent: #2e6b5f;
 
-  /* Luminous mint-teal text & indicator highlight (11:1 contrast on dark base, 7.5:1 on cards) */
-  --color-forest-accent: #4ec7b4;
+  --color-wheat-light: #e2d8be;
+  --color-wheat-mid: #b9a779;
+  --color-wheat-dark: #988561;
+  --color-wheat-gold: #c9a84c;
 
-  /* Deep pine-teal for solid badge/button fills */
-  --color-forest-accent-muted: #247568;
+  --color-umber-deep: #260f14;
+  --color-umber-mid: #4a151e;
+  --color-umber-surface: #6b1f2a;
+  --color-umber-crimson: #ef4444;
+  --color-umber-border: #ed1c24;
 
-  /* ==========================================================================
-     WHEAT, GOLD & PARCHMENT PALETTE (Typographic Hierarchy & Legitimacy)
-     ========================================================================== */
-  /* Primary title & body text: Crisp alabaster parchment (18:1 contrast on dark) */
-  --color-wheat-light: #f7f5ed;
-
-  /* Secondary text, values, currency numbers, active labels: Warm wheat gold (10:1 contrast) */
-  --color-wheat-mid: #dfcaa0;
-
-  /* Tertiary text, field descriptions, footnotes, metadata: Soft sand parchment (6.5:1 contrast) */
-  --color-wheat-dark: #c2b698;
-
-  /* Radiant antique gold for sovereign political capital, reserves & prestige */
-  --color-wheat-gold: #f2cf77;
-
-  /* ==========================================================================
-     UMBER, GARNET & CRIMSON PALETTE (Rivalry, Disintegration & Crisis)
-     ========================================================================== */
-  /* Deep burgundy wine background for critical crisis cards */
-  --color-umber-deep: #240c11;
-
-  /* Elevated wine panel surface */
-  --color-umber-mid: #4a141d;
-
-  /* Alert border for dangerous conditions */
-  --color-umber-border: #8b2333;
-
-  /* Radiant vermilion crimson for critical alert text, revolt indicators & badges (8:1 contrast) */
-  --color-umber-crimson: #f87171;
-
-  /* Bright warm glow for warning text on deep-red surfaces */
-  --color-umber-glow: #fbbf24;
-
-  /* Deep danger-action red for confirm-destructive resting fill + border.
-     Initialized to the status-danger shade in each theme, but an independent
-     token so destructive buttons can be retuned without touching alerts. */
-  --color-danger-button: #ce1126;
-
-  /* ==========================================================================
-     STATUS PALETTE (semantic states — prefer these over raw amber/red)
-     ========================================================================== */
-  /* Healthy / nominal */
-  --color-status-ok: #3fb950;
-
-  /* Degraded / caution */
-  --color-status-warn: #f5d547;
-
-  /* Critical / revolt */
-  --color-status-danger: #ce1126;
-
-  /* Informational / predicted */
-  --color-status-info: #58a6ff;
-
-  /* ==========================================================================
-     CHARCOAL & STRUCTURAL SLATE PALETTE (Foundational Canvas & Delineation)
-     ========================================================================== */
-  /* Deepest recessed background / 3D Canvas base */
-  --color-charcoal-deep: #071210;
-
-  /* Recessed inner container background */
-  --color-charcoal-surface: #0e2420;
-
-  /* Clean slate-pine structural borders separating panels, inputs & cards */
-  --color-charcoal-mid: #254b42;
-
-  /* Highlight / hover border */
-  --color-charcoal-light: #3b6b60;
-
-  /* Pure white */
+  --color-charcoal-deep: #121212;
+  --color-charcoal-surface: #161616;
+  --color-charcoal-mid: #3a3a3a;
+  --color-charcoal-light: #71717a;
   --color-charcoal-white: #ffffff;
 
-  /* Typography families */
+  /* Status triad — value-state coloring on top-bar tiles & stat rows */
+  --color-status-ok: #34d399;
+  --color-status-warn: #fbbf24;
+  --color-status-crit: #f87171;
+
   --font-arabic: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
-  --font-heading: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
-  --font-display: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
+  --font-heading: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
+  --font-display: 'Thmanyah Display', 'Thmanyah Sans', system-ui, sans-serif;
   --font-mono: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
 }
 
-/* ==========================================================================
-   THEMING ENGINE — single source of truth for every UI color.
-   Tailwind v4 exposes each `--color-*` above as `var(--color-*)`, so
-   re-declaring the same variable under `:root[data-theme="<id>"]`
-   recolorizes every `bg-/text-/border-/ring-…` utility instantly —
-   no Svelte file needs to change.
-   Registry of ids: `src/lib/themes.ts` (`THEMES`). State + persistence:
-   `src/lib/stores/theme-store.ts`. Toggle UI: `FloatingCommandDeck`.
-   To add a theme: copy the `mono` block, rename the selector, edit values.
-   Map/canvas JS colors MUST read these via `cssVar()` (`themes.ts`),
-   never hardcode hex — see `SyriaMap.svelte`.
-   ========================================================================== */
-:root,
-:root[data-theme='default'] {
-  --color-forest-deep: #0a1b18;
-  --color-forest-mid: #133832;
-  --color-forest-surface: #1a453e;
-  --color-forest-accent: #4ec7b4;
-  --color-forest-accent-muted: #247568;
-  --color-wheat-light: #f7f5ed;
-  --color-wheat-mid: #dfcaa0;
-  --color-wheat-dark: #c2b698;
-  --color-wheat-gold: #f2cf77;
-  --color-umber-deep: #240c11;
-  --color-umber-mid: #4a141d;
-  --color-umber-border: #8b2333;
-  --color-umber-crimson: #f87171;
-  --color-umber-glow: #fbbf24;
-  --color-status-ok: #3fb950;
-  --color-status-warn: #f5d547;
-  --color-status-danger: #ce1126;
-  --color-status-info: #58a6ff;
-  --color-charcoal-deep: #071210;
-  --color-charcoal-surface: #0e2420;
-  --color-charcoal-mid: #254b42;
-  --color-charcoal-light: #3b6b60;
-  --color-charcoal-white: #ffffff;
-
-  /* 2D map canvas + SVG chrome (defaults mirror the SyID palette) */
-  --map-canvas: #0e1715;
-  --map-ink: #0d1117;
-  --map-grid: #edebe0;
-  --map-cream: #edebe0;
-  --map-arrow-hist: #b9a779;
-  --map-arrow-pred: #e6edf3;
-  --map-shadow: #050a09;
-  --map-ok: #3fb950;
-  --map-warn: #f5d547;
-  --map-danger: #ce1126;
-  --map-ramp-worst: 74 21 30;
-  --map-ramp-mid: 152 133 97;
-  --map-ramp-best: 46 107 95;
-  --map-selected-stroke: #b9a779;
-  --map-hover-stroke: #e6edf3;
-  --map-toggle-off: #2a2f3a;
-  --map-toggle-off-text: #988561;
+/* Non-Tailwind surfaces (idle SVG map drop-shadow, etc.) */
+:root {
+  --map-shadow: #0a1b18;
 }
 
-/* Test theme: grayscale chrome, pure status colors (red/blue/green/yellow). */
+/* ── Theme overrides ──────────────────────────────────────────────────────
+   Keep values in sync with THEMES in src/themes.ts (used by the 3D/canvas map). */
+
 :root[data-theme='mono'] {
   --color-forest-deep: #000000;
-  --color-forest-mid: #101010;
-  --color-forest-surface: #1d1d1d;
-  --color-forest-accent: #ffffff;
-  --color-forest-accent-muted: #8a8a8a;
+  --color-forest-mid: #141414;
+  --color-forest-surface: #242424;
+  --color-forest-accent: #dedede;
+
   --color-wheat-light: #ffffff;
-  --color-wheat-mid: #e8e8e8;
-  --color-wheat-dark: #a3a3a3;
-  --color-wheat-gold: #ffe600;
-  --color-umber-deep: #0d0d0d;
-  --color-umber-mid: #1f1f1f;
-  --color-umber-border: #525252;
-  --color-umber-crimson: #ff2b2b;
-  --color-umber-glow: #ffe600;
-  --color-danger-button: #ff0000;
-  --color-status-ok: #00e600;
-  --color-status-warn: #ffe600;
-  --color-status-danger: #ff0000;
-  --color-status-info: #2b7fff;
+  --color-wheat-mid: #c8c8c8;
+  --color-wheat-dark: #8a8a8a;
+  --color-wheat-gold: #facc15;
+
+  --color-umber-deep: #141414;
+  --color-umber-mid: #282828;
+  --color-umber-surface: #3d3d3d;
+  --color-umber-crimson: #ef4444;
+  --color-umber-border: #ef4444;
+
   --color-charcoal-deep: #000000;
-  --color-charcoal-surface: #101010;
-  --color-charcoal-mid: #2e2e2e;
-  --color-charcoal-light: #616161;
+  --color-charcoal-surface: #0c0c0c;
+  --color-charcoal-mid: #3d3d3d;
+  --color-charcoal-light: #8a8a8a;
   --color-charcoal-white: #ffffff;
 
-  /* Remap Tailwind's default warning/danger ramps used across panels. */
-  --color-amber-200: #fff380;
-  --color-amber-300: #ffe600;
-  --color-amber-400: #ffe600;
-  --color-amber-500: #e6cf00;
-  --color-amber-600: #b3a100;
-  --color-amber-900: #333300;
-  --color-red-700: #ff0000;
+  /* High-contrast primaries for monochrome mode */
+  --color-status-ok: #22c55e;
+  --color-status-warn: #facc15;
+  --color-status-crit: #ef4444;
 
-  --map-canvas: #000000;
-  --map-ink: #0d0d0d;
-  --map-grid: #ffffff;
-  --map-cream: #ffffff;
-  --map-arrow-hist: #a3a3a3;
-  --map-arrow-pred: #2b7fff;
   --map-shadow: #000000;
-  --map-ok: #00e600;
-  --map-warn: #ffe600;
-  --map-danger: #ff0000;
-  --map-ramp-worst: 90 10 10;
-  --map-ramp-mid: 82 82 82;
-  --map-ramp-best: 229 229 229;
-  --map-selected-stroke: #ffffff;
-  --map-hover-stroke: #ffffff;
-  --map-toggle-off: #3a3a3a;
-  --map-toggle-off-text: #8a8a8a;
 }
 
 @layer base {
-  :root {
-    --font-arabic: 'Thmanyah Sans', 'thmanyah sans', system-ui, sans-serif;
-    --font-heading: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
-    --font-display: 'Thmanyah Serif Display', 'thmanyah serif display', serif;
-  }
-
   html, body {
     margin: 0;
     padding: 0;
@@ -299,14 +144,13 @@
     background-color: var(--color-charcoal-deep);
     color: var(--color-wheat-light);
     font-family: var(--font-arabic);
-    user-select: none;
-    -webkit-user-select: none;
+    direction: rtl;
   }
 
-  /* Section and Component Headings use Thmanyah Serif Display */
-  h1, h2, h3, h4, h5, h6,
-  .font-heading,
-  .font-display,
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-heading) !important;
+  }
+
   .heading-display,
   .section-title {
     font-family: var(--font-display) !important;
@@ -496,6 +340,11 @@
 .cmd-panel {
   max-height: calc(var(--vp-h) - 240px);
 }
+@media (max-width: 767px) {
+  .cmd-panel {
+    max-height: calc(var(--vp-h) - 165px);
+  }
+}
 .modal-tall {
   height: calc(var(--vp-h) * 0.7);
 }
@@ -507,8 +356,12 @@
 }
 /* Phones in landscape: a 3:4 card locked to 70% of a ~390px-tall viewport
    is ~205px wide — long headers and footers wrap and crush the scrollable
-   middle. Fill the wide viewport instead. */
+   middle. Fill the wide viewport instead, and let bottom command panels
+   rise above the compact dock without getting crushed to ~130px. */
 @media (orientation: landscape) and (max-height: 560px) {
+  .cmd-panel {
+    max-height: calc(var(--vp-h) - 96px);
+  }
   .modal-tall {
     height: calc(var(--vp-h) - 16px);
     width: min(94vw, 56rem);

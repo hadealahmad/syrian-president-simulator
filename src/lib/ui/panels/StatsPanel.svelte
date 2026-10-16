@@ -1,6 +1,7 @@
 <script lang="ts">
   import { gameStore } from '../../stores/game-store';
   import { projectedTurnStore, previewRangesStore } from '../../stores/draft-store';
+  import { uiStore } from '../../stores/ui-store';
   import { SYRIA_2D_GOVERNORATES } from '../../spatial3d/syria-2d-paths';
   import GameIcon from '../GameIcon.svelte';
   import { STAT_EXPLAINERS_AR } from './shared';
@@ -168,7 +169,7 @@
 </script>
 
 <div class="space-y-3">
-  <div class="grid grid-cols-4 gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none">
+  <div class="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-1 bg-charcoal-surface p-1 border border-charcoal-mid rounded-none items-center">
     <button
       onclick={() => (tab = 'general')}
       class="py-1.5 px-1 text-[10px] font-semibold transition-colors rounded-none text-center truncate cursor-pointer {tab === 'general' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
@@ -192,6 +193,15 @@
       class="py-1.5 px-1 text-[10px] font-semibold transition-colors rounded-none text-center truncate cursor-pointer {tab === 'governorates' ? 'bg-forest-surface text-wheat-gold border border-wheat-mid shadow-sm' : 'text-wheat-dark hover:text-wheat-light hover:bg-forest-mid'}"
     >
       المحافظات
+    </button>
+    <button
+      type="button"
+      onclick={() => uiStore.toggleStatsSidebar(false)}
+      class="py-1.5 px-2.5 text-[10px] font-bold text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid border-r border-charcoal-mid cursor-pointer transition-colors"
+      aria-label="إغلاق لوحة الإحصائيات"
+      title="إغلاق لوحة الإحصائيات"
+    >
+      ✕
     </button>
   </div>
 

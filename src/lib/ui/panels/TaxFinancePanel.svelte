@@ -122,15 +122,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="0"
-      max="400"
-      step="5"
-      value={$draftStore.wageBumpPercent}
-      oninput={(e) => draftStore.setField('wageBumpPercent', Number(e.currentTarget.value))}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص نسبة زيادة الأجور"
+        disabled={$draftStore.wageBumpPercent <= 0}
+        onclick={() => draftStore.setField('wageBumpPercent', Math.max(0, $draftStore.wageBumpPercent - 5))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="0"
+        max="400"
+        step="5"
+        value={$draftStore.wageBumpPercent}
+        oninput={(e) => draftStore.setField('wageBumpPercent', Number(e.currentTarget.value))}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع نسبة زيادة الأجور"
+        disabled={$draftStore.wageBumpPercent >= 400}
+        onclick={() => draftStore.setField('wageBumpPercent', Math.min(400, $draftStore.wageBumpPercent + 5))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>0%</span>
       <span>+400%</span>
@@ -165,15 +181,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="5"
-      max="25"
-      step="1"
-      value={$draftStore.remittanceCaptureSpread}
-      oninput={(e) => draftStore.setField('remittanceCaptureSpread', Number(e.currentTarget.value))}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص هامش اقتطاع الحوالات"
+        disabled={$draftStore.remittanceCaptureSpread <= 5}
+        onclick={() => draftStore.setField('remittanceCaptureSpread', Math.max(5, $draftStore.remittanceCaptureSpread - 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="5"
+        max="25"
+        step="1"
+        value={$draftStore.remittanceCaptureSpread}
+        oninput={(e) => draftStore.setField('remittanceCaptureSpread', Number(e.currentTarget.value))}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع هامش اقتطاع الحوالات"
+        disabled={$draftStore.remittanceCaptureSpread >= 25}
+        onclick={() => draftStore.setField('remittanceCaptureSpread', Math.min(25, $draftStore.remittanceCaptureSpread + 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>5%</span>
       <span>25%</span>
@@ -216,15 +248,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="0"
-      max={maxCapEx}
-      step="5"
-      value={gridCapExM}
-      oninput={(e) => draftStore.setField('gridCapExUSD', Number(e.currentTarget.value) * 1_000_000)}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص استثمار الشبكة"
+        disabled={gridCapExM <= 0}
+        onclick={() => draftStore.setField('gridCapExUSD', Math.max(0, gridCapExM - 5) * 1_000_000)}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="0"
+        max={maxCapEx}
+        step="5"
+        value={gridCapExM}
+        oninput={(e) => draftStore.setField('gridCapExUSD', Number(e.currentTarget.value) * 1_000_000)}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع استثمار الشبكة"
+        disabled={gridCapExM >= maxCapEx}
+        onclick={() => draftStore.setField('gridCapExUSD', Math.min(maxCapEx, gridCapExM + 5) * 1_000_000)}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>$0M</span>
       <span>$80M</span>
@@ -263,16 +311,32 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="0"
-      max={Math.max(0, maxAuction)}
-      step="5"
-      disabled={maxAuction === 0}
-      value={auctionM}
-      oninput={(e) => draftStore.setField('dollarAuctionUSD', Number(e.currentTarget.value) * 1_000_000)}
-      class="w-full accent-wheat-gold {maxAuction === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص ضخ السيولة"
+        disabled={auctionM <= 0 || maxAuction === 0}
+        onclick={() => draftStore.setField('dollarAuctionUSD', Math.max(0, auctionM - 5) * 1_000_000)}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="0"
+        max={Math.max(0, maxAuction)}
+        step="5"
+        disabled={maxAuction === 0}
+        value={auctionM}
+        oninput={(e) => draftStore.setField('dollarAuctionUSD', Number(e.currentTarget.value) * 1_000_000)}
+        class="flex-1 accent-wheat-gold {maxAuction === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع ضخ السيولة"
+        disabled={auctionM >= maxAuction || maxAuction === 0}
+        onclick={() => draftStore.setField('dollarAuctionUSD', Math.min(maxAuction, auctionM + 5) * 1_000_000)}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>$0M</span>
       <span>${maxAuction}M</span>
@@ -309,15 +373,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="10"
-      max="35"
-      step="1"
-      value={$draftStore.corporateTaxRate}
-      oninput={(e) => draftStore.setField('corporateTaxRate', Number(e.currentTarget.value))}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص ضريبة أرباح الشركات"
+        disabled={$draftStore.corporateTaxRate <= 10}
+        onclick={() => draftStore.setField('corporateTaxRate', Math.max(10, $draftStore.corporateTaxRate - 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="10"
+        max="35"
+        step="1"
+        value={$draftStore.corporateTaxRate}
+        oninput={(e) => draftStore.setField('corporateTaxRate', Number(e.currentTarget.value))}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع ضريبة أرباح الشركات"
+        disabled={$draftStore.corporateTaxRate >= 35}
+        onclick={() => draftStore.setField('corporateTaxRate', Math.min(35, $draftStore.corporateTaxRate + 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>10%</span>
       <span>35%</span>
@@ -352,15 +432,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="5"
-      max="30"
-      step="1"
-      value={$draftStore.telecomExciseRate}
-      oninput={(e) => draftStore.setField('telecomExciseRate', Number(e.currentTarget.value))}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص رسم الاتصالات"
+        disabled={$draftStore.telecomExciseRate <= 5}
+        onclick={() => draftStore.setField('telecomExciseRate', Math.max(5, $draftStore.telecomExciseRate - 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="5"
+        max="30"
+        step="1"
+        value={$draftStore.telecomExciseRate}
+        oninput={(e) => draftStore.setField('telecomExciseRate', Number(e.currentTarget.value))}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع رسم الاتصالات"
+        disabled={$draftStore.telecomExciseRate >= 30}
+        onclick={() => draftStore.setField('telecomExciseRate', Math.min(30, $draftStore.telecomExciseRate + 1))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>5%</span>
       <span>30%</span>
@@ -395,15 +491,31 @@
       </span>
     </div>
 
-    <input
-      type="range"
-      min="200"
-      max="800"
-      step="50"
-      value={$draftStore.nassibTransitFeeUSD}
-      oninput={(e) => draftStore.setField('nassibTransitFeeUSD', Number(e.currentTarget.value))}
-      class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-    />
+    <div class="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="إنقاص رسوم الترانزيت"
+        disabled={$draftStore.nassibTransitFeeUSD <= 200}
+        onclick={() => draftStore.setField('nassibTransitFeeUSD', Math.max(200, $draftStore.nassibTransitFeeUSD - 50))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >−</button>
+      <input
+        type="range"
+        min="200"
+        max="800"
+        step="50"
+        value={$draftStore.nassibTransitFeeUSD}
+        oninput={(e) => draftStore.setField('nassibTransitFeeUSD', Number(e.currentTarget.value))}
+        class="flex-1 accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
+      />
+      <button
+        type="button"
+        aria-label="رفع رسوم الترانزيت"
+        disabled={$draftStore.nassibTransitFeeUSD >= 800}
+        onclick={() => draftStore.setField('nassibTransitFeeUSD', Math.min(800, $draftStore.nassibTransitFeeUSD + 50))}
+        class="h-6 w-6 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-mono font-bold text-xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+      >+</button>
+    </div>
     <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
       <span>$200</span>
       <span>$800</span>

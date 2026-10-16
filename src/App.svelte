@@ -53,12 +53,12 @@
 </script>
 
 <main class="app-shell relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
-  <!-- Vector Map Viewport (pushed left of the stats drawer; offsets track
-       the HUD zoom so the scaled ribbon/sidebar never cover the map) -->
+  <!-- Vector Map Viewport (pushed left of the stats drawer on desktop lg+;
+       on smaller screens the stats drawer overlays the map instead of crushing it) -->
   <div
     data-tour="map"
-    class="fixed bottom-0 left-0 overflow-hidden z-10 transition-all duration-300 ease-in-out"
-    style="top: calc(84px * var(--hud-zoom)); {statsOpen ? 'right: calc(390px * var(--hud-zoom))' : 'right: 0'};"
+    class="fixed bottom-0 left-0 overflow-hidden z-10 transition-all duration-300 ease-in-out {statsOpen ? 'lg:right-[calc(390px*var(--hud-zoom))] right-0' : 'right-0'}"
+    style="top: calc(84px * var(--hud-zoom));"
   >
     <SyriaMap />
   </div>

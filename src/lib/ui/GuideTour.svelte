@@ -44,7 +44,7 @@
           }
         : null;
     const w = popEl?.offsetWidth || CARD_W;
-    const h = popEl?.offsetHeight || 220;
+    const h = Math.min(popEl?.offsetHeight || 220, vpH - 20);
     place(w, h);
   }
 
@@ -54,17 +54,22 @@
     const vh = window.innerHeight / z;
     if (!target || step.side === 'center') {
       placedSide = 'center';
-      pop = { x: Math.max(12, (vw - w) / 2), y: Math.max(12, (vh - h) / 2), w, h };
+      pop = { x: Math.max(8, (vw - w) / 2), y: Math.max(8, (vh - h) / 2), w, h };
       return;
     }
-    const cx = Math.min(Math.max(target.x + target.w / 2, w / 2 + 12), vw - w / 2 - 12);
+    const cx = Math.min(Math.max(target.x + target.w / 2, w / 2 + 8), vw - w / 2 - 8);
     const spaceBelow = vh - (target.y + target.h) - GAP;
     const spaceAbove = target.y - GAP;
     const wantBottom = step.side === 'bottom';
     const useBottom = wantBottom ? spaceBelow >= h || spaceBelow >= spaceAbove : spaceAbove < h && spaceBelow > spaceAbove;
     placedSide = useBottom ? 'bottom' : 'top';
-    const y = useBottom ? target.y + target.h + GAP : target.y - GAP - h;
-    pop = { x: Math.min(Math.max(cx - w / 2, 12), vw - w - 12), y: Math.max(12, Math.min(y, vh - h - 12)), w, h };
+    const rawY = useBottom ? target.y + target.h + GAP : target.y - GAP - h;
+    pop = {
+      x: Math.min(Math.max(cx - w / 2, 8), Math.max(8, vw - w - 8)),
+      y: Math.max(8, Math.min(rawY, Math.max(8, vh - h - 8))),
+      w,
+      h,
+    };
   }
 
   // Connector endpoints: popover edge <-> target edge (facing each other).
@@ -141,10 +146,10 @@
     <!-- Card -->
     <div
       bind:this={popEl}
-      class="absolute w-[348px] max-w-[calc(100vw-24px)] modal-card scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
+      class="absolute w-[348px] max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] modal-card scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
       style="left:{pop.x}px;top:{pop.y}px;"
     >
-      <div class="px-5 pt-4">
+      <div class="px-5 pt-3.5">
         <div class="flex items-center justify-between gap-2">
           <span class="px-1.5 py-0.5 bg-wheat-gold/20 text-wheat-gold text-[9px] font-bold border border-wheat-gold/40">
             {step.badge}
@@ -168,8 +173,8 @@
         {@html step.body}
       </div>
 
-      <div class="px-5 pb-4 pt-1 bg-charcoal-deep border-t border-charcoal-mid">
-        <div class="flex items-center gap-2 py-2.5">
+      <div class="px-5 pb-3.5 pt-1 bg-charcoal-deep border-t border-charcoal-mid sticky bottom-0">
+        <div class="flex items-center gap-2 py-2">
           <div class="relative flex-1 h-1 bg-charcoal-mid" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
             <div class="absolute inset-y-0 right-0 bg-wheat-gold transition-all" style="width: {((idx + 1) / TOUR_STEPS.length) * 100}%"></div>
           </div>

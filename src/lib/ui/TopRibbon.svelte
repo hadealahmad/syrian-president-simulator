@@ -50,17 +50,17 @@
 
 <header
   data-tour="treasury"
-  class="pointer-events-auto fixed top-0 z-20 h-[84px] bg-forest-deep shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'left-[390px]' : 'left-0'} {isRightOpen ? 'right-[390px]' : 'right-0'}"
+  class="pointer-events-auto fixed top-0 z-20 h-[84px] bg-forest-deep shadow-2xl select-none rounded-none font-arabic flex flex-col justify-between overflow-x-auto scrollbar-none transition-all duration-300 ease-in-out {isLeftOpen ? 'lg:left-[390px] left-0' : 'left-0'} {isRightOpen ? 'lg:right-[390px] right-0' : 'right-0'}"
 >
-  <div class="h-full w-full min-w-[660px] grid grid-cols-6 grid-rows-2 bg-forest-deep">
-    <!-- End Turn: spans both rows, one column wide -->
+  <div class="h-full w-full min-w-[820px] grid grid-cols-[120px_repeat(5,minmax(140px,1fr))] grid-rows-2 bg-forest-deep">
+    <!-- End Turn: spans both rows, one column wide, sticky at RTL right edge so scrolling stats never hides it -->
     <div
       data-tour="end-turn"
       role="button"
       tabindex="0"
       onclick={() => { if ($uiStore.turnFlowStage === 'closed') uiStore.setTurnFlowStage('review'); }}
       onkeydown={(e) => { if (e.key === "Enter" || e.key === " ") { if ($uiStore.turnFlowStage === 'closed') uiStore.setTurnFlowStage('review'); } }}
-      class="row-span-2 h-full px-2 flex flex-col justify-center items-center text-center gap-0.5 bg-wheat-gold hover:bg-wheat-light border-r border-wheat-mid/40 border-b border-charcoal-mid cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-forest-deep/50 transition-colors min-w-0"
+      class="sticky right-0 z-10 row-span-2 h-full px-2 flex flex-col justify-center items-center text-center gap-0.5 bg-wheat-gold hover:bg-wheat-light border-r border-l border-wheat-mid/40 border-b border-charcoal-mid shadow-[-6px_0_16px_rgba(0,0,0,0.45)] cursor-pointer gloss-hover hover:ring-1 hover:ring-inset hover:ring-forest-deep/50 transition-colors min-w-0"
       title="مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها"
     >
       <span class="relative inline-block leading-none">
@@ -89,7 +89,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="crown-coin" cls="w-6 h-6 text-wheat-gold shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الرصيد السياسي</span>
         {#if p.politicalCapital.isChanged}
@@ -123,7 +123,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="money-stack" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الخزينة</span>
         {#if p.treasurySYP.isChanged}
@@ -164,7 +164,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="coins" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتياطي ($)</span>
         {#if p.reservesUSD.isChanged}
@@ -206,7 +206,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="scales" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الدين الخارجي</span>
         {#if p.sovereignDebtUSD.isChanged}
@@ -240,7 +240,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="abacus" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الامتثال الضريبي</span>
         {#if p.taxCompliancePct.isChanged}
@@ -276,7 +276,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="trade" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">السوق الموازي</span>
         {#if p.parallelRateSYP.isChanged}
@@ -310,7 +310,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="banknote" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[10px] text-wheat-dark font-medium font-heading whitespace-nowrap">أجر الموظف</span>
         {#if p.realWageUSD.isChanged}
@@ -346,7 +346,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="blindfold" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الفساد المؤسسي</span>
         {#if p.systemicCorruption.isChanged}
@@ -382,7 +382,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="crowned-heart" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الثقة الشعبية</span>
         {#if p.civicTrust.isChanged}
@@ -417,7 +417,7 @@
       <div class="flex items-center justify-center aspect-square h-full shrink-0">
         <GameIcon name="flame" cls="w-6 h-6 text-wheat-dark shrink-0" />
       </div>
-      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60">
+      <div class="flex-1 flex flex-col justify-center items-center min-w-0 border-r border-charcoal-mid/60 px-1">
       <div class="flex items-center justify-center gap-1">
         <span class="text-[9.5px] text-wheat-dark font-medium font-heading whitespace-nowrap">الاحتقان الوطني</span>
         {#if p.nationalRRI.isChanged}

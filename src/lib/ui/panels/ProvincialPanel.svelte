@@ -5,7 +5,7 @@
   import GameIcon from '../GameIcon.svelte';
   import ToggleSwitch from '../ToggleSwitch.svelte';
   import { BASELINE_GOVERNORATES } from '../../engine/constants';
-  import { governorateShape } from '../../spatial3d/syria-2d-paths';
+  import { SYRIA_2D_GOVERNORATES, governorateShape } from '../../spatial3d/syria-2d-paths';
   import { isProvincialActionRelated as isProvincialActionRelatedShared, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
 
   // Before/after stat rows for the strategic-project table (mirrors engine clamps).
@@ -89,6 +89,14 @@
     return rows;
   });
 
+  const GOV_IDS: string[] = SYRIA_2D_GOVERNORATES.map((g) => g.id);
+
+  function stepGovernorate(delta: number): void {
+    const idx = Math.max(0, GOV_IDS.indexOf(selectedId));
+    const nextIdx = (idx + delta + GOV_IDS.length) % GOV_IDS.length;
+    uiStore.selectGovernorate(GOV_IDS[nextIdx]);
+  }
+
   // Default to the capital when nothing is selected so the panel always
   // shows a governorate dossier instead of an empty placeholder.
   let selectedId = $derived($uiStore.selectedGovernorateId ?? 'damascus');
@@ -103,7 +111,8 @@
   );
 
   let isSelectedForDemining = $derived($draftStore.deminingPriorityId === selectedId);
-  let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);  let canAffordDemining = $derived(
+  let canDeployDemining = $derived(node ? node.mineSaturationPct > 8 : false);
+  let canAffordDemining = $derived(
     $budgetStore.canAffordWithFxCoverage(20_000_000, 8_000_000_000)
   );
   let isDeminingCoveredByFX = $derived(
@@ -201,9 +210,45 @@
 </script>
 
 <div class="space-y-3">
-  <div class="flex items-center gap-2 border-b border-charcoal-mid pb-2">
-    <svg viewBox={provShape.vb} class="w-5 h-5 shrink-0 text-wheat-gold" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={provShape.d} fill="currentColor" /></svg>
-    <h3 class="text-sm font-bold text-wheat-light font-heading">{node?.nameAr ?? 'القيادة الإقليمية'}</h3>
+  <div class="flex items-center justify-between gap-2 border-b border-charcoal-mid pb-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <svg viewBox={provShape.vb} class="w-5 h-5 shrink-0 text-wheat-gold" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><path d={provShape.d} fill="currentColor" /></svg>
+      <h3 class="text-sm font-bold text-wheat-light font-heading truncate">{node?.nameAr ?? 'القيادة الإقليمية'}</h3>
+    </div>
+    <!-- Quick Governorate Switcher for Mobile & Desktop -->
+    <div class="flex items-center gap-1 shrink-0">
+      <button
+        type="button"
+        onclick={() => stepGovernorate(-1)}
+        class="h-7 w-7 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-bold text-xs cursor-pointer transition-colors"
+        aria-label="المحافظة السابقة"
+        title="المحافظة السابقة"
+      >
+        ‹
+      </button>
+      <select
+        aria-label="اختيار المحافظة"
+        value={selectedId}
+        onchange={(e) => uiStore.selectGovernorate(e.currentTarget.value)}
+        class="h-7 px-1.5 bg-charcoal-surface border border-charcoal-mid text-wheat-gold text-[11px] font-bold font-heading cursor-pointer focus:outline-none focus:border-wheat-gold"
+      >
+        {#each GOV_IDS as gid}
+          {@const gNode = $gameStore.governorates[gid]}
+          {#if gNode}
+            <option value={gid} class="bg-forest-deep text-wheat-light">{gNode.nameAr}</option>
+          {/if}
+        {/each}
+      </select>
+      <button
+        type="button"
+        onclick={() => stepGovernorate(1)}
+        class="h-7 w-7 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-mid hover:text-wheat-gold font-bold text-xs cursor-pointer transition-colors"
+        aria-label="المحافظة التالية"
+        title="المحافظة التالية"
+      >
+        ›
+      </button>
+    </div>
   </div>
 
   {#if node}
@@ -332,6 +377,11 @@
                 مغطى بالنقد الأجنبي
               </span>
             {/if}
+            {#if demBlocked}
+              <span class="px-1.5 py-px bg-umber-deep border border-umber-border text-umber-crimson font-bold text-[8px]">
+                ميزانية غير كافية ($20M / 8.0B SP)
+              </span>
+            {/if}
           </div>
           <div class="space-y-0.5">
             <div class="flex justify-between items-center text-[8.5px] font-mono">
@@ -397,6 +447,11 @@
             {#if isPowerBoostCoveredByFX && !isSelectedForPowerBoost}
               <span class="px-1.5 py-px rounded-full bg-forest-surface border border-forest-accent text-forest-accent font-bold text-[8px]">
                 مغطى بالنقد الأجنبي
+              </span>
+            {/if}
+            {#if powerBlocked}
+              <span class="px-1.5 py-px bg-umber-deep border border-umber-border text-umber-crimson font-bold text-[8px]">
+                ميزانية غير كافية ($10M / 3.0B SP)
               </span>
             {/if}
           </div>
