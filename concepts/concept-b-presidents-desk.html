@@ -1,0 +1,1702 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0805">
+<title>مكتب الرئيس — محاكي الرئيس السوري</title>
+<style>
+/* ---------- fonts ---------- */
+@font-face{font-family:"Thmanyah Sans";src:url("/fonts/thmanyah/thmanyah-sans-regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Thmanyah Sans";src:url("/fonts/thmanyah/thmanyah-sans-medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Thmanyah Sans";src:url("/fonts/thmanyah/thmanyah-sans-bold.woff2") format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Thmanyah Serif Display";src:url("/fonts/thmanyah/thmanyah-serif-display-regular.woff2") format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Thmanyah Serif Display";src:url("/fonts/thmanyah/thmanyah-serif-display-medium.woff2") format("woff2");font-weight:500;font-display:swap}
+@font-face{font-family:"Thmanyah Serif Display";src:url("/fonts/thmanyah/thmanyah-serif-display-bold.woff2") format("woff2");font-weight:700;font-display:swap}
+
+/* ---------- tokens / reset ---------- */
+:root{
+  --deep:#071210; --forest-deep:#0a1b18; --forest-mid:#133832; --surface:#1a453e;
+  --teal:#4ec7b4; --wheat:#f7f5ed; --wheat2:#dfcaa0; --gold:#f2cf77;
+  --umber:#240c11; --crimson:#f87171; --danger:#ce1126; --ok:#3fb950; --warn:#f5d547;
+  --wood:#1a1109; --wood-2:#0d0906; --leather:#0c201b; --leather-2:#081814;
+  --paper:#f2ead7; --paper-2:#e4d8bb; --paper-3:#d8c9a7; --ink:#241c12; --ink-2:#6b573b;
+  --brass:#c9a24a; --brass-hi:#f5e3af; --brass-lo:#7d5f22;
+  --line:rgba(242,207,119,.18); --line-2:rgba(242,207,119,.34);
+  --serif:"Thmanyah Serif Display","Thmanyah Sans",Georgia,serif;
+  --sans:"Thmanyah Sans",system-ui,-apple-system,sans-serif;
+  --shadow:0 18px 34px rgba(0,0,0,.5),0 2px 6px rgba(0,0,0,.35);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+html{background:#070504}
+body{
+  height:100dvh; overflow:hidden; color:var(--wheat); font-family:var(--sans); font-size:14px; line-height:1.5;
+  background:
+    radial-gradient(120% 90% at 70% -20%,rgba(242,207,119,.14),transparent 55%),
+    radial-gradient(80% 60% at 5% 110%,rgba(78,199,180,.07),transparent 60%),
+    repeating-linear-gradient(92deg,rgba(255,255,255,.018) 0 1px,transparent 1px 8px),
+    repeating-linear-gradient(88deg,rgba(0,0,0,.16) 0 2px,transparent 2px 14px),
+    linear-gradient(180deg,#1d130b,#120c07 48%,#090604);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; -webkit-tap-highlight-color:transparent;
+}
+body::after{
+  content:""; position:fixed; inset:0; z-index:80; pointer-events:none;
+  background:radial-gradient(130% 105% at 50% 42%,transparent 42%,rgba(0,0,0,.55) 100%);
+}
+button{font-family:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+svg{display:block}
+h1,h2,h3,h4,p{margin:0}
+::selection{background:rgba(78,199,180,.28)}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(120,95,55,.4);border-radius:9px}
+::-webkit-scrollbar-track{background:transparent}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* ---------- app / desk ---------- */
+.app{position:relative;height:100dvh;display:flex;flex-direction:column;isolation:isolate;overflow:hidden}
+.app::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:radial-gradient(60% 34% at 76% 0%,rgba(255,225,160,.12),transparent 70%);
+}
+.topbar{
+  position:relative;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  min-height:56px;padding:0 18px;padding-top:env(safe-area-inset-top);
+  border-bottom:1px solid rgba(242,207,119,.14);
+  background:linear-gradient(180deg,rgba(255,240,200,.055),rgba(0,0,0,.18));
+  box-shadow:0 1px 0 rgba(0,0,0,.5),0 12px 30px rgba(0,0,0,.22);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.crest{
+  width:36px;height:36px;flex:none;border-radius:50%;display:grid;place-items:center;color:#241a0a;
+  background:radial-gradient(circle at 32% 25%,#fff0bf,#d8b45f 48%,#8a6a26 78%,#e8cf8a);
+  box-shadow:0 3px 8px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.4),inset 0 -4px 8px rgba(80,55,15,.35);
+}
+.crest svg{width:22px;height:22px}
+.brand-txt{min-width:0}
+.eyebrow{display:block;font-size:8.5px;letter-spacing:.24em;color:var(--wheat2);opacity:.62;white-space:nowrap}
+.brand-txt h1{font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.3;white-space:nowrap;letter-spacing:.01em}
+.top-mid{display:flex;align-items:center;justify-content:center;gap:12px;flex:1;color:var(--wheat2);font-size:9.5px;letter-spacing:.3em;opacity:.55;min-width:0}
+.top-mid .rule{height:1px;width:min(130px,12vw);background:currentColor;opacity:.3}
+.top-end{display:flex;align-items:center;gap:10px;color:var(--wheat2);font-size:10.5px;white-space:nowrap;flex:none}
+.dot-live{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(78,199,180,.14);animation:pulse 2.4s ease-in-out infinite}
+.sep{width:1px;height:16px;background:rgba(242,207,119,.2)}
+.turnchip{display:inline-flex;align-items:baseline;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:99px;background:rgba(0,0,0,.25);font-size:9.5px;color:rgba(247,245,237,.72)}
+.turnchip b{font-family:var(--serif);font-size:14px;color:var(--gold);font-weight:700;line-height:1}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ---------- stage / leather blotter ---------- */
+.stage{
+  position:relative;z-index:1;flex:1;min-height:0;display:grid;
+  grid-template-columns:272px minmax(0,1fr) 82px;gap:14px;padding:16px 18px 18px;
+}
+.stage::before{
+  content:"";position:absolute;inset:6px 8px 8px;border-radius:18px;z-index:0;
+  background:
+    radial-gradient(120% 95% at 32% 0%,#174137,#0d2b24 55%,#081c17 100%);
+  box-shadow:inset 0 0 0 1px rgba(242,207,119,.16),inset 0 0 90px rgba(0,0,0,.65),0 22px 50px rgba(0,0,0,.4);
+}
+.stage::after{
+  content:"";position:absolute;inset:16px 18px;border-radius:12px;z-index:0;pointer-events:none;
+  border:1px dashed rgba(242,207,119,.15);
+  background-image:radial-gradient(circle,rgba(255,255,255,.05) 1px,transparent 1.4px);
+  background-size:17px 17px; opacity:.5;
+  -webkit-mask-image:linear-gradient(180deg,#000,transparent 18%,transparent 82%,#000);
+  mask-image:linear-gradient(180deg,#000,transparent 18%,transparent 82%,#000);
+}
+.stage>*{position:relative;z-index:2}
+
+/* ---------- desk objects ---------- */
+.objects{display:flex;flex-direction:column;justify-content:space-between;gap:10px;min-height:0;overflow:auto;scrollbar-width:none;z-index:4}
+.objects::-webkit-scrollbar{display:none}
+.obj{position:relative;border-radius:9px;color:var(--ink);padding:10px 12px;border:1px solid rgba(40,28,12,.35);box-shadow:var(--shadow);text-align:start;background:linear-gradient(168deg,#f8f1df,#e7dbc0)}
+.obj::after{content:"";position:absolute;inset:4px;border-radius:6px;border:1px solid rgba(90,70,40,.13);pointer-events:none}
+.obj-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.obj-title{font-size:9.5px;font-weight:700;letter-spacing:.07em;color:#6b5637;display:block}
+.obj-sub{font-size:8.5px;color:#8b7857}
+.kicker{font-size:8.5px;font-weight:700;letter-spacing:.12em;color:#8b7857}
+
+.cal{
+  background:linear-gradient(155deg,#3d2b18,#261a0f 55%,#1a120b);color:var(--wheat2);
+  border-color:rgba(242,207,119,.24);min-height:82px;display:flex;align-items:center;gap:12px;padding:10px 12px;
+}
+.cal::before{content:"";position:absolute;inset-block-start:0;inset-inline:14px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--brass),transparent);opacity:.8}
+.cal-page{
+  flex:none;width:56px;padding:5px 0 3px;border-radius:3px;text-align:center;color:var(--ink);
+  background:linear-gradient(180deg,#f7efdb,#e8dcc0);box-shadow:0 3px 7px rgba(0,0,0,.45),inset 0 -3px 8px rgba(120,95,50,.15);
+  transform:rotate(-1.5deg);border:1px solid rgba(80,60,30,.25);
+}
+.cal-season{font-size:8px;letter-spacing:.08em;color:#7d6a4b;display:block}
+.cal-num{font-family:var(--serif);font-size:29px;font-weight:700;line-height:1;display:block;color:#2a2013}
+.cal-total{font-size:8px;color:#8b7857;display:block}
+.cal-meta{min-width:0}
+.cal-meta .obj-title{color:rgba(247,245,237,.6)}
+.cal-year{font-family:var(--serif);font-size:17px;color:var(--wheat);display:block;line-height:1.2}
+.cal-clock{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--wheat2);opacity:.75;margin-top:2px}
+.cal-clock svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.6}
+
+.ledger{
+  background:
+    repeating-linear-gradient(180deg,transparent 0 23px,rgba(90,70,40,.12) 23px 24px),
+    linear-gradient(165deg,#f7f0dd,#e8dcc0);
+  padding:11px 13px 9px;
+}
+.ledger::before{
+  content:"";position:absolute;inset-block-start:7px;inset-inline-start:7px;width:5px;height:5px;border-radius:50%;
+  background:#a9926a;box-shadow:0 13px 0 #a9926a,0 26px 0 #a9926a,0 39px 0 #a9926a,0 52px 0 #a9926a,0 65px 0 #a9926a;
+  opacity:.55;
+}
+.ledger .obj-head{padding-inline-start:9px;border-bottom:1px solid rgba(90,70,40,.25);padding-bottom:4px}
+.led-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1px 6px;padding:7px 0 5px;border-bottom:1px dashed rgba(90,70,40,.22)}
+.led-row:last-of-type{border-bottom:0}
+.led-label{font-size:9.5px;color:#6b573b;font-weight:500}
+.led-val{font-family:var(--serif);font-size:27px;font-weight:700;line-height:1.05;color:#20291f;display:flex;align-items:baseline;gap:3px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.led-val .unit{font-family:var(--sans);font-size:9.5px;font-weight:500;color:#7d6a4b}
+.led-val .cur{font-family:var(--serif);font-size:19px;color:#5b4a33}
+.led-row .chip{grid-column:2;justify-self:end}
+.led-foot{display:flex;justify-content:space-between;gap:6px;font-size:8.7px;color:#7d6a4b;padding-top:6px;border-top:1px solid rgba(90,70,40,.25);margin-top:3px}
+.led-foot b{color:#332818;font-size:9.5px}
+
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.35}
+.chip svg{width:7px;height:6px;fill:currentColor}
+.chip.down{color:#9b2c2c;background:rgba(155,44,44,.1)}
+.chip.up{color:#1f6b55;background:rgba(31,107,85,.1)}
+.chip.flat{color:#6b573b;background:rgba(90,70,40,.08)}
+
+.instruments{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:stretch}
+.gauge{padding:9px 10px 8px}
+.gauge .obj-head{gap:4px}
+.gauge-body{position:relative;margin-top:1px}
+.gauge-body svg{width:100%;height:auto}
+.gauge-num{position:absolute;left:50%;top:55%;transform:translate(-50%,-50%);text-align:center;line-height:1;font-variant-numeric:tabular-nums}
+.gauge-num b{font-family:var(--serif);font-size:24px;color:#2a2013;font-weight:700;display:block}
+.gauge-num small{font-size:8px;color:#8b7857}
+.gauge .obj-foot{font-size:8px;line-height:1.45;color:#7d6a4b;margin-top:1px;border-top:1px solid rgba(90,70,40,.2);padding-top:4px}
+.gauge .obj-foot b{color:#332818;font-weight:600}
+.tag{font-size:7.5px;font-weight:700;padding:1px 5px;border-radius:99px;background:rgba(195,154,75,.2);color:#7a5a1c;letter-spacing:.04em}
+
+.therm{padding:9px 10px 8px;display:flex;flex-direction:column}
+.therm-body{display:flex;align-items:center;gap:7px;margin-top:5px}
+.therm-tube{width:9px;height:64px;flex:none;border-radius:99px;position:relative;overflow:hidden;background:#d6c7a7;box-shadow:inset 0 0 0 1px rgba(70,50,25,.28),inset 0 2px 4px rgba(0,0,0,.2)}
+.therm-tube i{position:absolute;inset-inline:0;bottom:0;height:42%;border-radius:99px;background:linear-gradient(0deg,#4e8b78,#c7a25c 60%,#d9a441);box-shadow:0 0 6px rgba(201,162,74,.4)}
+.therm-bulb{width:17px;height:17px;border-radius:50%;margin-top:-10px;margin-inline-start:-13px;position:relative;z-index:1;background:radial-gradient(circle at 35% 30%,#f5e3af,#b7842c 60%,#7d5f22);box-shadow:0 2px 5px rgba(0,0,0,.35),inset 0 0 0 1px rgba(80,55,15,.35)}
+.therm-read{line-height:1}
+.therm-read b{display:block;font-family:var(--serif);font-size:24px;color:#2a2013;font-weight:700}
+.therm-read span{font-size:8px;color:#8b7857;display:block;margin-top:1px}
+.therm .obj-foot{margin-top:auto;font-size:8px;color:#7d6a4b;border-top:1px solid rgba(90,70,40,.2);padding-top:4px;margin-top:6px}
+
+.seals{
+  display:flex;align-items:center;gap:11px;padding:10px 12px;color:var(--wheat);
+  background:linear-gradient(155deg,#1b463d,#0d2a24 62%,#09201b);border-color:rgba(242,207,119,.3);
+}
+.seals::after{border-color:rgba(242,207,119,.16)}
+.seals .obj-title{color:rgba(247,245,237,.62)}
+.coin-stack{position:relative;width:54px;height:54px;flex:none}
+.coin-stack i{position:absolute;left:3px;width:48px;height:13px;border-radius:50%;background:linear-gradient(180deg,#f8e9b7,#c9a24a 60%,#8a6a26);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 3px rgba(0,0,0,.35)}
+.coin-stack i:nth-child(1){bottom:1px}
+.coin-stack i:nth-child(2){bottom:8px}
+.coin-stack i:nth-child(3){bottom:15px}
+.coin-face{
+  position:absolute;bottom:19px;left:3px;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle at 34% 26%,#fff0c4,#d8b45f 48%,#9a772f 80%,#f0d68d);
+  box-shadow:0 4px 8px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.45),inset 0 0 0 5px rgba(120,85,25,.2);
+  color:#2a2013;
+}
+.coin-face svg{width:23px;height:23px;opacity:.75}
+.seal-read{min-width:0}
+.seal-num{font-family:var(--serif);font-size:31px;font-weight:700;line-height:1;color:var(--wheat);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:3px}
+.seal-num small{font-size:10px;color:rgba(247,245,237,.5);font-family:var(--sans)}
+.seal-note{display:block;font-size:8px;color:rgba(247,245,237,.6);margin-top:2px}
+.seal-note b{color:var(--gold)}
+
+.indexcard{
+  background:linear-gradient(170deg,#f8f1df,#e7dbbf);transform:rotate(-1.1deg);
+  padding:9px 11px 8px;
+}
+.indexcard .obj-title{padding-bottom:3px;border-bottom:1px solid rgba(90,70,40,.22)}
+.idx-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px 8px;margin-top:3px}
+.idx-grid div{display:flex;align-items:baseline;justify-content:space-between;gap:4px;font-size:8.5px;color:#7d6a4b;border-bottom:1px dotted rgba(90,70,40,.2);padding:2px 0}
+.idx-grid b{font-family:var(--serif);font-size:13px;color:#2a2013;font-weight:700;font-variant-numeric:tabular-nums}
+.idx-grid b small{font-family:var(--sans);font-size:7.5px;color:#8b7857;font-weight:400}
+.clip{position:absolute;top:-6px;inset-inline-start:16px;width:11px;height:27px;border:2px solid #8f8a80;border-radius:7px;transform:rotate(5deg);box-shadow:0 1px 2px rgba(0,0,0,.4)}
+
+.incoming{background:linear-gradient(165deg,#f6ecd8,#e9d7b6);border-color:rgba(120,40,30,.3);padding:9px 12px 8px;transform:rotate(.7deg)}
+.incoming::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;border-radius:9px 0 0 9px;background:linear-gradient(180deg,#b23a33,#7d1f1c)}
+.incoming .obj-title{color:#8a2b2b;display:flex;align-items:center;gap:4px}
+.incoming .obj-title i{width:5px;height:5px;border-radius:50%;background:#b23a33;box-shadow:0 0 0 3px rgba(178,58,51,.15);animation:pulse 1.5s infinite}
+.incoming p{font-family:var(--serif);font-size:12px;font-weight:600;line-height:1.4;color:#2a2013;margin-top:2px}
+.incoming .incoming-meta{font-size:8px;color:#8a2b2b;display:block;margin-top:2px}
+
+/* ---------- map frame ---------- */
+.mapwrap{position:relative;min-width:0;min-height:0;z-index:3}
+.mapframe{
+  position:relative;height:100%;display:flex;flex-direction:column;border-radius:5px;padding:8px;
+  background:linear-gradient(148deg,#5b431d,#3a2a13 20%,#715423 55%,#2c1f0e 100%);
+  box-shadow:0 26px 55px rgba(0,0,0,.66),0 3px 0 rgba(0,0,0,.5),inset 0 0 0 4px #4a3516,inset 0 0 0 5px #c9a24a,inset 0 0 0 9px #2c1f0e;
+  transform:rotate(.12deg);
+}
+.tape{position:absolute;width:74px;height:17px;background:linear-gradient(90deg,rgba(240,230,200,.28),rgba(240,230,200,.5),rgba(240,230,200,.28));border:1px solid rgba(255,255,255,.12);box-shadow:0 2px 5px rgba(0,0,0,.2);z-index:5}
+.tape.t1{top:-8px;inset-inline-start:40px;transform:rotate(-3deg)}
+.tape.t2{top:-8px;inset-inline-end:64px;transform:rotate(2deg)}
+.map-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 10px;color:#3a2c17;
+  background:linear-gradient(180deg,#f7efdc,#e7d9b8);border:1px solid rgba(70,55,30,.3);border-radius:2px;
+  box-shadow:0 2px 4px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.map-title{font-family:var(--serif);font-size:11.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.legend{display:flex;align-items:center;gap:9px;font-size:8.5px;color:#5b4a33;flex-wrap:wrap;justify-content:flex-end}
+.legend span{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.legend i{width:7px;height:7px;border-radius:50%;display:inline-block;box-shadow:inset 0 0 0 1px rgba(40,30,15,.25)}
+.map-canvas{
+  flex:1;min-height:0;position:relative;margin-top:6px;border-radius:2px;overflow:hidden;
+  background:
+    linear-gradient(rgba(90,70,40,.055) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(90,70,40,.055) 1px,transparent 1px),
+    radial-gradient(120% 100% at 42% 16%,#f3ead4,#e6d9bd 66%,#d9cbaa 100%);
+  background-size:30px 30px,30px 30px,100% 100%;
+  box-shadow:inset 0 0 26px rgba(80,60,30,.28),inset 0 0 0 1px rgba(70,55,30,.2);
+}
+.map{width:100%;height:100%;display:block}
+.prov{cursor:pointer;outline:none}
+.prov-path{stroke:#5b4a33;stroke-width:1.05;stroke-linejoin:round;transition:filter .18s ease,stroke .18s ease,opacity .18s ease;animation:provIn .6s ease both}
+@keyframes provIn{from{opacity:0}to{opacity:1}}
+.prov:hover .prov-path{filter:brightness(1.1) saturate(1.12);stroke:#2f2413;stroke-width:1.8}
+.prov:focus-visible .prov-path{stroke:#1c150b;stroke-width:2.4}
+.prov.is-selected .prov-path{stroke:#8a2b2b;stroke-width:2.4;filter:brightness(1.06) drop-shadow(0 0 5px rgba(138,43,43,.35))}
+.prov .badge{cursor:pointer}
+.prov .badge circle{transition:transform .16s ease,filter .16s ease}
+.prov:hover .badge circle{filter:brightness(1.15)}
+.badge text{fill:#f7f0dc;font-family:var(--serif);font-size:19px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none;font-variant-numeric:tabular-nums}
+.prov-name{fill:rgba(44,34,19,.7);font-family:var(--sans);font-size:15px;font-weight:500;text-anchor:middle;pointer-events:none;letter-spacing:.01em}
+.neighbor{fill:rgba(80,62,34,.42);font-family:var(--sans);font-size:14px;letter-spacing:.32em;text-anchor:middle;pointer-events:none}
+.sea-label{fill:rgba(62,105,96,.5);font-family:var(--sans);font-size:12px;letter-spacing:.28em;pointer-events:none}
+.compass{position:absolute;bottom:7px;inset-inline-start:8px;width:54px;height:54px;opacity:.58;pointer-events:none}
+.map-tip{
+  position:fixed;top:0;left:0;z-index:70;pointer-events:none;min-width:148px;max-width:220px;
+  background:linear-gradient(170deg,#f8f0dd,#ecdfc4);color:var(--ink);border:1px solid rgba(90,70,40,.35);
+  border-radius:3px;padding:8px 10px;box-shadow:0 14px 30px rgba(0,0,0,.55);font-size:10px;line-height:1.5;
+}
+.map-tip b{font-family:var(--serif);font-size:14px;display:block;margin-bottom:2px}
+.map-tip .tip-tier{display:inline-block;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:3px;margin-bottom:4px}
+.map-tip .tip-grid{display:grid;grid-template-columns:1fr auto;gap:1px 10px;color:#5b4a33;font-size:9.5px}
+.map-tip .tip-grid b{display:inline;font-family:var(--sans);font-size:9.5px;font-weight:700;color:#2a2013;margin:0}
+
+/* ---------- folder rail ---------- */
+.rail{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:0;z-index:4}
+.folder{
+  position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding:8px 3px 7px;
+  border-radius:4px 4px 7px 7px;color:#332613;text-align:center;
+  background:linear-gradient(180deg,#dcc99f,#c7ae7e 72%,#ad9261);
+  box-shadow:0 5px 10px rgba(0,0,0,.38),inset 0 0 0 1px rgba(255,255,255,.16),inset 0 -6px 10px rgba(90,65,30,.18);
+  transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
+}
+.folder::before{content:"";position:absolute;top:-4px;inset-inline-start:9px;width:36px;height:9px;border-radius:4px 4px 0 0;background:var(--tab,#c9a24a);box-shadow:inset 0 -1px 0 rgba(0,0,0,.18)}
+.folder:hover{transform:translateX(4px);box-shadow:0 9px 16px rgba(0,0,0,.48),inset 0 0 0 1px rgba(255,255,255,.25)}
+.folder.is-active{background:linear-gradient(180deg,#f2e3bd,#dec99e 72%,#c7ad78);transform:translateX(6px);box-shadow:0 0 0 1px rgba(242,207,119,.7),0 10px 20px rgba(0,0,0,.5)}
+.folder-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.folder-label{font-size:9px;font-weight:700;white-space:nowrap;letter-spacing:.01em}
+.folder-badge{position:absolute;top:3px;inset-inline-end:4px;width:6px;height:6px;border-radius:50%;background:#a52a2a;box-shadow:0 0 0 2px rgba(165,42,42,.18)}
+
+/* ---------- end stamp + pending slip ---------- */
+.endstamp{
+  position:absolute;bottom:16px;inset-inline-end:16px;width:100px;height:100px;border-radius:50%;z-index:7;
+  display:grid;place-items:center;color:var(--gold);
+  background:radial-gradient(circle at 34% 26%,#337164,#164238 58%,#0a2721 100%);
+  border:3px solid rgba(242,207,119,.56);
+  box-shadow:0 18px 34px rgba(0,0,0,.65),inset 0 0 0 4px rgba(0,0,0,.28),inset 0 0 22px rgba(0,0,0,.55);
+  transition:transform .12s ease,box-shadow .12s ease,filter .2s;
+}
+.endstamp::before{content:"";position:absolute;inset:8px;border-radius:50%;border:1px dashed rgba(242,207,119,.55)}
+.endstamp::after{content:"";position:absolute;inset:16px;border-radius:50%;border:1px solid rgba(242,207,119,.22)}
+.endstamp:hover{transform:translateY(-2px) rotate(-2deg) scale(1.025);filter:brightness(1.08)}
+.endstamp:active{transform:translateY(2px) scale(.975);box-shadow:0 8px 16px rgba(0,0,0,.7),inset 0 0 0 4px rgba(0,0,0,.3)}
+.endstamp .stamp-txt{font-family:var(--serif);font-size:16px;font-weight:700;line-height:1.28;text-align:center;z-index:1;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.endstamp .stamp-count{
+  position:absolute;top:-4px;inset-inline-end:-4px;min-width:27px;height:27px;padding:0 5px;border-radius:50%;
+  display:grid;place-items:center;background:var(--danger);color:#fff;font-size:11px;font-weight:700;
+  border:2px solid #1a0f0a;box-shadow:0 3px 8px rgba(0,0,0,.55);font-variant-numeric:tabular-nums;
+}
+.pending-slip{
+  position:absolute;bottom:26px;inset-inline-end:128px;z-index:6;width:206px;padding:8px 11px 8px;text-align:start;
+  background:linear-gradient(170deg,#f7eed9,#e9dcc0);color:var(--ink);border-radius:2px;
+  border:1px solid rgba(90,70,40,.26);box-shadow:0 12px 24px rgba(0,0,0,.5);transform:rotate(-1.2deg);
+}
+.pending-slip::before{content:"";position:absolute;top:-5px;inset-inline-start:74px;width:54px;height:12px;background:rgba(240,230,200,.45);border:1px solid rgba(255,255,255,.2);transform:rotate(2deg)}
+.ps-kicker{font-size:7.5px;font-weight:700;letter-spacing:.12em;color:#8a2b2b;display:block}
+.pending-slip strong{font-family:var(--serif);font-size:11.5px;line-height:1.35;display:block;margin:1px 0}
+.ps-meta{font-size:8.5px;color:#6b573b;display:block}
+.ps-meta b{color:#8a2b2b}
+
+/* ---------- compact HUD (phones) ---------- */
+.hudstrip{display:none;align-items:stretch;gap:5px;padding:5px 8px;position:relative;z-index:19;border-bottom:1px solid rgba(242,207,119,.12);background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.38))}
+.hud-chip{
+  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px 6px;
+  border-radius:5px;border:1px solid rgba(242,207,119,.14);
+  background:linear-gradient(180deg,rgba(247,245,237,.06),rgba(0,0,0,.16));
+}
+.hud-chip .hl{font-size:8px;color:rgba(247,245,237,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.hud-chip .hv{font-family:var(--serif);font-size:14px;line-height:1.15;color:var(--wheat);white-space:nowrap;font-variant-numeric:tabular-nums}
+.hud-chip .hv small{font-family:var(--sans);font-size:7.5px;color:rgba(247,245,237,.5);font-weight:400}
+.hud-chip.gold .hv{color:var(--gold)}
+
+/* ---------- clipped notes (phones) ---------- */
+.desk-notes{display:none;gap:8px;z-index:4}
+.note-card{
+  position:relative;display:block;text-align:start;padding:8px 9px 7px;border-radius:2px;color:var(--ink);
+  background:linear-gradient(170deg,#f7efdc,#e8dcc0);border:1px solid rgba(90,70,40,.26);
+  box-shadow:0 8px 16px rgba(0,0,0,.42);transform:rotate(-.6deg);min-width:0;
+}
+.note-card:nth-child(2){transform:rotate(.7deg);background:linear-gradient(170deg,#f7e8d3,#ecd4b0)}
+.note-card .pin{position:absolute;top:-5px;inset-inline-start:12px;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f5dfa6,#b7842c 55%,#7d1f1c);box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.note-kicker{font-size:7.5px;font-weight:700;letter-spacing:.12em;color:#8a2b2b;display:flex;align-items:center;gap:4px}
+.note-kicker i{width:4px;height:4px;border-radius:50%;background:#b23a33;animation:pulse 1.6s infinite}
+.note-card strong{font-family:var(--serif);font-size:11.5px;line-height:1.35;display:block;margin:2px 0;overflow:hidden;text-overflow:ellipsis}
+.note-meta{font-size:8px;color:#6b573b;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- layers / documents ---------- */
+.layers{position:relative;z-index:60}
+.layer{
+  position:fixed;inset:0;z-index:60;display:none;place-items:center;padding:18px;overflow:auto;
+  background:radial-gradient(120% 100% at 50% 0%,rgba(4,10,8,.72),rgba(2,6,5,.9));
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+}
+body[data-state="2"] .layer[data-layer="2"],
+body[data-state="3"] .layer[data-layer="3"],
+body[data-state="4"] .layer[data-layer="4"],
+body[data-state="5"] .layer[data-layer="5"]{display:grid}
+.layer-close{
+  position:fixed;top:calc(13px + env(safe-area-inset-top));inset-inline-start:13px;z-index:78;
+  width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--wheat2);
+  background:rgba(7,14,12,.8);border:1px solid rgba(242,207,119,.28);box-shadow:0 6px 16px rgba(0,0,0,.5);
+  transition:transform .15s,background .15s;
+}
+.layer-close:hover{background:rgba(30,50,44,.95);transform:scale(1.05)}
+.layer-close svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.doc-close{display:none}
+
+.paper{
+  position:relative;width:min(880px,100%);max-height:calc(100dvh - 36px);overflow:auto;color:var(--ink);
+  padding:clamp(16px,2.4vw,30px);border-radius:2px;
+  background:
+    repeating-linear-gradient(180deg,transparent 0 27px,rgba(64,46,24,.06) 27px 28px),
+    linear-gradient(172deg,#f8f1df,#eee3c9 52%,#e5d8bb);
+  box-shadow:0 34px 70px rgba(0,0,0,.7),0 2px 0 rgba(255,255,255,.25) inset,0 0 0 1px rgba(80,60,30,.2);
+  animation:sheetIn .42s cubic-bezier(.2,.85,.25,1) both;
+}
+.paper::before{content:"";position:absolute;inset:10px;pointer-events:none;border:1px solid rgba(80,60,30,.1)}
+@keyframes sheetIn{from{opacity:0;transform:translateY(18px) scale(.985) rotate(-.3deg)}to{opacity:1;transform:none}}
+
+.doc-head{text-align:center;position:relative;z-index:1}
+.doc-kicker{font-size:9px;letter-spacing:.24em;color:#8a7657;font-weight:500}
+.doc-title{font-family:var(--serif);font-size:clamp(26px,3.4vw,40px);font-weight:700;line-height:1.2;margin:2px 0 0;letter-spacing:.01em}
+.doc-meta{font-size:9.5px;letter-spacing:.12em;color:#7d6a4b;margin-top:2px}
+.type-rule{height:6px;border-top:1px solid #6b573b;border-bottom:1px solid #6b573b;margin:10px 0 12px;opacity:.7}
+.doc-mini-crest{width:30px;height:30px;margin:0 auto 2px;color:#6b573b}
+
+/* decree */
+.decree-list{display:flex;flex-direction:column;gap:7px;margin:8px 0 14px;position:relative;z-index:1}
+.decree-row{
+  position:relative;display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:start;
+  padding:11px 11px 10px;text-align:start;color:var(--ink);border:1px solid rgba(80,60,35,.22);border-radius:2px;
+  background:rgba(255,255,255,.22);transition:background .16s,box-shadow .16s,transform .16s;
+}
+.decree-row:hover{background:rgba(255,255,255,.45);box-shadow:0 5px 14px rgba(90,70,40,.13);transform:translateY(-1px)}
+.decree-row.is-queued{background:linear-gradient(90deg,rgba(78,199,180,.09),rgba(255,255,255,.35));border-color:rgba(31,107,85,.36)}
+.dbox{width:20px;height:20px;border:2px solid #5b4a33;border-radius:2px;display:grid;place-items:center;margin-top:2px;background:#fbf7ec;flex:none}
+.dbox svg{width:13px;height:13px;stroke:#1f6b55;stroke-width:2.6;fill:none;opacity:0;stroke-linecap:round;stroke-linejoin:round;transition:opacity .15s}
+.is-queued .dbox svg{opacity:1}
+.d-main{min-width:0}
+.d-title{font-family:var(--serif);font-size:15.5px;font-weight:700;line-height:1.4;display:block}
+.d-desc{font-size:10px;color:#7d6a4b;display:block;margin-top:2px;line-height:1.5}
+.d-effects{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.eff{font-size:9px;padding:1px 5px;border-radius:3px;border:1px solid rgba(80,60,35,.2);background:rgba(255,255,255,.35);font-weight:700;white-space:nowrap}
+.eff.good{color:#1f6b55;border-color:rgba(31,107,85,.3);background:rgba(31,107,85,.07)}
+.eff.bad{color:#a12b2f;border-color:rgba(161,43,47,.3);background:rgba(161,43,47,.06)}
+.d-cost{text-align:center;font-family:var(--serif);font-size:19px;font-weight:700;color:#6a4a16;white-space:nowrap;line-height:1.1;padding-top:1px}
+.d-cost small{display:block;font-family:var(--sans);font-size:7.5px;color:#7d6a4b;font-weight:500;margin-top:1px}
+.stamp{
+  display:inline-block;font-family:var(--serif);font-weight:700;color:#9e262a;border:2px solid #9e262a;
+  padding:1px 7px;border-radius:2px;letter-spacing:.1em;transform:rotate(-7deg);opacity:.82;
+  mix-blend-mode:multiply;box-shadow:inset 0 0 0 1px rgba(158,38,42,.25);white-space:nowrap;
+}
+.row-stamp{position:absolute;bottom:5px;inset-inline-end:10px;font-size:12px;padding:0 6px;opacity:0;pointer-events:none}
+.is-queued .row-stamp{animation:stampIn .45s .12s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes stampIn{0%{opacity:0;transform:scale(1.6) rotate(-16deg)}55%{opacity:.92;transform:scale(.94) rotate(-7deg)}100%{opacity:.82;transform:scale(1) rotate(-7deg)}}
+
+.decree-preview{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding-top:10px;border-top:2px solid rgba(80,60,35,.35);position:relative;z-index:1}
+.preview-kicker{font-size:8.5px;letter-spacing:.14em;color:#8a7657;display:block;margin-bottom:2px}
+.preview-line{font-family:var(--serif);font-size:29px;font-weight:700;line-height:1;display:flex;align-items:center;gap:8px;font-variant-numeric:tabular-nums}
+.preview-line .arrow{color:#8a7657}
+.preview-line .arrow svg{width:22px;height:14px;stroke:currentColor;fill:none;stroke-width:1.6}
+.preview-line .after{color:#9e262a}
+.preview-note{font-size:9.5px;color:#6b573b;margin-top:3px}
+.preview-note b{color:#8a2b2b}
+.signature{text-align:center;min-width:150px;flex:none}
+.signature svg{width:128px;height:40px;margin:0 auto 2px;stroke:#3b3226;fill:none;stroke-width:1.4;stroke-linecap:round;opacity:.8}
+.signature span{font-size:8.5px;color:#7d6a4b;display:block;border-top:1px solid rgba(80,60,35,.4);padding-top:3px}
+.doc-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;position:relative;z-index:1}
+.queue-note{font-size:9px;color:#7d6a4b;display:flex;align-items:center;gap:5px}
+.queue-note i{width:6px;height:6px;border-radius:50%;background:#8a2b2b;box-shadow:0 0 0 3px rgba(138,43,43,.12)}
+.queue-note b{color:#332818}
+.btn-ink{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 18px;border-radius:2px;
+  font-size:11px;font-weight:700;color:#f7f0dc;background:linear-gradient(180deg,#2a5c50,#153f37);
+  border:1px solid #0d2a24;box-shadow:0 3px 0 #0a1f1a,0 6px 14px rgba(0,0,0,.25);transition:transform .12s,filter .15s;
+}
+.btn-ink:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.btn-ink:active{transform:translateY(2px);box-shadow:0 1px 0 #0a1f1a}
+.btn-ink.is-done{background:linear-gradient(180deg,#7d5f22,#5c4518);box-shadow:0 3px 0 #3a2a13}
+
+/* dossier */
+.dossier{
+  position:relative;width:min(900px,100%);max-height:calc(100dvh - 36px);overflow:auto;border-radius:3px;
+  padding:24px 18px 18px;background:linear-gradient(160deg,#dcc89f,#cbb181 58%,#bda170);
+  box-shadow:0 34px 70px rgba(0,0,0,.72),inset 0 0 0 1px rgba(255,255,255,.18);
+  animation:sheetIn .42s cubic-bezier(.2,.85,.25,1) both;
+}
+.dossier::before{content:"";position:absolute;top:-13px;inset-inline-start:34px;width:172px;height:22px;border-radius:7px 7px 0 0;background:linear-gradient(180deg,#d2ba8d,#c3a87a);box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.dossier-tab{position:absolute;top:-9px;inset-inline-start:48px;font-size:8.5px;letter-spacing:.14em;color:#4b3a20;font-weight:700}
+.dossier-inner{position:relative;background:linear-gradient(172deg,#f7f0de,#ede2c8);padding:clamp(14px,2.2vw,24px);box-shadow:0 2px 8px rgba(0,0,0,.18);border:1px solid rgba(80,60,30,.2)}
+.file-head{position:relative;border-bottom:2px solid rgba(80,60,35,.4);padding-bottom:8px;margin-bottom:10px}
+.file-kicker{font-size:8.5px;letter-spacing:.2em;color:#8a7657}
+.file-name{font-family:var(--serif);font-size:clamp(30px,4vw,44px);font-weight:700;line-height:1.1;color:#211a10;margin-top:1px}
+.file-sub{font-size:9.5px;color:#7d6a4b;letter-spacing:.08em}
+.stamp.secret{position:absolute;top:2px;inset-inline-end:0;font-size:11px;padding:1px 8px;transform:rotate(5deg);opacity:.7}
+.file-grid{display:grid;grid-template-columns:minmax(220px,34%) minmax(0,1fr);gap:14px;align-items:start}
+.silhouette{position:relative;margin:0;padding:7px;background:rgba(255,255,255,.22);border:1px solid rgba(80,60,35,.22);transform:rotate(-.6deg)}
+.silhouette figcaption{position:absolute;top:5px;inset-inline-start:8px;font-size:7.5px;color:#8a7657;letter-spacing:.12em;z-index:2}
+.sil-wrap{position:relative;aspect-ratio:1/1;background:linear-gradient(160deg,#f1e7d0,#e0d3b4);overflow:hidden;box-shadow:inset 0 0 18px rgba(80,60,30,.18)}
+.sil-wrap::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(90,70,40,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(90,70,40,.08) 1px,transparent 1px);background-size:16px 16px}
+.sil-wrap svg{position:relative;width:100%;height:100%;padding:14px;z-index:1}
+.sil-wrap path{fill:#2c3b32;stroke:#8a6a26;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(4px 6px 0 rgba(90,70,40,.14))}
+.sil-pin{position:absolute;top:50%;inset-inline-start:50%;width:11px;height:11px;border-radius:50%;background:#a52a2a;box-shadow:0 0 0 4px rgba(165,42,42,.18);transform:translate(-50%,-50%);z-index:2}
+.sil-meta{font-size:8px;color:#7d6a4b;text-align:center;margin-top:4px}
+.clips{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.note-card.file-note{padding:7px 8px 6px;transform:rotate(var(--rot,-.6deg));box-shadow:0 4px 9px rgba(0,0,0,.16);background:linear-gradient(170deg,#fbf6e8,#f0e5cc);border:1px solid rgba(80,60,35,.2)}
+.file-note .note-label{font-size:7.5px;letter-spacing:.1em;color:#8a7657;font-weight:700;display:block}
+.file-note .note-big{font-family:var(--serif);font-size:23px;font-weight:700;line-height:1.1;color:#211a10;display:flex;align-items:baseline;gap:2px;font-variant-numeric:tabular-nums}
+.file-note .note-big small{font-family:var(--sans);font-size:8px;color:#8b7857;font-weight:400}
+.file-note .meter{height:4px;border-radius:99px;background:rgba(80,60,35,.16);overflow:hidden;margin-top:2px}
+.file-note .meter i{display:block;height:100%;border-radius:99px}
+.file-note .note-foot{font-size:7.5px;color:#7d6a4b;display:block;margin-top:3px;line-height:1.45}
+.tier-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-inline-start:3px;vertical-align:middle}
+.file-project{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding:9px 11px;background:rgba(255,255,255,.3);border:1px solid rgba(80,60,35,.24);border-inline-start:3px solid #c9a24a}
+.file-project h3{font-family:var(--serif);font-size:14px;font-weight:700;color:#211a10;line-height:1.3;margin-top:1px}
+.file-project p{font-size:8.5px;color:#7d6a4b;margin-top:1px}
+.file-project .btn-ink{padding:7px 13px;font-size:9.5px;flex:none}
+.project-status{display:block;font-size:8.5px;color:#1f6b55;margin-top:2px;min-height:11px}
+.file-actions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.act{display:flex;flex-direction:column;gap:1px;padding:8px 9px;text-align:start;border:1px solid rgba(80,60,35,.24);background:rgba(255,255,255,.28);transition:background .15s,transform .15s}
+.act:hover{background:rgba(255,255,255,.5);transform:translateY(-1px)}
+.act b{font-family:var(--serif);font-size:11px;color:#211a10;font-weight:700}
+.act span{font-size:8px;color:#7d6a4b}
+.file-foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;padding-top:5px;border-top:1px solid rgba(80,60,35,.25);font-size:7.5px;color:#8a7657}
+
+/* event / cable */
+.event-scene{display:grid;grid-template-columns:minmax(0,1fr) 222px;gap:18px;align-items:center;width:min(1010px,100%);max-height:calc(100dvh - 36px)}
+.cable{
+  position:relative;max-height:calc(100dvh - 36px);overflow:auto;padding:clamp(15px,2.2vw,26px);color:var(--ink);
+  background:
+    repeating-linear-gradient(180deg,transparent 0 25px,rgba(64,46,24,.06) 25px 26px),
+    linear-gradient(168deg,#f6ecd6,#eadcbe 58%,#e1d1af);
+  box-shadow:0 34px 70px rgba(0,0,0,.72),inset 0 0 0 1px rgba(80,60,30,.2);
+  transform:rotate(.35deg);animation:sheetIn .42s cubic-bezier(.2,.85,.25,1) both;
+}
+.cable::before{content:"";position:absolute;inset:9px;border:1px solid rgba(80,60,30,.12);pointer-events:none}
+.cable-head{border-bottom:3px double #6b573b;padding-bottom:7px;position:relative;z-index:1}
+.cable-top{display:flex;justify-content:flex-start;gap:14px;font-size:9px;font-weight:700;letter-spacing:.22em;color:#8a2b2b}
+.cable-ref{font-size:8px;color:#8a7657;letter-spacing:.06em;margin-top:3px}
+.cable-head h2{font-family:var(--serif);font-size:clamp(20px,2.7vw,31px);font-weight:700;line-height:1.25;margin:5px 0 2px;color:#211a10}
+.cable-src{font-size:8.5px;color:#7d6a4b}
+.cable-body{position:relative;z-index:1;font-size:11.5px;line-height:1.8;color:#3b3226;margin:9px 0 10px;text-align:start}
+.cable-options{display:flex;flex-direction:column;gap:6px;position:relative;z-index:1}
+.option{position:relative;display:grid;grid-template-columns:28px minmax(0,1fr);gap:9px;text-align:start;padding:9px 10px;border:1px solid rgba(80,60,35,.24);background:rgba(255,255,255,.24);transition:background .15s,transform .15s,box-shadow .15s}
+.option:hover:not(.is-disabled){background:rgba(255,255,255,.5);transform:translateY(-1px);box-shadow:0 5px 12px rgba(90,70,40,.13)}
+.option.is-chosen{background:rgba(78,199,180,.1);border-color:rgba(31,107,85,.5);box-shadow:inset 0 0 0 1px rgba(31,107,85,.15)}
+.option .letter{width:24px;height:24px;border:1px solid #6b573b;border-radius:50%;display:grid;place-items:center;font-family:var(--serif);font-size:12px;font-weight:700;color:#4b3a20;margin-top:1px}
+.option b{font-family:var(--serif);font-size:13px;line-height:1.4;display:block;color:#211a10;font-weight:700}
+.opt-desc{font-size:9px;color:#7d6a4b;display:block;line-height:1.5;margin-top:1px}
+.opt-costs{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
+.cost{font-size:8px;font-weight:700;color:#6a4a16;background:rgba(201,162,74,.16);border:1px solid rgba(140,105,40,.28);padding:1px 5px;border-radius:3px;white-space:nowrap}
+.option .eff{font-size:8px;padding:1px 4px}
+.reason{display:flex;align-items:center;gap:4px;font-size:8.5px;font-weight:700;color:#9e262a;margin-top:4px}
+.reason svg{width:10px;height:10px;stroke:currentColor;fill:none;stroke-width:1.8}
+.option.is-disabled{opacity:.6;background:rgba(80,60,35,.06);cursor:not-allowed;filter:grayscale(.35)}
+.stamp.urgent{position:absolute;top:10px;inset-inline-end:10px;font-size:13px;padding:1px 8px;transform:rotate(8deg);opacity:.7;z-index:2}
+.cable-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid rgba(80,60,35,.35);margin-top:11px;padding-top:8px;position:relative;z-index:1}
+.cable-foot span{font-size:8.5px;color:#8a2b2b;font-weight:700;letter-spacing:.06em}
+.cable-sent{font-size:8.5px;color:#1f6b55;font-weight:700;min-height:12px}
+
+.phone-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.phone-svg{width:190px;height:auto;filter:drop-shadow(0 18px 24px rgba(0,0,0,.6));animation:ring 2.8s ease-in-out infinite;transform-origin:50% 60%}
+@keyframes ring{0%,70%,100%{transform:rotate(0)}72%{transform:rotate(-2.2deg)}75%{transform:rotate(2.4deg)}78%{transform:rotate(-1.8deg)}81%{transform:rotate(1.4deg)}84%{transform:rotate(0)}}
+.phone-note{font-size:8px;letter-spacing:.16em;color:rgba(247,245,237,.55);text-align:center}
+.phone-note b{display:block;font-family:var(--serif);font-size:13px;color:var(--warn);letter-spacing:.06em;margin-bottom:1px}
+
+/* newspaper */
+.newspaper{
+  position:relative;width:min(1040px,100%);max-height:calc(100dvh - 36px);overflow:auto;color:#241c12;
+  padding:clamp(15px,2.3vw,28px);background:
+    repeating-linear-gradient(180deg,transparent 0 31px,rgba(64,46,24,.035) 31px 32px),
+    linear-gradient(174deg,#f8f2e3,#efe6d1 55%,#e7dcc3);
+  box-shadow:0 34px 70px rgba(0,0,0,.72),inset 0 0 0 1px rgba(80,60,30,.18);
+  animation:sheetIn .45s cubic-bezier(.2,.85,.25,1) both;
+}
+.newspaper::before{content:"";position:absolute;bottom:-12px;inset-inline-start:10%;width:180px;height:26px;border-radius:50%;border:9px solid rgba(110,75,35,.09);transform:rotate(-4deg);pointer-events:none}
+.newspaper::after{content:"";position:absolute;top:0;inset-inline:0;height:5px;background:repeating-linear-gradient(90deg,#8a2b2b 0 12px,transparent 12px 20px);opacity:.35}
+.mast{text-align:center;position:relative}
+.mast-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:8px;letter-spacing:.1em;color:#6b573b;border-bottom:1px solid rgba(50,38,22,.3);padding-bottom:3px}
+.mast h1{font-family:var(--serif);font-size:clamp(30px,4.4vw,52px);line-height:1;font-weight:700;letter-spacing:.01em;margin:7px 0 3px}
+.mast .mast-sub{font-size:9px;letter-spacing:.18em;color:#6b573b}
+.mast-rule{height:7px;border-top:2px solid #332818;border-bottom:1px solid #332818;margin:8px 0 0}
+.news-headline{font-family:var(--serif);font-size:clamp(21px,3.2vw,36px);font-weight:700;line-height:1.25;text-align:center;margin:12px auto 5px;max-width:26ch;color:#1c150c}
+.news-deck{text-align:center;font-size:11px;line-height:1.7;color:#5b4a33;max-width:64ch;margin:0 auto;padding-bottom:10px;border-bottom:1px solid rgba(50,38,22,.3)}
+.news-grid{display:grid;grid-template-columns:minmax(0,1fr) 236px;gap:16px;padding-top:11px}
+.news-cols{column-count:2;column-gap:20px;column-rule:1px solid rgba(50,38,22,.18)}
+.news-block{break-inside:avoid;margin-bottom:11px}
+.news-block h4{font-family:var(--serif);font-size:12.5px;font-weight:700;margin:0 0 3px;padding-bottom:2px;border-bottom:1px solid rgba(50,38,22,.28);display:flex;align-items:center;gap:5px}
+.news-block h4::before{content:"";width:4px;height:4px;background:#8a2b2b;border-radius:50%}
+.news-block p{font-size:10.5px;line-height:1.72;margin:0 0 5px;text-align:justify;color:#332818}
+.news-bullet{font-size:10px;line-height:1.6;border-top:1px dotted rgba(50,38,22,.3);padding:5px 0;color:#332818}
+.news-bullet b{display:block;font-family:var(--serif);font-size:11.5px;color:#1c150c}
+.news-chart{background:rgba(255,255,255,.28);border:1px solid rgba(50,38,22,.2);padding:5px 6px 3px;margin:5px 0}
+.news-chart svg{width:100%;height:auto}
+.chart-cap{font-size:7.5px;color:#6b573b;text-align:center;letter-spacing:.04em;margin-top:1px}
+.news-summary{border:1px solid rgba(50,38,22,.4);background:rgba(255,255,255,.24);padding:9px 10px;align-self:start;position:relative}
+.news-summary h3{font-family:var(--serif);font-size:15px;font-weight:700;text-align:center;border-bottom:2px solid #332818;padding-bottom:4px;margin-bottom:3px}
+.res-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:0 6px;padding:5px 0;border-bottom:1px dotted rgba(50,38,22,.28);font-size:9.5px;color:#5b4a33}
+.res-row .rv{font-family:var(--serif);font-size:15px;font-weight:700;color:#1c150c;font-variant-numeric:tabular-nums;text-align:end}
+.res-row .chip{grid-column:2;justify-self:end;font-size:7.5px;padding:0 4px;margin-top:1px}
+.news-summary .stamp{position:absolute;bottom:6px;inset-inline-start:8px;font-size:11px;padding:1px 7px;transform:rotate(-8deg);opacity:.55}
+.news-foot{display:flex;justify-content:space-between;gap:12px;margin-top:10px;padding-top:5px;border-top:2px solid #332818;font-size:7.5px;color:#6b573b;letter-spacing:.04em}
+
+/* switch chip */
+.switcher{
+  position:fixed;top:calc(64px + env(safe-area-inset-top));inset-inline-end:8px;z-index:100;display:flex;align-items:center;gap:3px;
+  padding:4px 6px;border-radius:6px;background:rgba(4,8,7,.74);border:1px solid rgba(255,255,255,.16);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  font:10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#cfd8d2;opacity:.82;
+}
+.switcher:hover{opacity:1}
+.switcher span{margin-inline-end:2px;white-space:nowrap}
+.switcher b{font-weight:500}
+.switcher button{width:20px;height:20px;border-radius:3px;border:1px solid transparent;color:#cfd8d2;font:inherit;display:grid;place-items:center}
+.switcher button:hover{background:rgba(255,255,255,.1)}
+.switcher button.is-on{background:#f2cf77;color:#141008;border-color:#f2cf77;font-weight:700}
+
+/* toast */
+.toast{
+  position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));inset-inline-start:50%;transform:translate(-50%,16px);
+  z-index:95;padding:9px 14px;border-radius:3px;background:#f2ead7;color:#241c12;font-size:10.5px;
+  box-shadow:0 14px 30px rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- tablet tweaks ---------- */
+@media (max-width:1180px) and (min-height:541px){
+  .stage{grid-template-columns:246px minmax(0,1fr) 76px;gap:12px}
+  .led-val{font-size:24px}
+  .seal-num{font-size:27px}
+  .endstamp{width:88px;height:88px}
+  .pending-slip{inset-inline-end:114px;width:186px}
+}
+
+/* ---------- landscape phone ---------- */
+@media (orientation:landscape) and (max-height:540px){
+  .topbar{min-height:38px;padding:0 12px;padding-top:env(safe-area-inset-top);padding-right:calc(12px + env(safe-area-inset-right));padding-left:calc(12px + env(safe-area-inset-left))}
+  .crest{width:26px;height:26px}.crest svg{width:16px;height:16px}
+  .eyebrow,.top-mid,.top-end .loc,.top-end .sep,.top-end .dot-live{display:none}
+  .brand-txt h1{font-size:11.5px}
+  .top-end{font-size:9px;gap:6px}
+  .hudstrip{display:flex;padding:3px 8px;gap:4px}
+  .hud-chip{padding:3px 5px;flex-direction:row;align-items:center;justify-content:space-between;gap:4px}
+  .hud-chip .hl{font-size:7.5px}
+  .hud-chip .hv{font-size:12.5px}
+  .stage{display:grid;grid-template-columns:54px minmax(0,1fr) 158px;grid-template-rows:minmax(0,1fr);gap:8px;padding:6px 8px 7px}
+  .stage::before{inset:3px 5px 5px}
+  .stage::after{inset:9px 11px}
+  .objects{display:none}
+  .rail{grid-column:1;grid-row:1;justify-content:center;gap:3px;overflow:hidden}
+  .folder{padding:4px 2px 3px;gap:2px;border-radius:3px;box-shadow:0 3px 6px rgba(0,0,0,.32)}
+  .folder::before{height:6px;top:-3px;inset-inline-start:6px;width:26px}
+  .folder-icon svg{width:13px;height:13px}
+  .folder-label{font-size:7px}
+  .folder.is-active{transform:translateX(3px)}
+  .mapwrap{grid-column:2;grid-row:1}
+  .desk-notes{grid-column:3;grid-row:1;display:flex;flex-direction:column;justify-content:center;gap:8px;min-height:0}
+  .note-card{padding:7px 8px 6px}
+  .note-card strong{font-size:10.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .note-meta{font-size:7.5px}
+  .mapframe{padding:5px}
+  .map-head{padding:0 5px 4px;gap:6px}
+  .map-title{font-size:8.5px}
+  .legend{display:none}
+  .map-canvas{margin-top:4px}
+  .prov-name{display:none}
+  .neighbor{font-size:12px;letter-spacing:.2em}
+  .endstamp{width:60px;height:60px;bottom:8px;inset-inline-end:8px;border-width:2px}
+  .endstamp::before{inset:4px}
+  .endstamp::after{inset:9px}
+  .endstamp .stamp-txt{font-size:9.5px}
+  .endstamp .stamp-count{min-width:19px;height:19px;font-size:8.5px;border-width:1px}
+  .pending-slip{display:none}
+  .tape{display:none}
+  .layer{padding:6px}
+  .paper,.cable,.dossier,.newspaper{max-height:calc(100dvh - 12px)}
+  .paper{padding:40px 18px 14px}
+  .cable{padding:40px 15px 12px}
+  .dossier{padding:38px 12px 12px}
+  .newspaper{padding:42px 16px 12px}
+  .doc-title{font-size:24px}
+  .doc-head .type-rule{margin:6px 0 8px}
+  .decree-row{padding:7px 9px;grid-template-columns:20px minmax(0,1fr) auto;gap:7px}
+  .d-title{font-size:12px}
+  .d-desc{font-size:8.5px;line-height:1.4}
+  .d-effects{margin-top:2px}
+  .eff{font-size:7.5px}
+  .d-cost{font-size:15px}
+  .decree-preview{padding-top:6px;position:sticky;bottom:33px;z-index:5;background:linear-gradient(180deg,rgba(238,227,201,.97),#eee3c9);padding-bottom:4px}
+  .preview-line{font-size:21px}
+  .signature{display:none}
+  .doc-foot{margin-top:7px;position:sticky;bottom:0;z-index:6;background:#eee3c9;padding:5px 0}
+  .btn-ink{padding:7px 12px;font-size:9.5px}
+  .event-scene{grid-template-columns:minmax(0,1fr) 108px;gap:8px;max-height:calc(100dvh - 12px)}
+  .cable{padding:12px 15px}
+  .cable-head h2{font-size:18px;margin:3px 0 1px}
+  .cable-body{font-size:9.5px;line-height:1.6;margin:6px 0 7px}
+  .option{padding:6px 8px;grid-template-columns:22px minmax(0,1fr);gap:6px}
+  .option .letter{width:19px;height:19px;font-size:10px}
+  .option b{font-size:11px}
+  .opt-desc{font-size:8px;line-height:1.35}
+  .opt-costs{margin-top:2px}
+  .cost{font-size:7px}
+  .reason{font-size:7.5px;margin-top:2px}
+  .cable-foot{margin-top:6px;padding-top:5px}
+  .phone-wrap{display:flex;flex-direction:column;gap:2px}
+  .phone-svg{width:102px}
+  .phone-note{font-size:6px;letter-spacing:.1em}
+  .phone-note b{font-size:9px;margin-bottom:0}
+  .dossier{padding:16px 12px 12px}
+  .file-name{font-size:27px}
+  .file-grid{grid-template-columns:150px minmax(0,1fr);gap:8px}
+  .file-note .note-big{font-size:17px}
+  .file-note .note-foot{font-size:7px}
+  .file-project{margin-top:7px;padding:6px 8px}
+  .file-project h3{font-size:11px}
+  .file-actions{gap:5px;margin-top:5px}
+  .act{padding:5px 6px}
+  .act b{font-size:9px}
+  .act span{font-size:7px}
+  .newspaper{padding:12px 16px}
+  .mast h1{font-size:27px;margin:4px 0 2px}
+  .news-headline{font-size:18px;margin:7px auto 3px}
+  .news-deck{font-size:9px;line-height:1.55;padding-bottom:7px}
+  .news-grid{grid-template-columns:minmax(0,1fr) 180px;gap:10px;padding-top:7px}
+  .news-cols{column-gap:12px}
+  .news-block p{font-size:8.5px;line-height:1.55}
+  .news-block h4{font-size:10px}
+  .news-bullet{font-size:8px;line-height:1.45;padding:3px 0}
+  .news-bullet b{font-size:9px}
+  .news-summary h3{font-size:12px}
+  .res-row{font-size:8px;padding:3px 0}
+  .res-row .rv{font-size:12px}
+  .layer-close{top:calc(8px + env(safe-area-inset-top));width:38px;height:38px}
+  .switcher{top:calc(88px + env(safe-area-inset-top));opacity:.55}
+}
+
+/* ---------- portrait phone ---------- */
+@media (orientation:portrait) and (max-width:640px){
+  .topbar{min-height:50px;padding:0 12px;padding-top:env(safe-area-inset-top);padding-right:calc(12px + env(safe-area-inset-right));padding-left:calc(12px + env(safe-area-inset-left))}
+  .crest{width:29px;height:29px}.crest svg{width:18px;height:18px}
+  .eyebrow,.top-mid,.top-end .loc,.top-end .sep,.top-end .dot-live{display:none}
+  .brand-txt h1{font-size:12px}
+  .top-end{font-size:9px;gap:5px}
+  .hudstrip{display:flex;padding:4px 7px;gap:4px}
+  .hud-chip{padding:4px 5px}
+  .hud-chip .hl{font-size:7.5px}
+  .hud-chip .hv{font-size:13px}
+  .stage{display:flex;flex-direction:column;gap:8px;padding:8px 10px calc(68px + env(safe-area-inset-bottom))}
+  .stage::before{inset:3px 5px calc(60px + env(safe-area-inset-bottom))}
+  .stage::after{inset:9px 11px calc(66px + env(safe-area-inset-bottom))}
+  .objects{display:none}
+  .mapwrap{flex:1;min-height:0;order:1}
+  .tape{display:none}
+  .desk-notes{display:grid;grid-template-columns:1fr 1fr;order:2;flex:none;margin-bottom:2px}
+  .mapframe{padding:6px;border-radius:4px}
+  .map-head{flex-direction:column;align-items:flex-start;gap:2px;padding:0 5px 5px}
+  .map-title{font-size:9.5px}
+  .legend{font-size:7px;gap:5px;justify-content:flex-start;width:100%}
+  .map-canvas{margin-top:4px}
+  .prov-name{display:none}
+  .neighbor{font-size:13px;letter-spacing:.22em}
+  .compass{width:40px;height:40px;bottom:4px}
+  .endstamp{width:66px;height:66px;bottom:9px;inset-inline-end:9px;border-width:2px}
+  .endstamp::before{inset:5px}
+  .endstamp::after{inset:10px}
+  .endstamp .stamp-txt{font-size:10.5px}
+  .endstamp .stamp-count{min-width:21px;height:21px;font-size:9px;border-width:1px}
+  .pending-slip{display:none}
+  .rail{
+    position:fixed;inset-inline:0;bottom:0;z-index:30;display:flex;flex-direction:row;justify-content:space-between;
+    gap:1px;height:calc(58px + env(safe-area-inset-bottom));padding:4px 4px calc(4px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,#1c130b,#0b0805);border-top:1px solid rgba(242,207,119,.28);
+    box-shadow:0 -8px 24px rgba(0,0,0,.45);overflow:visible;
+  }
+  .folder{
+    flex:1;min-width:0;padding:5px 0 4px;gap:2px;border-radius:3px;background:transparent;color:var(--wheat2);
+    box-shadow:none;border:1px solid transparent;
+  }
+  .folder::before{display:none}
+  .folder:hover{transform:none;box-shadow:none}
+  .folder.is-active{background:linear-gradient(180deg,rgba(242,207,119,.18),rgba(242,207,119,.04));color:var(--gold);border-color:rgba(242,207,119,.26);transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+  .folder-icon svg{width:18px;height:18px}
+  .folder-label{font-size:7.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .folder-badge{top:4px;inset-inline-end:8px;width:5px;height:5px}
+  .note-card{padding:7px 8px 6px}
+  .note-card strong{font-size:10.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .note-meta{font-size:7.5px}
+  .layer{padding:0;place-items:stretch;overflow:hidden;align-items:stretch}
+  .layer-close{top:calc(10px + env(safe-area-inset-top));inset-inline-start:10px;width:44px;height:44px;background:rgba(7,14,12,.86)}
+  .switcher{top:calc(112px + env(safe-area-inset-top));opacity:.55}
+  .paper,.cable,.dossier,.newspaper{width:100%;max-width:none;max-height:none;height:100dvh;border-radius:0;overflow:auto;padding:calc(58px + env(safe-area-inset-top)) 14px calc(26px + env(safe-area-inset-bottom))}
+  .dossier{padding-top:calc(58px + env(safe-area-inset-top))}
+  .paper::before,.dossier::before,.dossier-tab,.cable::before{display:none}
+  .doc-title{font-size:28px}
+  .doc-kicker{font-size:8px;letter-spacing:.14em}
+  .decree-row{padding:9px;grid-template-columns:22px minmax(0,1fr) auto;gap:7px}
+  .d-title{font-size:13.5px}
+  .d-desc{font-size:9px}
+  .d-cost{font-size:16px}
+  .row-stamp{display:inline-block;font-size:9.5px;padding:0 5px;bottom:4px;inset-inline-end:8px}
+  .decree-preview{flex-direction:column;align-items:stretch;gap:10px}
+  .preview-line{font-size:26px}
+  .signature{align-self:flex-end;min-width:140px}
+  .doc-foot{flex-wrap:wrap}
+  .dossier{padding:calc(58px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+  .file-name{font-size:34px}
+  .file-grid{grid-template-columns:1fr;gap:9px}
+  .silhouette{max-width:240px;margin:0 auto;width:100%}
+  .sil-wrap{aspect-ratio:1.14/1}
+  .file-actions{grid-template-columns:1fr;gap:5px}
+  .act{padding:7px 9px}
+  .act b{font-size:11px}
+  .file-project{flex-direction:column;align-items:stretch;gap:6px}
+  .file-project .btn-ink{width:100%}
+  .event-scene{display:flex;flex-direction:column;width:100%;height:100dvh;max-height:none;overflow:auto;gap:10px;padding:calc(52px + env(safe-area-inset-top)) 12px calc(24px + env(safe-area-inset-bottom))}
+  .phone-wrap{order:-1;flex:none;padding-top:8px}
+  .phone-svg{width:118px}
+  .phone-note b{font-size:11px}
+  .cable{width:100%;height:auto;max-height:none;overflow:visible;padding:16px 14px}
+  .cable-head h2{font-size:22px}
+  .cable-body{font-size:11px;line-height:1.7}
+  .option{grid-template-columns:26px minmax(0,1fr)}
+  .stamp.urgent{top:8px;inset-inline-end:8px;font-size:11px}
+  .newspaper{width:100%;height:100dvh;max-height:none}
+  .mast h1{font-size:34px}
+  .news-headline{font-size:22px;max-width:none}
+  .news-deck{font-size:10px}
+  .news-grid{grid-template-columns:1fr;gap:10px}
+  .news-summary{order:-1}
+  .news-cols{column-count:1}
+  .news-block p{font-size:10.5px}
+  .news-foot{flex-wrap:wrap;gap:4px}
+}
+
+/* ---------- reduced motion ---------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-delay:0ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
+</style>
+</head>
+<body data-state="1">
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="crest" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3.4l2.15 4.35 4.8.7-3.47 3.38.82 4.78L12 14.35l-4.3 2.26.82-4.78L5.05 8.45l4.8-.7L12 3.4z"/>
+          <path d="M5.2 18.2c1.7 1.9 3.9 2.9 6.8 2.9s5.1-1 6.8-2.9"/>
+        </svg>
+      </span>
+      <div class="brand-txt">
+        <span class="eyebrow">الجمهورية العربية السورية</span>
+        <h1>مكتب رئيس الجمهورية</h1>
+      </div>
+    </div>
+    <div class="top-mid" aria-hidden="true"><span class="rule"></span><span>الجلسة الصباحية</span><span class="rule"></span></div>
+    <div class="top-end">
+      <span class="dot-live" aria-hidden="true"></span>
+      <span class="loc">دمشق · 07:40</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span class="turnchip">الدور <b>01</b> / 40</span>
+    </div>
+  </header>
+
+  <div class="hudstrip" id="hudstrip" aria-label="المؤشرات الرئيسية"></div>
+
+  <main class="stage">
+    <aside class="objects" aria-label="أدوات المكتب">
+      <div class="obj cal" role="group" aria-label="لوحة الدور">
+        <div class="cal-page">
+          <span class="cal-season">الحصاد</span>
+          <strong class="cal-num">01</strong>
+          <span class="cal-total">من 40</span>
+        </div>
+        <div class="cal-meta">
+          <span class="obj-title">لوحة الدور</span>
+          <strong class="cal-year">2027</strong>
+          <span class="cal-clock">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></svg>
+            07:40 · دمشق
+          </span>
+        </div>
+      </div>
+
+      <div class="obj ledger" role="group" aria-label="دفتر الخزينة">
+        <div class="obj-head"><span class="obj-title">دفتر الخزينة</span><span class="obj-sub">سجل اليوم</span></div>
+        <div class="led-row">
+          <span class="led-label">الخزينة</span>
+          <div class="led-val"><span data-count data-to="42.0" data-dec="1">42.0</span><span class="unit">B ل.س</span></div>
+          <span class="chip down" aria-label="انخفاض 1.4 مليار"><svg viewBox="0 0 8 6"><path d="M4 6 0 0h8z"/></svg>−1.4B</span>
+        </div>
+        <div class="led-row">
+          <span class="led-label">الاحتياطي الأجنبي</span>
+          <div class="led-val"><span class="cur">$</span><span data-count data-to="320">320</span><span class="unit">M</span></div>
+          <span class="chip down" aria-label="انخفاض 8 ملايين"><svg viewBox="0 0 8 6"><path d="M4 6 0 0h8z"/></svg>−8M</span>
+        </div>
+        <div class="led-foot">
+          <span>السوق الموازي <b>162</b> ل.س/$</span>
+          <span>الدين الخارجي <b>$6.1B</b></span>
+        </div>
+      </div>
+
+      <div class="instruments">
+        <div class="obj gauge" role="group" aria-label="مقياس الاحتقان الوطني">
+          <div class="obj-head"><span class="obj-title">الاحتقان الوطني</span><span class="tag">متوتر</span></div>
+          <div class="gauge-body">
+            <svg viewBox="0 0 160 96" aria-hidden="true">
+              <path d="M20 86 A62 62 0 0 1 140 86" fill="none" stroke="rgba(80,60,35,.18)" stroke-width="9" stroke-linecap="round"/>
+              <path d="M20 86 A62 62 0 0 1 140 86" fill="none" stroke="#c39a4b" stroke-width="9" stroke-linecap="round" stroke-dasharray="87.3 195" opacity=".9"/>
+              <g stroke="rgba(80,60,35,.35)" stroke-width="1">
+                <path d="M32 78l4-2"/><path d="M47 62l3-3"/><path d="M70 52h4"/><path d="M90 52h4"/><path d="M110 62l3 3"/><path d="M124 78l4 2"/>
+              </g>
+              <g transform="rotate(-9 80 86)"><line x1="80" y1="86" x2="80" y2="57" stroke="#6b3a1e" stroke-width="2.2" stroke-linecap="round"/></g>
+              <circle cx="80" cy="86" r="4" fill="#6b3a1e"/>
+            </svg>
+            <div class="gauge-num"><b data-count data-to="45">45</b><small>/100</small></div>
+          </div>
+          <div class="obj-foot">الأكثر توتراً: <b>ريف دمشق · حلب</b></div>
+        </div>
+
+        <div class="obj therm" role="group" aria-label="ميزان الثقة الشعبية">
+          <div class="obj-head"><span class="obj-title">الثقة الشعبية</span></div>
+          <div class="therm-body">
+            <div class="therm-tube"><i style="height:42%"></i></div>
+            <div class="therm-read"><b data-count data-to="42">42</b><span>% · منخفضة</span></div>
+          </div>
+          <div class="therm-bulb" aria-hidden="true"></div>
+          <div class="obj-foot">الوعي العام يتراجع في 9 محافظات</div>
+        </div>
+      </div>
+
+      <button class="obj seals" id="openDecrees" data-goto="3" aria-label="الرصيد السياسي 50 من 200 — فتح المراسيم">
+        <div class="coin-stack" aria-hidden="true">
+          <i></i><i></i><i></i>
+          <div class="coin-face">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l2.2 4.5 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L4.8 9.2l5-.7L12 4z"/></svg>
+          </div>
+        </div>
+        <div class="seal-read">
+          <span class="obj-title">الرصيد السياسي</span>
+          <div class="seal-num"><span data-count data-to="50">50</span><small>/200</small></div>
+          <span class="seal-note"><b id="sealPending">1</b> مرسوم بانتظار الاعتماد</span>
+        </div>
+      </button>
+
+      <div class="obj indexcard" role="group" aria-label="بطاقة المتابعة">
+        <span class="clip" aria-hidden="true"></span>
+        <span class="obj-title">بطاقة المتابعة</span>
+        <div class="idx-grid">
+          <div><span>الفساد</span><b>58<small>/100</small></b></div>
+          <div><span>الامتثال الضريبي</span><b>35<small>%</small></b></div>
+          <div><span>أجر الموظف</span><b>$25</b></div>
+          <div><span>التضخم السنوي</span><b>24.5<small>%</small></b></div>
+        </div>
+      </div>
+
+      <button class="obj incoming" data-goto="4" aria-label="برقية عاجلة — انهيار ممر الحبوب">
+        <span class="obj-title"><i aria-hidden="true"></i> برقية واردة · 04:12</span>
+        <p>انهيار ممر الحبوب في البحر الأسود</p>
+        <span class="incoming-meta">الرد مطلوب · 24 ساعة</span>
+      </button>
+    </aside>
+
+    <section class="mapwrap" aria-label="خريطة سوريا">
+      <span class="tape t1" aria-hidden="true"></span>
+      <span class="tape t2" aria-hidden="true"></span>
+      <div class="mapframe">
+        <div class="map-head">
+          <span class="map-title">خريطة الجمهورية — 14 محافظة</span>
+          <div class="legend" aria-label="دليل درجات الاحتقان">
+            <span><i style="background:#7fa896"></i>هادئ</span>
+            <span><i style="background:#c7a25c"></i>متوتر</span>
+            <span><i style="background:#c07a4c"></i>اضطرابات</span>
+            <span><i style="background:#a84a45"></i>تمرد</span>
+          </div>
+        </div>
+        <div class="map-canvas">
+          <svg id="map-svg" class="map" viewBox="0 0 1000 880" preserveAspectRatio="xMidYMid meet" role="img" aria-label="خريطة المحافظات السورية"></svg>
+          <svg class="compass" viewBox="0 0 60 60" aria-hidden="true">
+            <circle cx="30" cy="30" r="21" fill="none" stroke="rgba(70,55,30,.45)" stroke-width="1"/>
+            <path d="M30 9l4 21-4 21-4-21z" fill="rgba(70,55,30,.45)"/>
+            <text x="30" y="7" text-anchor="middle" font-size="7" fill="rgba(70,55,30,.6)" font-family="sans-serif">ش</text>
+          </svg>
+        </div>
+      </div>
+      <div id="map-tip" class="map-tip" hidden></div>
+
+      <button class="endstamp" id="endstamp" aria-label="اختم الدور — إنهاء الدور الحالي">
+        <span class="stamp-txt">اختم<br>الدور</span>
+        <span class="stamp-count" id="stampCount">1</span>
+      </button>
+
+      <button class="pending-slip" id="pendingSlip" data-goto="3" aria-label="فتح المراسيم المعلّقة">
+        <span class="ps-kicker">قيد الاعتماد</span>
+        <strong id="slipTitle">هيئة النزاهة وتدقيق الأصول</strong>
+        <span class="ps-meta">−<b id="slipCost">15</b> رصيد · بعد الدور <b id="slipAfter">35</b></span>
+      </button>
+    </section>
+
+    <nav class="rail" id="rail" aria-label="ملفات الديوان"></nav>
+    <div class="desk-notes" id="deskNotes">
+      <button class="note-card" data-goto="3" aria-label="فتح المراسيم المعلقة">
+        <span class="pin" aria-hidden="true"></span>
+        <span class="note-kicker">قيد الاعتماد</span>
+        <strong>هيئة النزاهة وتدقيق الأصول</strong>
+        <span class="note-meta">−15 رصيد · بعد الدور 35</span>
+      </button>
+      <button class="note-card" data-goto="4" aria-label="فتح البرقية العاجلة">
+        <span class="pin" aria-hidden="true"></span>
+        <span class="note-kicker"><i aria-hidden="true"></i> برقية عاجلة</span>
+        <strong>انهيار ممر الحبوب في البحر الأسود</strong>
+        <span class="note-meta">الرد مطلوب · 24 ساعة</span>
+      </button>
+    </div>
+  </main>
+</div>
+
+<div class="layers">
+  <section class="layer" data-layer="2" aria-hidden="true">
+    <button class="layer-close" data-close aria-label="إغلاق الملف"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <article class="dossier" id="dossier" role="dialog" aria-modal="true" aria-label="ملف المحافظة"></article>
+  </section>
+
+  <section class="layer" data-layer="3" aria-hidden="true">
+    <button class="layer-close" data-close aria-label="إغلاق جدول المراسيم"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <article class="paper" id="decreeDoc" role="dialog" aria-modal="true" aria-label="جدول المراسيم">
+      <header class="doc-head">
+        <svg class="doc-mini-crest" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3.4l2.15 4.35 4.8.7-3.47 3.38.82 4.78L12 14.35l-4.3 2.26.82-4.78L5.05 8.45l4.8-.7L12 3.4z"/>
+          <path d="M5.2 18.2c1.7 1.9 3.9 2.9 6.8 2.9s5.1-1 6.8-2.9"/>
+        </svg>
+        <p class="doc-kicker">الجمهورية العربية السورية · ديوان الرئاسة</p>
+        <h2 class="doc-title">جدول المراسيم</h2>
+        <p class="doc-meta">الدور 01 · الحصاد 2027 · سري — للتنفيذ</p>
+      </header>
+      <div class="type-rule" aria-hidden="true"></div>
+      <div class="decree-list" id="decreeList"></div>
+      <div class="decree-preview">
+        <div>
+          <span class="preview-kicker">الأثر على الرصيد السياسي</span>
+          <div class="preview-line">
+            <span id="pvNow">50</span>
+            <span class="arrow" aria-hidden="true"><svg viewBox="0 0 24 14"><path d="M22 7H3M8 2L3 7l5 5"/></svg></span>
+            <span class="after" id="pvAfter">35</span>
+            <small style="font-family:var(--sans);font-size:11px;color:#7d6a4b;font-weight:500">رصيد</small>
+          </div>
+          <p class="preview-note">بعد هذا الدور: <b id="pvAfterTxt">35</b> رصيد · <span id="pvSpent">−15</span> من الاعتمادات</p>
+        </div>
+        <div class="signature">
+          <svg viewBox="0 0 130 40" aria-hidden="true">
+            <path d="M6 29c10-1 12-14 19-15 5-1 2 10 7 12 6 3 9-13 15-12 5 1-1 11 4 13 5 2 9-8 13-8 3 0 1 5 5 6 8 2 16-9 25-11 5-1 7 2 3 4-5 3-12 4-13 7"/>
+            <path d="M20 33c18 2 44 1 66-2"/>
+          </svg>
+          <span>توقيع رئيس الجمهورية</span>
+        </div>
+      </div>
+      <footer class="doc-foot">
+        <span class="queue-note"><i aria-hidden="true"></i> <b id="qCount">1</b> مرسوم في سلة الاعتماد</span>
+        <button class="btn-ink" id="sealBtn">ختم الاعتماد</button>
+      </footer>
+    </article>
+  </section>
+
+  <section class="layer" data-layer="4" aria-hidden="true">
+    <button class="layer-close" data-close aria-label="إغلاق البرقية"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="event-scene">
+      <article class="cable" role="dialog" aria-modal="true" aria-label="برقية عاجلة">
+        <span class="stamp urgent">عاجل</span>
+        <header class="cable-head">
+          <div class="cable-top"><span>برقية عاجلة</span><span>سري للغاية</span></div>
+          <p class="cable-ref">وارد: 2027/06/27 — 04:12 · مكتب الاتصالات الرئاسية</p>
+          <h2 id="cableTitle"></h2>
+          <p class="cable-src" id="cableSrc"></p>
+        </header>
+        <p class="cable-body" id="cableBody"></p>
+        <div class="cable-options" id="cableOptions"></div>
+        <footer class="cable-foot">
+          <span>الرد مطلوب خلال 24 ساعة</span>
+          <button class="btn-ink" id="cableSend">إرسال التوجيه</button>
+        </footer>
+        <p class="cable-sent" id="cableSent" aria-live="polite"></p>
+      </article>
+      <div class="phone-wrap" aria-hidden="true">
+        <svg class="phone-svg" viewBox="0 0 210 190">
+          <defs>
+            <linearGradient id="bakelite" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#a44137"/><stop offset=".55" stop-color="#7d2723"/><stop offset="1" stop-color="#4a1212"/>
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="rgba(242,207,119,.45)" stroke-width="2">
+            <path d="M28 62c-9-9-9-24 0-33" opacity=".55"/>
+            <path d="M17 73c-14-14-14-38 0-52" opacity=".32"/>
+            <path d="M182 62c9-9 9-24 0-33" opacity=".55"/>
+            <path d="M193 73c14-14 14-38 0-52" opacity=".32"/>
+          </g>
+          <path d="M52 98c0-10 8-18 18-18h70c10 0 18 8 18 18v47c0 9-7 16-16 16H68c-9 0-16-7-16-16z" fill="url(#bakelite)" stroke="#3a0f0f" stroke-width="2"/>
+          <path d="M40 92c0-9 8-17 17-17h96c9 0 17 8 17 17v7c0 9-8 16-17 16H57c-9 0-17-7-17-16z" fill="#8e332c" stroke="#3a0f0f" stroke-width="2"/>
+          <path d="M48 82c8-7 20-9 28-4 5 3 5 10-2 12-7 2-18 0-24-2-4-2-5-4-2-6z" fill="#b15449" stroke="#4a1212" stroke-width="1.2"/>
+          <path d="M114 78c9-5 20-3 27 4 3 2 2 5-3 7-7 2-17 3-24 1-6-2-6-8 0-12z" fill="#b15449" stroke="#4a1212" stroke-width="1.2"/>
+          <path d="M62 106h86" stroke="#4a1212" stroke-width="2"/>
+          <circle cx="80" cy="132" r="22" fill="#d9c9a4" stroke="#3a0f0f" stroke-width="2"/>
+          <circle cx="80" cy="132" r="16" fill="#b9a67d" stroke="#6b573b" stroke-width="1"/>
+          <g fill="#4a3a24">
+            <circle cx="80" cy="120" r="2.2"/><circle cx="90" cy="124" r="2.2"/><circle cx="93" cy="134" r="2.2"/><circle cx="86" cy="142" r="2.2"/><circle cx="74" cy="142" r="2.2"/><circle cx="67" cy="134" r="2.2"/><circle cx="70" cy="124" r="2.2"/>
+          </g>
+          <circle cx="80" cy="132" r="4" fill="#4a3a24"/>
+          <rect x="126" y="120" width="8" height="3" rx="1.5" fill="#d9c9a4"/>
+          <rect x="126" y="128" width="8" height="3" rx="1.5" fill="#d9c9a4"/>
+          <rect x="126" y="136" width="8" height="3" rx="1.5" fill="#d9c9a4"/>
+          <path d="M62 161c-6 8-16 10-22 16-6 6 4 11 10 7 5-3 22-11 30-12" fill="none" stroke="#2a1a10" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <p class="phone-note"><b>الخط ساخن</b>مكتب العمليات · 04:12</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="layer" data-layer="5" aria-hidden="true">
+    <button class="layer-close" data-close aria-label="إغلاق الصحيفة"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <article class="newspaper" role="dialog" aria-modal="true" aria-label="الصحيفة الرسمية — نتائج الدور">
+      <header class="mast">
+        <div class="mast-meta"><span>العدد 147</span><span>الحصاد · 2027</span><span>الثمن: 500 ل.س</span></div>
+        <h1>الصحيفة الرسمية</h1>
+        <p class="mast-sub">تصدر عن الجمهورية العربية السورية — دمشق</p>
+      </header>
+      <div class="mast-rule" aria-hidden="true"></div>
+      <h2 class="news-headline">الليرة تلامس 171 والاحتياطي يهبط إلى 280 مليون دولار</h2>
+      <p class="news-deck">خزينة الدولة تنهي الدور الأول على 38.8 مليار ليرة، وحلب تلتقط أنفاسها الكهربائية بعد تشغيل المحطة الغربية، بينما تعود الاحتجاجات إلى درعا ومرسوم النزاهة يعبر هادئاً.</p>
+      <div class="news-grid">
+        <div class="news-cols">
+          <div class="news-block">
+            <h4>الاقتصاد</h4>
+            <p>أنهت الخزينة العامة الدور الأول على 38.8 مليار ليرة سورية، بعد أن استنزفت رواتب القطاع العام ودعم المحروقات نحو 3.2 مليار. وفي السوق الموازي أغلق الدولار عند 171 ليرة، مسجلاً أعلى مستوى له منذ بداية الحصاد.</p>
+            <p>وقال مصدر في المصرف المركزي إن الاحتياطي الأجنبي تراجع إلى 280 مليون دولار بعد تمويل شحنة قمح طارئة، محذراً من أن نفاد الاحتياطي بات مسألة أشهر لا سنوات.</p>
+            <div class="news-chart">
+              <svg viewBox="0 0 300 110" role="img" aria-label="منحنى الاحتياطي الأجنبي خلال خمسة أدوار">
+                <defs><linearGradient id="resArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a2b2b" stop-opacity=".22"/><stop offset="1" stop-color="#8a2b2b" stop-opacity="0"/></linearGradient></defs>
+                <g stroke="rgba(50,38,22,.14)" stroke-width="1"><path d="M18 26h268"/><path d="M18 48h268"/><path d="M18 70h268"/><path d="M18 92h268"/></g>
+                <path d="M286 26 L219 33 L152 40 L85 52 L18 83 L18 98 L286 98 Z" fill="url(#resArea)"/>
+                <polyline points="286,26 219,33 152,40 85,52 18,83" fill="none" stroke="#8a2b2b" stroke-width="2.2" stroke-linejoin="round"/>
+                <g fill="#8a2b2b"><circle cx="286" cy="26" r="2.4"/><circle cx="219" cy="33" r="2.4"/><circle cx="152" cy="40" r="2.4"/><circle cx="85" cy="52" r="2.4"/><circle cx="18" cy="83" r="3.2"/></g>
+                <g fill="#6b573b" font-size="7" font-family="sans-serif"><text x="286" y="22" text-anchor="end">340</text><text x="24" y="79">280</text><text x="288" y="108" text-anchor="end">الدور 01</text><text x="12" y="108">05</text></g>
+              </svg>
+              <div class="chart-cap">الاحتياطي الأجنبي بالمليون دولار · 5 أدوار</div>
+            </div>
+          </div>
+          <div class="news-block">
+            <h4>المحافظات</h4>
+            <div class="news-bullet"><b>حلب: الكهرباء ترتفع إلى 5.2 ساعة</b>بعد تشغيل المحطة الغربية، وسط ترحيب شعبي حذر وترقب لإصلاح الشبكة في الأحياء الشرقية.</div>
+            <div class="news-bullet"><b>درعا: اعتصام مفتوح عند المدخل الشمالي</b>احتجاجاً على تأخر الرواتب، والمحافظ يعد بحزمة صرف خلال أسبوع.</div>
+            <div class="news-bullet"><b>الحسكة: قافلة مساعدات عبر تل أبيض</b>تضم 40 شاحنة دقيق ووقود، وتوزع بإشراف لجنة محلية مشتركة.</div>
+          </div>
+          <div class="news-block">
+            <h4>الديوان</h4>
+            <p>أقرّ الديوان مرسوم هيئة النزاهة وتدقيق الأصول بعد جدل استمر ثلاث جلسات. وبحسب البيان الرسمي سيبدأ التدقيق بأصول 40 مسؤولاً من الدرجة الأولى، على أن ترفع الهيئة تقريرها الأول بعد ستة أشهر.</p>
+            <p>كما دخلت منصة رد الملكيات العقارية إلى اللاجئين حيز التنفيذ مطلع الشهر المقبل، بعد ربطها بالسجل العقاري في دمشق وحلب.</p>
+          </div>
+        </div>
+        <aside class="news-summary">
+          <h3>ملخص الدور 01</h3>
+          <div id="resultsList"></div>
+          <span class="stamp">نُشرت</span>
+        </aside>
+      </div>
+      <footer class="news-foot">
+        <span>تصدر عن مكتب الإعلام الرسمي — دمشق · لا تُنشر إلا بعد ختم الديوان</span>
+        <span>صفحة 1</span>
+      </footer>
+    </article>
+  </section>
+</div>
+
+<div class="switcher" id="switcher" dir="ltr" aria-label="Concept switcher">
+  <span>Concept B · state:</span>
+  <button data-state="1" aria-label="State 1">1</button>
+  <button data-state="2" aria-label="State 2">2</button>
+  <button data-state="3" aria-label="State 3">3</button>
+  <button data-state="4" aria-label="State 4">4</button>
+  <button data-state="5" aria-label="State 5">5</button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/concepts/shared/game-data.js"></script>
+<script>
+(function(){
+  "use strict";
+  const G = window.GAME || {};
+  const M = G.macro || {};
+  const GOVS = Array.isArray(G.governorates) ? G.governorates : [];
+  const byId = {};
+  GOVS.forEach(g => { byId[g.id] = g; });
+  const qs = (s, r) => (r || document).querySelector(s);
+  const qsa = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const TIERS = {
+    CALM:   { ar: "هادئ",      color: "#4e8b78", fill: "#7fa896" },
+    TENSE:  { ar: "متوتر",     color: "#c39a4b", fill: "#c7a25c" },
+    RIOT:   { ar: "اضطرابات",  color: "#c07a4c", fill: "#c07a4c" },
+    REVOLT: { ar: "تمرد",      color: "#a84a45", fill: "#a84a45" }
+  };
+  const tierOf = g => TIERS[g && g.tier] || TIERS.TENSE;
+
+  const ICONS = {
+    map: '<svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/></svg>',
+    policy: '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 12h6M10 16h6"/></svg>',
+    assets: '<svg viewBox="0 0 24 24"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5z"/><path d="M3 8.5 12 13l9-4.5M12 13v7"/></svg>',
+    finance: '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg>',
+    decrees: '<svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M6 16l9-9 3 3-9 9H6z"/><path d="M13 7l3 3"/></svg>',
+    emergency: '<svg viewBox="0 0 24 24"><path d="M12 3 3 20h18L12 3Z"/><path d="M12 9v5M12 17h.01"/></svg>',
+    stats: '<svg viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7 16v-5M12 16V7M17 16v-8"/></svg>',
+    check: '<svg viewBox="0 0 24 24"><path d="M5 12.5 10 17l9-10"/></svg>',
+    lock: '<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>'
+  };
+
+  /* ---------- tier heat ---------- */
+  function hexToRgb(h){
+    const n = parseInt(h.replace("#", ""), 16);
+    return [n >> 16 & 255, n >> 8 & 255, n & 255];
+  }
+  const STOPS = [[26, "#7fa896"], [45, "#c7a25c"], [66, "#c07a4c"], [86, "#a84a45"]].map(s => [s[0], hexToRgb(s[1])]);
+  function heat(prri){
+    const p = Math.max(0, Math.min(100, Number(prri) || 0));
+    for (let i = 1; i < STOPS.length; i++){
+      if (p <= STOPS[i][0]){
+        const a = STOPS[i - 1], b = STOPS[i];
+        const t = (p - a[0]) / (b[0] - a[0] || 1);
+        const c = a[1].map((v, k) => Math.round(v + (b[1][k] - v) * t));
+        return "rgb(" + c.join(",") + ")";
+      }
+    }
+    return "#a84a45";
+  }
+
+  /* ---------- number formatting ---------- */
+  const fmt1 = n => (Math.round(Number(n) * 10) / 10).toFixed(1);
+  const powerHours = g => Math.max(0, 24 - (Number(g.dailyBlackoutHours) || 0)).toFixed(1);
+  const signed = n => (n > 0 ? "+" : "") + n;
+
+  /* ---------- folder rail ---------- */
+  const FOLDERS = [
+    { label: "المحافظة",   icon: "map",       goto: 2, tab: "#c9a24a" },
+    { label: "السياسات",   icon: "policy",    goto: 0, tab: "#8fae90" },
+    { label: "الأصول",     icon: "assets",    goto: 0, tab: "#b98d5f" },
+    { label: "المالية",    icon: "finance",   goto: 0, tab: "#d8b45a" },
+    { label: "المراسيم",   icon: "decrees",   goto: 3, tab: "#c96a5a", dot: true },
+    { label: "الطوارئ",    icon: "emergency", goto: 4, tab: "#a52a2a", dot: true },
+    { label: "الإحصائيات", icon: "stats",     goto: 5, tab: "#6fa89b" }
+  ];
+  const rail = qs("#rail");
+  if (rail){
+    rail.innerHTML = FOLDERS.map(f =>
+      '<button class="folder" data-goto="' + f.goto + '" data-name="' + f.label + '" style="--tab:' + f.tab + '" aria-label="ملف ' + f.label + '">' +
+        (f.dot ? '<span class="folder-badge" aria-hidden="true"></span>' : "") +
+        '<span class="folder-icon" aria-hidden="true">' + ICONS[f.icon] + "</span>" +
+        '<span class="folder-label">' + f.label + "</span>" +
+      "</button>"
+    ).join("");
+  }
+
+  /* ---------- HUD strip (phones) ---------- */
+  const hud = qs("#hudstrip");
+  if (hud){
+    hud.innerHTML = [
+      ["الخزينة", "42.0B", "ل.س", ""],
+      ["الاحتياطي", "320M", "$", ""],
+      ["الرصيد السياسي", "50", "/200", "gold"],
+      ["الثقة", "42%", "", ""],
+      ["الاحتقان", "45", "/100", ""]
+    ].map(c =>
+      '<div class="hud-chip ' + c[3] + '"><span class="hl">' + c[0] + '</span><span class="hv" data-count data-to="' + c[1].replace(/[^\d.]/g, "") + '" data-dec="' + (c[1].indexOf(".") > -1 ? 1 : 0) + '">' + c[1] + '<small>' + c[2] + "</small></span></div>"
+    ).join("");
+  }
+
+  /* ---------- map ---------- */
+  const mapSvg = qs("#map-svg");
+  const byName = {};
+  const labelDy = { damascus: 46, quneitra: 46, tartus: 47, latakia: 46, as_suwayda: 49, daraa: 48 };
+  if (mapSvg && GOVS.length){
+    mapSvg.setAttribute("viewBox", G.viewBox || "0 0 1000 880");
+    let html = '<g class="neighbors" aria-hidden="true">' +
+      '<text class="neighbor" x="520" y="26">تركيا</text>' +
+      '<text class="neighbor" x="966" y="295">العراق</text>' +
+      '<text class="neighbor" x="520" y="870">الأردن</text>' +
+      '<text class="neighbor" x="74" y="565">لبنان</text>' +
+      '<text class="sea-label" transform="rotate(-90 40 420)" x="40" y="420">البحر المتوسط</text>' +
+      "</g>";
+    GOVS.forEach((g, i) => {
+      byName[g.id] = g.nameAr;
+      const t = tierOf(g);
+      const cx = (g.center && g.center[0]) || 500;
+      const cy = (g.center && g.center[1]) || 440;
+      const dy = labelDy[g.id] || 49;
+      html += '<g class="prov" data-id="' + g.id + '" tabindex="0" role="button" aria-label="' + g.nameAr + "، " + t.ar + "، درجة الاحتقان " + g.prri + '">' +
+        '<path class="prov-path" d="' + g.path + '" fill="' + heat(g.prri) + '" style="animation-delay:' + (i * 35) + 'ms"></path>' +
+        '<g class="badge" transform="translate(' + cx + "," + cy + ')" aria-hidden="true">' +
+          '<circle r="26" fill="rgba(22,18,10,.88)" stroke="' + t.color + '" stroke-width="3.5"></circle>' +
+          '<text y="1">' + g.prri + "</text>" +
+        "</g>" +
+        '<text class="prov-name" x="' + cx + '" y="' + (cy + dy) + '">' + g.nameAr + "</text>" +
+      "</g>";
+    });
+    mapSvg.innerHTML = html;
+  }
+
+  /* ---------- map tooltip / selection ---------- */
+  const tip = qs("#map-tip");
+  function provTip(g){
+    const t = tierOf(g);
+    return "<b>" + g.nameAr + "</b>" +
+      '<span class="tip-tier" style="color:#fff;background:' + t.color + '">' + t.ar + " · " + g.prri + "/100</span>" +
+      '<div class="tip-grid">' +
+        "<span>الكهرباء</span><b>" + powerHours(g) + " ساعة</b>" +
+        "<span>الألغام</span><b>" + g.mineSaturationPct + "%</b>" +
+        "<span>الأضرار</span><b>$" + (Number(g.unrepairedDamageUSD) / 1e9).toFixed(1) + "B</b>" +
+        "<span>الإعمار</span><b>" + Math.round(Number(g.reconstructionScore || 0) * 100) + "%</b>" +
+      "</div>";
+  }
+  if (mapSvg && tip){
+    mapSvg.addEventListener("pointermove", e => {
+      const grp = e.target.closest ? e.target.closest(".prov") : null;
+      if (!grp){ tip.hidden = true; return; }
+      const g = byId[grp.getAttribute("data-id")];
+      if (!g){ tip.hidden = true; return; }
+      tip.innerHTML = provTip(g);
+      tip.hidden = false;
+      const w = tip.offsetWidth || 160, h = tip.offsetHeight || 100;
+      let x = e.clientX + 14, y = e.clientY + 14;
+      if (x + w > window.innerWidth - 8) x = e.clientX - w - 14;
+      if (y + h > window.innerHeight - 8) y = e.clientY - h - 14;
+      if (x < 6) x = 6;
+      if (y < 6) y = 6;
+      tip.style.transform = "translate(" + x + "px," + y + "px)";
+    });
+    mapSvg.addEventListener("pointerleave", () => { tip.hidden = true; });
+    mapSvg.addEventListener("click", e => {
+      const grp = e.target.closest ? e.target.closest(".prov") : null;
+      if (grp) openProvince(grp.getAttribute("data-id"));
+    });
+    mapSvg.addEventListener("keydown", e => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const grp = e.target.closest ? e.target.closest(".prov") : null;
+      if (grp){ e.preventDefault(); openProvince(grp.getAttribute("data-id")); }
+    });
+  }
+
+  /* ---------- dossier ---------- */
+  const dossier = qs("#dossier");
+  let selectedId = "aleppo";
+  if (!byId[selectedId] && GOVS.length) selectedId = GOVS[0].id;
+
+  function renderDossier(g){
+    if (!dossier || !g) return;
+    const t = tierOf(g);
+    const pop = (Number(g.population) / 1e6).toFixed(2);
+    const dmg = (Number(g.unrepairedDamageUSD) / 1e9).toFixed(1);
+    const rec = Math.round(Number(g.reconstructionScore || 0) * 100);
+    const hours = powerHours(g);
+    const arable = Number(g.totalArableHectares || 0).toLocaleString("en-US");
+    dossier.innerHTML =
+      '<span class="folder-tab-top dossier-tab">ملف استخباراتي · 14</span>' +
+      '<div class="dossier-inner">' +
+        '<header class="file-head">' +
+          '<span class="stamp secret">سري للغاية</span>' +
+          '<p class="file-kicker">الجمهورية العربية السورية · مكتب الأمن القومي</p>' +
+          '<h2 class="file-name">' + g.nameAr + "</h2>" +
+          '<p class="file-sub">ملف محافظة · الدور 01 · الحصاد 2027 · ' + (g.nameEn || "") + "</p>" +
+        "</header>" +
+        '<div class="file-grid">' +
+          '<figure class="silhouette">' +
+            '<figcaption>مسقط المحافظة</figcaption>' +
+            '<div class="sil-wrap"><svg viewBox="0 0 1000 880" preserveAspectRatio="xMidYMid meet" aria-label="شكل محافظة ' + g.nameAr + '"><path d="' + g.path + '"></path></svg><span class="sil-pin" aria-hidden="true"></span></div>' +
+            '<p class="sil-meta">' + pop + " مليون نسمة · " + arable + " هكتار زراعي</p>" +
+          "</figure>" +
+          '<div class="clips">' +
+            '<div class="note-card file-note" style="--rot:-1.1deg">' +
+              '<span class="note-label">درجة الاحتقان · PRRI</span>' +
+              '<div class="note-big">' + g.prri + '<small>/100</small><span class="tier-dot" style="background:' + t.color + '"></span></div>' +
+              '<div class="meter"><i style="width:' + g.prri + "%;background:" + t.color + '"></i></div>' +
+              '<span class="note-foot">' + t.ar + " · التصنيف " + (g.tier || "") + "</span>" +
+            "</div>" +
+            '<div class="note-card file-note" style="--rot:.9deg">' +
+              '<span class="note-label">الكهرباء</span>' +
+              '<div class="note-big">' + hours + '<small> ساعة/يوم</small></div>' +
+              '<span class="note-foot">انقطاع ' + g.dailyBlackoutHours + " ساعة · الشبكة " + (M.gridCapacityMW || 2250) + " ميغاواط</span>" +
+            "</div>" +
+            '<div class="note-card file-note" style="--rot:.5deg">' +
+              '<span class="note-label">الأضرار غير المعالجة</span>' +
+              '<div class="note-big"><small style="font-size:12px">$</small>' + dmg + '<small>B</small></div>' +
+              '<span class="note-foot">الإعمار ' + rec + "% · المستشفيات " + g.activeHospitalsPct + "%</span>" +
+            "</div>" +
+            '<div class="note-card file-note" style="--rot:-.7deg">' +
+              '<span class="note-label">الألغام</span>' +
+              '<div class="note-big">' + g.mineSaturationPct + '<small>%</small></div>' +
+              '<span class="note-foot">من المساحات الزراعية · ' + arable + " هكتار</span>" +
+            "</div>" +
+          "</div>" +
+        "</div>" +
+        '<div class="file-project">' +
+          "<div>" +
+            '<span class="note-label">مشروع بانتظار التمويل</span>' +
+            "<h3>إعادة تأهيل محطة كهرباء " + g.nameAr + " الشرقية</h3>" +
+            '<p>+2.5 ساعة كهرباء · احتقان −6 · الكلفة $120M</p>' +
+            '<span class="project-status" aria-live="polite"></span>' +
+          "</div>" +
+          '<button class="btn-ink" data-prov-action="fund">تمويل المشروع</button>' +
+        "</div>" +
+        '<div class="file-actions">' +
+          '<button class="act" data-prov-action="security"><b>حملة أمنية محدودة</b><span>8 رصيد · احتقان −5</span></button>' +
+          '<button class="act" data-prov-action="aid"><b>قافلة إغاثة عاجلة</b><span>$15M · ثقة +2</span></button>' +
+          '<button class="act" data-prov-action="council"><b>مجلس محافظة مؤقت</b><span>6 رصيد · احتقان −3</span></button>' +
+        "</div>" +
+        '<footer class="file-foot"><span>المصدر: غرفة عمليات المحافظات</span><span>صفحة 1 من 1</span></footer>' +
+      "</div>" +
+      '<span class="folder-tab-top dossier-tab" style="top:auto;bottom:-11px;inset-inline-start:auto;inset-inline-end:32px">أرشيف 2027</span>';
+
+    const sil = dossier.querySelector(".sil-wrap svg");
+    if (sil && mapSvg){
+      const src = mapSvg.querySelector('.prov[data-id="' + g.id + '"] .prov-path');
+      if (src && src.getBBox){
+        try {
+          const bb = src.getBBox();
+          const pad = Math.max(12, Math.min(bb.width, bb.height) * 0.12);
+          sil.setAttribute("viewBox", (bb.x - pad) + " " + (bb.y - pad) + " " + (bb.width + pad * 2) + " " + (bb.height + pad * 2));
+        } catch (err) { /* ignore */ }
+      }
+    }
+
+    const status = dossier.querySelector(".project-status");
+    dossier.querySelectorAll("[data-prov-action]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const a = btn.getAttribute("data-prov-action");
+        if (a === "fund" && status){
+          status.textContent = "أُحيل إلى ديوان التخطيط — قيد التنفيذ";
+          btn.textContent = "تم التمويل";
+          btn.classList.add("is-done");
+          btn.disabled = true;
+        } else if (status){
+          status.textContent = "أُحيل التوجيه إلى المحافظ — بانتظار التقرير";
+        }
+      });
+    });
+  }
+
+  function openProvince(id){
+    const g = byId[id];
+    if (!g) return;
+    selectedId = g.id;
+    renderDossier(g);
+    qsa(".prov", mapSvg).forEach(p => p.classList.toggle("is-selected", p.getAttribute("data-id") === g.id));
+    setState(2);
+  }
+
+  /* ---------- decrees ---------- */
+  const DECREES = [
+    {
+      title: "مرسوم إطلاق هيئة النزاهة وتدقيق الأصول",
+      desc: "تشكيل هيئة مستقلة لتدقيق أصول كبار الموظفين وإحالة ملفات الفساد إلى القضاء.",
+      pc: 15,
+      effects: [["فساد −8", "good"], ["ثقة +5", "good"], ["احتقان −3", "good"]]
+    },
+    {
+      title: "المنصة الرقمية لرد الملكيات العقارية للاجئين",
+      desc: "منصة موحدة لتوثيق ملكيات اللاجئين العقارية وردّها إلى أصحابها.",
+      pc: 10,
+      effects: [["ثقة +4", "good"], ["عودة لاجئين +", "good"]]
+    },
+    {
+      title: "ميثاق التفاهم العشائري وتأمين الترانزيت الشرقي",
+      desc: "ميثاق مع وجهاء العشائر لتأمين الطريق الشرقي وعائدات الترانزيت.",
+      pc: 8,
+      effects: [["احتقان دير الزور والرقة −10", "good"], ["عائدات ترانزيت +", "good"]]
+    },
+    {
+      title: "حوافز استقطاب الكفاءات والمغتربين",
+      desc: "حزمة امتيازات وإقامات لجذب الكفاءات السورية في المهجر.",
+      pc: 12,
+      effects: [["كفاءات +", "good"], ["إنتاج +", "good"]]
+    },
+    {
+      title: "المنحة الشعبية الاستثنائية",
+      desc: "منحة نقدية استثنائية لمواجهة غلاء المعيشة، تصرف على دفعتين.",
+      pc: 0, gain: 8, syp: 7.5e9,
+      effects: [["رصيد سياسي +8", "good"], ["خزينة −7.5B ل.س", "bad"]]
+    }
+  ];
+  const queued = new Set([0]);
+  const list = qs("#decreeList");
+
+  function queueSummary(){
+    let spent = 0;
+    queued.forEach(i => {
+      const d = DECREES[i];
+      if (!d) return;
+      spent += (d.pc || 0) - (d.gain || 0);
+    });
+    const now = Number(M.politicalCapital || 50);
+    return { spent: spent, after: now - spent, count: queued.size, now: now };
+  }
+  function renderDecrees(){
+    if (!list) return;
+    list.innerHTML = DECREES.map((d, i) => {
+      const on = queued.has(i);
+      const cost = d.syp
+        ? '<span class="d-cost">7.5B<small>ل.س</small></span>'
+        : '<span class="d-cost">' + d.pc + '<small>رصيد سياسي</small></span>';
+      return '<button class="decree-row' + (on ? " is-queued" : "") + '" data-i="' + i + '" aria-pressed="' + on + '">' +
+        '<span class="dbox" aria-hidden="true">' + ICONS.check + "</span>" +
+        '<span class="d-main"><span class="d-title">' + d.title + "</span>" +
+          '<span class="d-desc">' + d.desc + "</span>" +
+          '<span class="d-effects">' + d.effects.map(e => '<span class="eff ' + e[1] + '">' + e[0] + "</span>").join("") + "</span>" +
+        "</span>" + cost +
+        '<span class="stamp row-stamp" aria-hidden="true">يُعتمد</span>' +
+      "</button>";
+    }).join("");
+  }
+  function updateQueue(){
+    const s = queueSummary();
+    const after = qs("#pvAfter"), afterTxt = qs("#pvAfterTxt"), spent = qs("#pvSpent"), qc = qs("#qCount");
+    if (after){ after.textContent = s.after; after.style.color = s.after < 0 ? "#9e262a" : ""; }
+    if (afterTxt) afterTxt.textContent = s.after;
+    if (spent) spent.textContent = (s.spent > 0 ? "−" : "+") + Math.abs(s.spent);
+    if (qc) qc.textContent = s.count;
+    const sc = qs("#stampCount"); if (sc) sc.textContent = s.count;
+    const sp = qs("#sealPending"); if (sp) sp.textContent = s.count;
+    const slipCost = qs("#slipCost"); if (slipCost) slipCost.textContent = Math.abs(s.spent);
+    const slipAfter = qs("#slipAfter"); if (slipAfter) slipAfter.textContent = s.after;
+    const slipTitle = qs("#slipTitle");
+    if (slipTitle) slipTitle.textContent = s.count ? DECREES[[...queued][0]].title : "لا مراسيم معلّقة";
+    renderDecrees();
+  }
+  if (list){
+    list.addEventListener("click", e => {
+      const row = e.target.closest ? e.target.closest(".decree-row") : null;
+      if (!row) return;
+      const i = Number(row.getAttribute("data-i"));
+      if (queued.has(i)) queued.delete(i); else queued.add(i);
+      updateQueue();
+    });
+  }
+  const sealBtn = qs("#sealBtn");
+  if (sealBtn){
+    sealBtn.addEventListener("click", () => {
+      sealBtn.classList.add("is-done");
+      sealBtn.textContent = "تم الاعتماد — أُرسل إلى الجريدة";
+      sealBtn.disabled = true;
+      showToast("خُتمت المراسيم وأُرسلت إلى الصحيفة الرسمية");
+    });
+  }
+
+  /* ---------- event ---------- */
+  const EV = (Array.isArray(G.sampleEvents) && G.sampleEvents[0]) || null;
+  function renderEvent(){
+    if (!EV) return;
+    const tEl = qs("#cableTitle"), sEl = qs("#cableSrc"), bEl = qs("#cableBody"), oEl = qs("#cableOptions");
+    if (tEl) tEl.textContent = EV.titleAr || "";
+    if (sEl) sEl.textContent = "المصدر: " + (EV.sourceAr || "");
+    if (bEl) bEl.textContent = EV.descriptionAr || "";
+    if (!oEl) return;
+    const letters = ["أ", "ب", "ج", "د"];
+    oEl.innerHTML = (EV.options || []).map((o, i) => {
+      const disabled = o.id === "opt_swap";
+      const costs = [];
+      if (Number(o.costUSD) > 0) costs.push('<span class="cost">$' + Math.round(Number(o.costUSD) / 1e6) + "M احتياطي</span>");
+      if (Number(o.costUSD) < 0) costs.push('<span class="cost">+$' + Math.round(Math.abs(Number(o.costUSD)) / 1e6) + "M للخزينة</span>");
+      if (Number(o.costSYP) > 0) costs.push('<span class="cost">' + (Number(o.costSYP) / 1e9).toFixed(1) + "B ل.س</span>");
+      if (Number(o.costPC) > 0) costs.push('<span class="cost">' + o.costPC + " رصيد</span>");
+      const eff = [];
+      if (o.effectTrust) eff.push('<span class="eff ' + (o.effectTrust > 0 ? "good" : "bad") + '">ثقة ' + signed(o.effectTrust) + "</span>");
+      if (o.effectRRI) eff.push('<span class="eff ' + (o.effectRRI < 0 ? "good" : "bad") + '">احتقان ' + signed(o.effectRRI) + "</span>");
+      if (o.effectCorruption) eff.push('<span class="eff ' + (o.effectCorruption < 0 ? "good" : "bad") + '">فساد ' + signed(o.effectCorruption) + "</span>");
+      if (disabled) eff.push('<span class="eff">دين +$290M</span>');
+      return '<button class="option' + (disabled ? " is-disabled" : "") + '" data-opt="' + o.id + '"' + (disabled ? ' disabled aria-disabled="true"' : "") + ">" +
+        '<span class="letter" aria-hidden="true">' + (letters[i] || i + 1) + "</span>" +
+        '<span class="opt-main"><b>' + (o.labelAr || "") + "</b>" +
+          '<span class="opt-desc">' + (o.descriptionAr || "") + "</span>" +
+          '<span class="opt-costs">' + costs.join("") + " " + eff.join("") + "</span>" +
+          (disabled ? '<span class="reason">' + ICONS.lock + "غير متاح: مؤشر السيادة والاستقلال 24 — المطلوب 30</span>" : "") +
+        "</span>" +
+      "</button>";
+    }).join("");
+  }
+  const optWrap = qs("#cableOptions");
+  if (optWrap){
+    optWrap.addEventListener("click", e => {
+      const o = e.target.closest ? e.target.closest(".option") : null;
+      if (!o || o.disabled) return;
+      qsa(".option", optWrap).forEach(x => x.classList.remove("is-chosen"));
+      o.classList.add("is-chosen");
+    });
+  }
+  const cableSend = qs("#cableSend");
+  if (cableSend){
+    cableSend.addEventListener("click", () => {
+      const sent = qs("#cableSent");
+      if (sent) sent.textContent = "أُرسل التوجيه إلى رئاسة الوزراء · 04:31 — بانتظار التنفيذ";
+      cableSend.textContent = "تم الإرسال";
+      cableSend.classList.add("is-done");
+      cableSend.disabled = true;
+    });
+  }
+
+  /* ---------- turn results ---------- */
+  const RESULTS = [
+    { label: "الخزينة", unit: "B ل.س", from: 42.0, to: 38.8, dec: 1, delta: "−3.2B", dir: "down" },
+    { label: "الاحتياطي", unit: "M $", from: 320, to: 280, dec: 0, delta: "−40M", dir: "down" },
+    { label: "الرصيد السياسي", unit: "/200", from: 50, to: 35, dec: 0, delta: "−15", dir: "down" },
+    { label: "الثقة الشعبية", unit: "%", from: 42, to: 44, dec: 0, delta: "+2", dir: "up" },
+    { label: "الاحتقان الوطني", unit: "/100", from: 45, to: 43, dec: 0, delta: "−2", dir: "up" },
+    { label: "الفساد", unit: "/100", from: 58, to: 55, dec: 0, delta: "−3", dir: "up" },
+    { label: "سعر الصرف", unit: "ل.س/$", from: 162, to: 171, dec: 0, delta: "+9", dir: "down" }
+  ];
+  const resList = qs("#resultsList");
+  if (resList){
+    resList.innerHTML = RESULTS.map(r =>
+      '<div class="res-row"><span>' + r.label + "</span>" +
+        '<span class="rv"><span data-count data-from="' + r.from + '" data-to="' + r.to + '" data-dec="' + r.dec + '">' + r.to + "</span> <small style=\"font-size:7px;color:#6b573b\">" + r.unit + "</small></span>" +
+        '<span class="chip ' + r.dir + '"><svg viewBox="0 0 8 6"><path d="M4 6 0 0h8z"/></svg>' + r.delta + "</span>" +
+      "</div>"
+    ).join("");
+  }
+
+  /* ---------- counters ---------- */
+  function animateCount(el){
+    if (!el) return;
+    const to = parseFloat(el.getAttribute("data-to"));
+    if (!isFinite(to)) return;
+    const fromAttr = el.getAttribute("data-from");
+    const from = fromAttr !== null && fromAttr !== "" ? parseFloat(fromAttr) : Math.max(0, to - Math.max(2, Math.abs(to) * 0.12));
+    const dec = parseInt(el.getAttribute("data-dec") || "0", 10);
+    if (reduce){ el.textContent = to.toFixed(dec); return; }
+    const start = performance.now(), dur = 720;
+    const step = now => {
+      const p = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (from + (to - from) * e).toFixed(dec);
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = to.toFixed(dec);
+    };
+    requestAnimationFrame(step);
+  }
+  function runCounts(root){
+    qsa("[data-count]", root || document).forEach(animateCount);
+  }
+
+  /* ---------- state machine ---------- */
+  let state = 1;
+  let bare = false;
+  function setState(n, pushUrl){
+    const next = Math.max(1, Math.min(5, parseInt(n, 10) || 1));
+    state = next;
+    document.body.setAttribute("data-state", String(state));
+    qsa(".layer").forEach(l => {
+      const on = l.getAttribute("data-layer") === String(state);
+      l.setAttribute("aria-hidden", on ? "false" : "true");
+    });
+    qsa(".switcher [data-state]").forEach(b => b.classList.toggle("is-on", Number(b.getAttribute("data-state")) === state));
+    qsa(".folder").forEach(f => f.classList.toggle("is-active", f.getAttribute("data-goto") === String(state)));
+    if (tip) tip.hidden = true;
+    if (state === 5) setTimeout(() => runCounts(qs('[data-layer="5"]')), 180);
+    if (pushUrl !== false && window.history && history.replaceState){
+      try { history.replaceState(null, "", "?state=" + state + (bare ? "&bare=1" : "")); } catch (err) { /* ignore */ }
+    }
+  }
+  function showToast(msg){
+    const t = qs("#toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  /* ---------- interactions ---------- */
+  document.addEventListener("click", e => {
+    const close = e.target.closest ? e.target.closest("[data-close]") : null;
+    if (close){ setState(1); return; }
+    const go = e.target.closest ? e.target.closest("[data-goto]") : null;
+    if (go){
+      const n = Number(go.getAttribute("data-goto"));
+      if (n === 2) openProvince(selectedId);
+      else if (n >= 1 && n <= 5) setState(n);
+      return;
+    }
+    const folder = e.target.closest ? e.target.closest(".folder") : null;
+    if (folder){
+      const n = Number(folder.getAttribute("data-goto"));
+      if (n) { n === 2 ? openProvince(selectedId) : setState(n); }
+      else showToast("ملف " + (folder.getAttribute("data-name") || "الديوان") + " مُحال إلى الأرشيف — خارج نطاق العرض");
+    }
+  });
+
+  qsa(".layer").forEach(layer => {
+    layer.addEventListener("click", e => { if (e.target === layer) setState(1); });
+  });
+
+  const endstamp = qs("#endstamp");
+  if (endstamp){
+    endstamp.addEventListener("click", () => {
+      setState(5);
+      runCounts(qs('[data-layer="5"]'));
+    });
+  }
+
+  qsa(".switcher [data-state]").forEach(b => {
+    b.addEventListener("click", () => setState(Number(b.getAttribute("data-state"))));
+  });
+
+  document.addEventListener("keydown", e => {
+    if (e.key >= "1" && e.key <= "5") setState(Number(e.key));
+    else if (e.key === "Escape") setState(1);
+  });
+
+  /* ---------- init ---------- */
+  renderDecrees();
+  updateQueue();
+  renderEvent();
+  if (byId[selectedId]) renderDossier(byId[selectedId]);
+  qsa(".prov", mapSvg).forEach(p => p.classList.toggle("is-selected", p.getAttribute("data-id") === selectedId));
+
+  const params = new URLSearchParams(window.location.search);
+  bare = params.get("bare") === "1";
+  const sw = qs("#switcher");
+  if (bare && sw) sw.style.display = "none";
+  const startState = Math.max(1, Math.min(5, parseInt(params.get("state") || "1", 10) || 1));
+  setState(startState, false);
+  runCounts(document);
+  if (startState === 5) setTimeout(() => runCounts(qs('[data-layer="5"]')), 220);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI Concepts</title>
+<style>
+  :root { --bg:#071210; --panel:#0e2420; --line:#254b42; --text:#f7f5ed; --muted:#c2b698; --gold:#f2cf77; --teal:#4ec7b4; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui,sans-serif; }
+  header { position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; gap:12px; align-items:center; padding:12px 16px; background:rgba(7,18,16,.95); border-bottom:1px solid var(--line); }
+  h1 { font-size:16px; margin:0 12px 0 0; color:var(--gold); }
+  .seg { display:flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { background:none; border:0; color:var(--muted); padding:8px 12px; cursor:pointer; font:inherit; min-height:36px; }
+  .seg button[aria-pressed="true"] { background:var(--line); color:var(--text); }
+  main { padding:16px; }
+  section { margin-bottom:40px; }
+  h2 { font-size:18px; margin:0 0 4px; }
+  h2 a { color:var(--teal); font-size:13px; margin-left:8px; }
+  .row { display:flex; gap:24px; align-items:flex-start; overflow-x:auto; padding:12px 0; }
+  figure { margin:0; flex:none; }
+  figcaption { color:var(--muted); font-size:12px; margin-bottom:6px; }
+  .frame { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#000; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .frame iframe { border:0; transform-origin:0 0; display:block; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Syrian President Simulator — UI concepts</h1>
+  <div class="seg" id="states" aria-label="State"></div>
+  <div class="seg" id="scales" aria-label="Scale"></div>
+</header>
+<main id="main"></main>
+<script>
+const CONCEPTS = [
+  ['concept-a-situation-room.html', 'A · Situation Room (cards on a living map)'],
+  ['concept-b-presidents-desk.html', 'B · The President\'s Desk (dossiers)'],
+  ['concept-c-strategy-hud.html', 'C · Strategy HUD'],
+  ['concept-d-hybrid.html', 'D · Hybrid (C structure + A cards) — recommended'],
+];
+const SIZES = [['Desktop 1440×900',1440,900],['Phone landscape 844×390',844,390],['Phone portrait 390×844',390,844]];
+const STATES = ['1 Main','2 Province','3 Decrees','4 Event','5 Results'];
+let state = 1, scale = 0.45;
+const main = document.getElementById('main');
+function seg(id, items, get, set) {
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  items.forEach(([label, val]) => {
+    const b = document.createElement('button');
+    b.textContent = label; b.setAttribute('aria-pressed', String(get() === val));
+    b.onclick = () => { set(val); render(); };
+    el.appendChild(b);
+  });
+}
+function render() {
+  seg('states', STATES.map((s,i)=>[s,i+1]), ()=>state, v=>state=v);
+  seg('scales', [['Small',0.35],['Medium',0.45],['Large',0.6]], ()=>scale, v=>scale=v);
+  main.innerHTML = '';
+  for (const [file, title] of CONCEPTS) {
+    const sec = document.createElement('section');
+    sec.innerHTML = `<h2>${title}<a href="${file}?state=${state}" target="_blank">open full ↗</a></h2><div class="row"></div>`;
+    const row = sec.querySelector('.row');
+    for (const [label, w, h] of SIZES) {
+      const s = w < 900 ? Math.min(1, scale * 1.6) : scale;
+      row.insertAdjacentHTML('beforeend', `<figure><figcaption>${label}</figcaption>
+        <div class="frame" style="width:${w*s}px;height:${h*s}px">
+        <iframe loading="lazy" src="${file}?state=${state}&bare=1" width="${w}" height="${h}" style="transform:scale(${s})" title="${title} ${label}"></iframe></div></figure>`);
+    }
+    main.appendChild(sec);
+  }
+}
+render();
+</script>
+</body>
+</html>
