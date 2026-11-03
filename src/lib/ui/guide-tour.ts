@@ -51,6 +51,10 @@ export function startGuideTour(): void {
 }
 
 export function stopGuideTour(): void {
+  // Callers such as openSettings() stop the tour defensively. When it is not
+  // running there is nothing to dismiss and — crucially — nothing to record:
+  // marking it seen here suppressed the first-run tour forever.
+  if (!get(active)) return;
   const i = get(index);
   if (TOUR_STEPS[i]?.id === 'stats') uiStore.toggleStatsSidebar(false);
   active.set(false);

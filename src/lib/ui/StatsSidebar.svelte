@@ -12,12 +12,12 @@
      never dismiss it. The map viewport and top ribbon offset left of it. -->
 <aside
   data-tour="stats-panel"
-  class="pointer-events-auto drawer-full fixed top-0 right-0 bottom-0 w-[min(390px,var(--vp-w))] h-screen z-30 bg-forest-deep border-l border-charcoal-mid shadow-2xl flex flex-col select-none font-arabic text-wheat-light transition-transform duration-300 ease-in-out {open ? 'translate-x-0' : 'translate-x-full'}"
+  class="pointer-events-auto drawer-full fixed top-0 right-0 bottom-0 w-[min(390px,var(--vp-w))] h-screen z-[45] lg:z-30 bg-forest-deep border-l border-charcoal-mid shadow-2xl flex flex-col select-none font-arabic text-wheat-light transition-transform duration-300 ease-in-out {open ? 'translate-x-0' : 'translate-x-full'}"
   aria-label="لوحة الإحصائيات الجانبية"
   aria-hidden={!open}
   inert={!open}
 >
-  <div class="scroll-area flex-1 min-h-0 overflow-y-auto p-4">
+  <div class="scroll-area flex-1 min-h-0 overflow-y-auto p-4 pb-24">
     <StatsPanel />
   </div>
 </aside>

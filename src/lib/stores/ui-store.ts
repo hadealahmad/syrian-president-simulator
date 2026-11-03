@@ -30,15 +30,19 @@ const STARTED_KEY = 'president_has_started_v1';
 const GAME_STATE_KEY = 'president_game_state_v1';
 
 function checkTourSeen(): boolean {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    return window.localStorage.getItem(TOUR_KEY) === 'true';
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem(TOUR_KEY) === 'true';
+    }
+  } catch {
+    // Blocked storage: behave like a first visit instead of failing bootstrap.
   }
   return false;
 }
 
 function checkGameStarted(): boolean {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
       if (window.localStorage.getItem(STARTED_KEY) === 'true') return true;
       if (window.localStorage.getItem(TOUR_KEY) === 'true') return true;
       const raw = window.localStorage.getItem(GAME_STATE_KEY);
@@ -48,9 +52,9 @@ function checkGameStarted(): boolean {
           return true;
         }
       }
-    } catch {
-      return false;
     }
+  } catch {
+    return false;
   }
   return false;
 }
@@ -105,12 +109,12 @@ function createUIStore() {
       update((s) => ({ ...s, isSettingsOpen: open }));
     },
     markGameStarted: () => {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        try {
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
           window.localStorage.setItem(STARTED_KEY, 'true');
-        } catch {
-          /* ignore */
         }
+      } catch {
+        /* ignore */
       }
       update((s) => ({ ...s, hasStartedGame: true, isSettingsOpen: false }));
     },
@@ -167,6 +171,28 @@ function createUIStore() {
     },
     setCrtTube: (on: boolean) => {
       update((s) => ({ ...s, crtTube: on }));
+    },
+    /**
+     * Reset every per-game UI selection after a new game starts. Keeps the
+     * session-level preferences (theme/CRT, tour and "started" flags) intact.
+     * Must run together with gameStore.restart() and draftStore.reset() — the
+     * single shared new-game path in stores/new-game.ts.
+     */
+    resetGameUi: () => {
+      update((s) => ({
+        ...s,
+        selectedGovernorateId: null,
+        isMinistryDrawerOpen: false,
+        isProvincialDrawerOpen: false,
+        isRestartModalOpen: false,
+        turnFlowStage: 'closed',
+        isAboutOpen: false,
+        checklist: { decrees: false, province: false, endTurn: false },
+        selectedStatForOptions: null,
+        activeCommandPanel: null,
+        commandPanelPinned: false,
+        isStatsSidebarOpen: false,
+      }));
     },
   };
 }

@@ -5,6 +5,7 @@
   import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
   import TurnResultsView from './TurnResultsView.svelte';
+  import { focusTrap } from './actions/focus-trap';
   import {
     getOligarchSettlementIncome,
     getOligarchLiquidationIncome,
@@ -12,6 +13,7 @@
     getOligarchLiquidationPCCost,
     getOligarchNationalizePCEarned,
   } from '../engine/oligarch-helpers';
+  import { CONCESSIONAL_FACILITIES } from '../engine/constants';
 
   function formatMillionUSD(usd: number): string {
     return (usd / 1_000_000).toFixed(1);
@@ -28,6 +30,13 @@
     LOCAL_VOUCHERS: "قسائم الإغاثة المحلية المشروطة",
     UNCONDITIONAL_AID: "المساعدات الإنسانية المفتوحة",
     BLOCKADE: "الحصار الأمني المشدد وإغلاق المعابر",
+  };
+
+  const GOLAN_STANCE_NAMES_AR: Record<string, string> = {
+    RESTRAINT: 'ضبط النفس',
+    LOCAL_GENDARMERIE: 'درك محلي',
+    DEPLOY_ARMOR: 'نشر الدروع (9.0B SP)',
+    UN_LIAISON: 'ارتباط أندوف ($8M)',
   };
 
   const DECREE_TITLES_AR: Record<string, string> = {
@@ -92,6 +101,9 @@
     $draftStore.propertyRestitution !== 'RESTITUTE_TO_REFUGEES' ||
     ($draftStore.signedLoanIds && $draftStore.signedLoanIds.length > 0) ||
     ($draftStore.executedMortgageIds && $draftStore.executedMortgageIds.length > 0) ||
+    ($draftStore.signedFacilityIds && $draftStore.signedFacilityIds.length > 0) ||
+    ($draftStore.extraDebtRepaymentUSD ?? 0) > 0 ||
+    $draftStore.golanBorderStance !== 'RESTRAINT' ||
     $draftStore.expatriateBrainGainIncentive ||
     $draftStore.populistGrant ||
     $draftStore.charityFundActive ||
@@ -104,6 +116,9 @@
 
   function handleConfirmEndTurn(): void {
     if (isOverBudget) return;
+    // The fail screen can sit above this modal; never commit another turn
+    // from underneath it (keyboard activation used to reach this button).
+    if (get(gameStore).isGameOver) return;
     gameStore.commitTurn($draftStore);
     draftStore.advanceToNextTurn();
     // Results swap in place inside this same modal — no close, no move —
@@ -136,6 +151,10 @@
     class="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none font-arabic"
   >
     <div
+      use:focusTrap={{ enabled: $uiStore.turnFlowStage !== 'events' }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="مراجعة وتثبيت القرارات الرئاسية"
       class="pointer-events-auto modal-tall h-[70vh] aspect-[3/4] max-w-[94vw] bg-forest-deep/95 modal-frame-stripes modal-frame-green shadow-2xl p-6 space-y-4 text-wheat-light rounded-none flex flex-col overflow-hidden transition-all duration-500 ease-out {$uiStore.turnFlowStage === 'events' ? 'scale-[0.93] -translate-x-12 pointer-events-none' : ''}"
       aria-hidden={$uiStore.turnFlowStage === 'events'}
       inert={$uiStore.turnFlowStage === 'events'}
@@ -180,12 +199,12 @@
             {/each}
           {/if}
           <div class="flex items-center justify-between text-[11px] font-mono">
-            <span class="text-wheat-dark">العجز التشغيلي المتوقع (المقلق)</span>
-            <span class="font-bold text-umber-crimson">${formatBillionSYP($previewRangesStore.operatingDeficitSYP ?? 0)}B</span>
+            <span class="text-wheat-dark">العجز الكلي المتوقع (قبل التمويل)</span>
+            <span class="font-bold text-umber-crimson">{formatBillionSYP($previewRangesStore.operatingDeficitSYP ?? 0)}B SP</span>
           </div>
           <div class="flex items-center justify-between text-[11px] font-mono">
             <span class="text-wheat-dark">الإنفاق الاستثماري (يبني الغد)</span>
-            <span class="font-bold text-forest-accent">${formatBillionSYP($previewRangesStore.investmentSYP ?? 0)}B</span>
+            <span class="font-bold text-forest-accent">{formatBillionSYP($previewRangesStore.investmentSYP ?? 0)}B SP</span>
           </div>
         </div>
 
@@ -527,6 +546,140 @@
             </div>
           {/if}
         {/each}
+
+        <!-- Signed loans (billed this turn) -->
+        {#each ($draftStore.signedLoanIds ?? []) as loanId}
+          {@const sloan = $gameStore.foreignLoans.find((l) => l.id === loanId)}
+          {#if sloan && !sloan.isSigned}
+            <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+              <div class="space-y-1">
+                <span class="font-bold text-wheat-light block font-heading">
+                  توقيع قرض خارجي: {sloan.titleAr}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                    +${formatMillionUSD(sloan.disbursementUSD)}M
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                    -{sloan.politicalCapitalCost} رصيد سياسي
+                  </span>
+                  <span class="text-[11px] text-wheat-dark mr-2">| يبدأ سداد الفائدة من الدور التالي</span>
+                </div>
+              </div>
+              <button
+                onclick={() => draftStore.toggleLoan(loanId)}
+                class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          {/if}
+        {/each}
+
+        <!-- Executed sovereign mortgages (cash in this turn) -->
+        {#each ($draftStore.executedMortgageIds ?? []) as mortgageId}
+          {@const smort = $gameStore.sovereignMortgages?.find((m) => m.id === mortgageId)}
+          {#if smort && !smort.isMortgaged}
+            <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+              <div class="space-y-1">
+                <span class="font-bold text-wheat-light block font-heading">
+                  رهن سيادي: {smort.titleAr}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                    +${formatMillionUSD(smort.immediateCashUSD)}M
+                  </span>
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                    -${formatMillionUSD(smort.turnRevenueLossUSD)}M/دور
+                  </span>
+                  <span class="text-[11px] text-umber-crimson mr-2">| {smort.sovereigntyPenaltyAr}</span>
+                </div>
+              </div>
+              <button
+                onclick={() => draftStore.toggleMortgage(mortgageId)}
+                class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          {/if}
+        {/each}
+
+        <!-- Concessional facilities (tranche signed this turn) -->
+        {#each ($draftStore.signedFacilityIds ?? []) as facilityId}
+          {@const sdef = CONCESSIONAL_FACILITIES.find((f) => f.id === facilityId)}
+          {#if sdef}
+            <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+              <div class="space-y-1">
+                <span class="font-bold text-wheat-light block font-heading">
+                  توقيع تسهيل مشروط: {sdef.titleAr}
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  {#if sdef.tranches.length > 0}
+                    <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[10px]">
+                      +${formatMillionUSD(sdef.tranches[0].amountUSD)}M (الشريحة 1)
+                    </span>
+                  {/if}
+                  <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                    -{sdef.politicalCapitalCost} رصيد سياسي
+                  </span>
+                  <span class="text-[11px] text-amber-300 mr-2">| شرط: {sdef.conditionAr}</span>
+                </div>
+              </div>
+              <button
+                onclick={() => draftStore.toggleFacility(facilityId)}
+                class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          {/if}
+        {/each}
+
+        <!-- Early debt repayment -->
+        {#if ($draftStore.extraDebtRepaymentUSD ?? 0) > 0}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">سداد مبكر لأصل الدين</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[10px]">
+                  -${formatMillionUSD($draftStore.extraDebtRepaymentUSD)}M
+                </span>
+                <span class="text-[11px] text-forest-accent mr-2">| +2 رافعة سيادية لكل $100M مسددة</span>
+              </div>
+            </div>
+            <button
+              onclick={() => draftStore.setField('extraDebtRepaymentUSD', 0)}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
+
+        <!-- Golan border stance -->
+        {#if $draftStore.golanBorderStance !== 'RESTRAINT'}
+          <div class="flex items-center justify-between p-3 bg-charcoal-surface border border-charcoal-mid rounded-none">
+            <div class="space-y-1">
+              <span class="font-bold text-wheat-light block font-heading">
+                موقف حدود الجولان: {GOLAN_STANCE_NAMES_AR[$draftStore.golanBorderStance] ?? $draftStore.golanBorderStance}
+              </span>
+              <span class="text-[11px] text-wheat-dark">
+                {$draftStore.golanBorderStance === 'DEPLOY_ARMOR'
+                  ? 'الأثر: خفض التحدي الدرعاوي والاحتقان المحلي مقابل تصعيد توتر الجولان وكلفة 9.0B SP.'
+                  : $draftStore.golanBorderStance === 'UN_LIAISON'
+                    ? 'الأثر: خفض توتر الجولان +2 ثقة، بكلفة بعثة $8M/دور.'
+                    : 'الأثر: أمن محلي وتحسين تحصيل معبر نصيب مقابل توتر جولان محدود.'}
+              </span>
+            </div>
+            <button
+              onclick={() => draftStore.setField('golanBorderStance', 'RESTRAINT')}
+              class="px-2.5 py-1 text-[11px] bg-forest-mid hover:bg-umber-deep border border-charcoal-mid hover:border-umber-border text-wheat-mid hover:text-umber-crimson transition-colors cursor-pointer"
+            >
+              إلغاء
+            </button>
+          </div>
+        {/if}
 
         <!-- 10. Demining Priority -->
         {#if deminingGov}

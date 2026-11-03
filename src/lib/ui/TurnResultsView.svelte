@@ -28,6 +28,12 @@
   let provincesInRevoltCount = $derived(
     Object.values($gameStore.governorates).filter((g) => g.tier === 'REVOLT').length
   );
+  // Exact fail predicate (fail-states.ts): national RRI ≥ 80 AND ≥ 4 revolts.
+  // The old "3 / 3" indicator ignored RRI entirely and could show maximum
+  // danger with no insurrection (or miss a real one at 4 revolts).
+  let insurrectionRisk = $derived(
+    $gameStore.macro.nationalRRI >= 80 && provincesInRevoltCount >= 4
+  );
   // Operating share of SYP spending (old saves may lack the split fields).
   let opShare = $derived(
     audit && audit.expendedSYP > 0
@@ -173,10 +179,11 @@
               {audit.runwayMonths} شهراً متبقياً {audit.runwayMonths <= 3.0 ? '[منطقة خطر]' : '[مستقر]'}
             </span>
           </div>
-          <div class="flex justify-between">
+          <div class="flex justify-between gap-3">
             <span class="text-wheat-dark">العصيان المدني المسلح:</span>
-            <span class="font-bold font-mono {provincesInRevoltCount >= 3 ? 'text-umber-crimson' : 'text-wheat-light'}">
-              {provincesInRevoltCount} / 3 محافظات متمردة كحد أقصى
+            <span class="font-bold font-mono text-left {insurrectionRisk ? 'text-umber-crimson animate-pulse' : 'text-wheat-light'}">
+              {provincesInRevoltCount} محافظة متمردة · احتقان {$gameStore.macro.nationalRRI}/100
+              <span class="block text-[9.5px] font-normal text-wheat-dark">الانهيار عند 4 محافظات متمردة واحتقان 80+</span>
             </span>
           </div>
         </div>

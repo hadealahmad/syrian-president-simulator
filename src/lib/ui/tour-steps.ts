@@ -1,4 +1,10 @@
+import { INITIAL_YEAR, MAX_TURNS } from '../engine/constants';
+
 export type TourSide = 'top' | 'bottom' | 'center';
+
+/** Calendar span the 40 half-year turns actually cover, derived from the engine. */
+const SPAN_START = INITIAL_YEAR;
+const SPAN_END = INITIAL_YEAR + Math.ceil(MAX_TURNS / 2) - 1;
 
 export interface TourStep {
   id: string;
@@ -19,7 +25,7 @@ export const TOUR_STEPS: TourStep[] = [
     badge: 'الفصل 01 · المهمة',
     title: 'الغاية الاستراتيجية ومهمة الرئاسة',
     body:
-      '<p class="lead">أنت رئيس الجمهورية في منعطف تاريخي حرج. قُد الدولة عبر <b><bdi>40</bdi> دوراً نصف سنوي</b> (الحصاد والشتاء، <bdi>2024 - 2044</bdi>) للحفاظ على وحدة التراب وبناء نهضة مستدامة.</p>' +
+      '<p class="lead">أنت رئيس الجمهورية في منعطف تاريخي حرج. قُد الدولة عبر <b><bdi>40</bdi> دوراً نصف سنوي</b> (الحصاد والشتاء، <bdi>' + SPAN_START + ' - ' + SPAN_END + '</bdi>) للحفاظ على وحدة التراب وبناء نهضة مستدامة.</p>' +
       '<ul><li>لا سياسة بلا ثمن: الأجور تمتص الاحتقان وتستنزف الخزينة، وتقليص الدعم يحمي الاحتياطي وقد يشعل الاحتجاجات.</li>' +
       '<li>النصر الأسمى (العنقاء السيادية): اصمد <bdi>40</bdi> دوراً، رصيد وطني <bdi>80+</bdi>، فساد دون <bdi>40%</bdi>، إعمار <bdi>65%+</bdi>، رافعة <bdi>50%+</bdi>، ديون بحد أقصى <bdi>$10B</bdi>، كهرباء <bdi>12+</bdi> ساعة، مع وفاق الجنوب.</li></ul>',
     side: 'center',

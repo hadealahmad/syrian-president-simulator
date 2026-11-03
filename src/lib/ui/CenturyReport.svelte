@@ -1,10 +1,12 @@
 <script lang="ts">
   import { gameStore } from '../stores/game-store';
+  import { startNewGame } from '../stores/new-game';
+  import { focusTrap } from './actions/focus-trap';
 
   let ending = $derived($gameStore.centuryEnding);
 
   function handleRestart(): void {
-    gameStore.restart();
+    startNewGame();
   }
 </script>
 
@@ -13,6 +15,10 @@
     class="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-6 select-none scroll-area overflow-y-auto font-arabic"
   >
     <div
+      use:focusTrap
+      role="dialog"
+      aria-modal="true"
+      aria-label="تقرير المئوية: مصير الجمهورية بعد 100 عام"
       class="m-auto w-full max-w-[620px] bg-forest-deep/95 border-2 border-wheat-mid/80 shadow-2xl p-8 space-y-6 text-center rounded-none text-wheat-light"
     >
       <div class="space-y-2">
@@ -49,6 +55,7 @@
 
       <div class="pt-4 flex justify-center gap-4">
         <button
+          data-autofocus
           onclick={handleRestart}
           class="px-8 py-3 bg-wheat-mid hover:bg-wheat-light text-forest-deep font-bold text-xs border border-wheat-mid transition-colors active:translate-y-0.5 cursor-pointer rounded-none font-heading"
         >

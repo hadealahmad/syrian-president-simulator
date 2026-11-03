@@ -5,6 +5,7 @@
   import GameIcon from '../GameIcon.svelte';
   import ToggleSwitch from '../ToggleSwitch.svelte';
   import { DECREES, DECREE_PC_COSTS, isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText, type PoliticalDecreeItem } from './shared';
+  import { focusTrap } from '../actions/focus-trap';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
   let modalDecree: PoliticalDecreeItem | null = $state(null);
@@ -217,7 +218,10 @@
       tabindex="-1"
       aria-label="إلغاء"
     ></button>
-    <div class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none">
+    <div
+      use:focusTrap
+      class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none"
+    >
       <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{dec.titleAr}</h3>
       <p class="text-[11px] text-wheat-dark leading-relaxed">{dec.descAr}</p>
       <div class="flex items-center gap-1.5 flex-wrap">

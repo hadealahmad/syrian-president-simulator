@@ -2,13 +2,13 @@
   import { onMount } from 'svelte';
   import { cubicInOut } from 'svelte/easing';
   import { uiStore } from '../stores/ui-store';
-  import { gameStore } from '../stores/game-store';
-  import { draftStore } from '../stores/draft-store';
+  import { startNewGame as startNewGameSession } from '../stores/new-game';
   import { versionStore } from '../stores/version-store';
   import { theme } from '../stores/theme-store';
   import { pwaStore } from '../stores/pwa-store';
   import { THEMES, THEME_IDS, type ThemeId } from '../themes';
   import { startGuideTour, stopGuideTour, hasSeenTour } from './guide-tour';
+  import { focusTrap } from './actions/focus-trap';
   import GameIcon from './GameIcon.svelte';
   import ToggleSwitch from './ToggleSwitch.svelte';
   import { PROJECT_LINKS } from '../project-links';
@@ -104,10 +104,7 @@
   }
 
   function confirmNewGame(): void {
-    gameStore.restart();
-    draftStore.reset();
-    uiStore.selectGovernorate(null);
-    uiStore.setTurnFlowStage('closed');
+    startNewGameSession();
     closeSettings();
     if (!hasSeenTour()) {
       setTimeout(() => {
@@ -201,6 +198,7 @@
 {#if $uiStore.isSettingsOpen}
   <div
     transition:curtainSlide={{ duration: 520 }}
+    use:focusTrap
     role="dialog"
     aria-modal="true"
     aria-label="الإعدادات"
@@ -296,6 +294,7 @@
           {#if $uiStore.hasStartedGame}
             <button
               onclick={closeSettings}
+              data-autofocus
               class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
             >
               <span class="h-5 w-1 bg-wheat-gold transition-all duration-200 group-hover:h-7"></span>

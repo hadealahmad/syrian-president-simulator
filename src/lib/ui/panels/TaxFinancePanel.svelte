@@ -4,7 +4,15 @@
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
   import ToggleSwitch from '../ToggleSwitch.svelte';
-  import { isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON } from './shared';
+  import { isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON,
+    REMITTANCE_POOL_USD,
+    previewComplianceRate,
+    previewCorporateTaxSYP,
+    previewTelecomExciseSYP,
+    previewTransitRevenueUSD,
+    previewGridCapExGain,
+    previewWageUnrestRelief,
+  } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
@@ -28,24 +36,38 @@
     }
   });
 
-  // Reactive calculations for the 3 macro sliders matching plan specs
+  // Reactive calculations for the 3 macro sliders matching the engine audit
+  let complianceRate = $derived(previewComplianceRate($gameStore));
   let remittanceCapturedM = $derived(
     $draftStore.remittanceCaptureSpread <= 15
-      ? Math.round(1000 * ($draftStore.remittanceCaptureSpread / 100))
+      ? Math.round((REMITTANCE_POOL_USD * ($draftStore.remittanceCaptureSpread / 100)) / 1_000_000)
       : Math.round(150 + ($draftStore.remittanceCaptureSpread - 15) * 8.5)
   );
 
+  let corporateTaxB = $derived(
+    previewCorporateTaxSYP($draftStore.corporateTaxRate, complianceRate) / 1_000_000_000
+  );
+  let telecomExciseB = $derived(
+    previewTelecomExciseSYP($draftStore.telecomExciseRate) / 1_000_000_000
+  );
+  let transitRevenueM = $derived(
+    previewTransitRevenueUSD(
+      $draftStore.nassibTransitFeeUSD,
+      $gameStore.governorates['daraa']?.nassibRevenueCapturePct ?? 32,
+      complianceRate
+    ) / 1_000_000
+  );
+
   let gridCapExM = $derived($draftStore.gridCapExUSD / 1_000_000);
-  let effectiveGridMW = $derived(
-    gridCapExM === 0
-      ? -120
-      : Math.round(gridCapExM * 11.4)
+  let gridGain = $derived(
+    previewGridCapExGain(
+      $draftStore.gridCapExUSD,
+      $gameStore.ministries['energy']?.competence ?? 45,
+      $gameStore.macro.systemicCorruption ?? 58
+    )
   );
-  let effectivePowerHoursDelta = $derived(
-    gridCapExM === 0
-      ? -0.5
-      : Number(((effectiveGridMW / 6000) * 24).toFixed(1))
-  );
+  let effectiveGridMW = $derived(gridGain.mw);
+  let effectivePowerHoursDelta = $derived(gridGain.hours);
 
   let auctionM = $derived($draftStore.dollarAuctionUSD / 1_000_000);
   let auctionSypB = $derived(
@@ -115,7 +137,7 @@
         +{Math.round((($gameStore.macro.civilServiceWageSYP || 4_050) * ($draftStore.wageBumpPercent / 100)) / ($gameStore.macro.parallelRateSYP || 150))} $/شهر
       </span>
       <span class="px-1.5 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9px]">
-        -{Math.min(45, Math.round(($draftStore.wageBumpPercent / 25) * 2.8))} احتقان
+        -{previewWageUnrestRelief($draftStore.wageBumpPercent)} احتقان
       </span>
       <span class="px-1.5 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9px]">
         -{(((($gameStore.macro.civilServiceHeadcount ?? 1_400_000) * ($gameStore.macro.civilServiceWageSYP || 450_000) * ($draftStore.wageBumpPercent / 100) * 6)) / 1_000_000_000).toFixed(2)}B SP
@@ -281,7 +303,7 @@
       {gridCapExM === 0
         ? 'تجميد الاستثمار الرأسمالي يوفر السيولة الدولارية ($0M كاش)، لكنه يسبب تراجع قدرة الشبكة بنحو 120 ميغاواط وتمديد ساعات التقنين في المحافظات (-0.5 سا/يوم) وزيادة الاحتقان.'
         : gridCapExM === 35
-          ? 'الحالة المحايدة ($35M): صيانة دورية تؤمن +399 ميغاواط وتزيد التغذية بنحو +1.6 ساعة/يوم في كافة المحافظات، مما يدعم النشاط الاقتصادي واستقرار الشبكة.'
+          ? `الحالة المحايدة ($35M): صيانة دورية تؤمن +${effectiveGridMW} ميغاواط وتزيد التغذية بنحو +${effectivePowerHoursDelta} ساعة/يوم في كافة المحافظات، مما يدعم النشاط الاقتصادي واستقرار الشبكة.`
           : `استثمار \$${gridCapExM}M يضيف نحو ${effectiveGridMW} ميغاواط للشبكة القومية (${effectivePowerHoursDelta > 0 ? '+' : ''}${effectivePowerHoursDelta} سا/يوم)، مما يخفض ساعات التقنين بالمحافظات ويدعم النشاط الصناعي والامتثال الضريبي، ويراكم القدرة الإنتاجية (+${capacityRevenueB}B إيراد تدريجي/دور).`}
     </div>
   </div>
@@ -366,7 +388,7 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +{((($draftStore.corporateTaxRate - 10) * 0.8) + 9.0).toFixed(2)}B SP/دور
+        +{corporateTaxB.toFixed(2)}B SP/دور
       </span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.corporateTaxRate > 25 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {$draftStore.corporateTaxRate > 25 ? 'يقلص الاستثمار' : 'يشجع الامتثال'}
@@ -425,7 +447,7 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +{((($draftStore.telecomExciseRate - 5) * 0.5) + 4.0).toFixed(2)}B SP/دور
+        +{telecomExciseB.toFixed(2)}B SP/دور
       </span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.telecomExciseRate > 20 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {$draftStore.telecomExciseRate > 20 ? 'ضغط معيشي متصاعد' : 'عبء معتدل'}
@@ -484,7 +506,7 @@
 
     <div class="flex items-center gap-1.5 flex-wrap">
       <span class="px-1.5 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9px]">
-        +${Math.round(($draftStore.nassibTransitFeeUSD / 450) * 22)}M دولار/دور
+        +${Math.round(transitRevenueM)}M دولار/دور
       </span>
       <span class="px-1.5 py-0.2 rounded-full {$draftStore.nassibTransitFeeUSD > 600 ? 'bg-umber-deep border border-umber-border text-umber-crimson' : 'bg-forest-surface border border-wheat-mid/40 text-wheat-gold'} font-mono font-bold text-[9px]">
         {$draftStore.nassibTransitFeeUSD > 600 ? 'قد يخفض تدفق الشاحنات' : 'حركة ترانزيت نشطة'}

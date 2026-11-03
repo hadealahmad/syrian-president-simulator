@@ -27,6 +27,12 @@ function createVersionStore() {
 
   let serviceWorkerUpdater: ((reloadPage?: boolean) => Promise<void>) | null = null;
   let serviceWorkerUpdateReady = false;
+  /**
+   * Monotonic request id. Three triggers (3s timer, 60s interval,
+   * visibilitychange) can overlap; a slow older response must never overwrite
+   * the result of a newer one and hide a real update banner.
+   */
+  let requestSequence = 0;
 
   function setServiceWorkerUpdater(fn: (reloadPage?: boolean) => Promise<void>): void {
     serviceWorkerUpdater = fn;
@@ -50,6 +56,7 @@ function createVersionStore() {
   }
 
   async function checkForUpdates(): Promise<boolean> {
+    const requestId = ++requestSequence;
     update((s) => ({ ...s, isChecking: true }));
     try {
       // Bust cache using timestamp query param and no-store headers
@@ -63,12 +70,17 @@ function createVersionStore() {
         },
       });
 
+      // A newer check already started while this one was in flight: discard
+      // this (possibly older) response entirely.
+      if (requestId !== requestSequence) return false;
+
       if (!res.ok) {
         update((s) => ({ ...s, isChecking: false, lastChecked: Date.now() }));
         return false;
       }
 
       const data = await res.json();
+      if (requestId !== requestSequence) return false;
       const remoteVersion = data.version;
 
       if (remoteVersion && remoteVersion !== initialVersion) {
@@ -91,7 +103,9 @@ function createVersionStore() {
         return serviceWorkerUpdateReady;
       }
     } catch {
-      update((s) => ({ ...s, isChecking: false, lastChecked: Date.now() }));
+      if (requestId === requestSequence) {
+        update((s) => ({ ...s, isChecking: false, lastChecked: Date.now() }));
+      }
       return false;
     }
   }
@@ -131,16 +145,24 @@ function createVersionStore() {
   async function activateServiceWorkerUpdate(): Promise<boolean> {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return false;
 
+    let onControllerChange: (() => void) | null = null;
+    let timer = 0;
     const controllerChanged = new Promise<boolean>((resolve) => {
-      const timer = window.setTimeout(() => resolve(false), 5000);
-      navigator.serviceWorker.addEventListener(
-        'controllerchange',
-        () => {
-          window.clearTimeout(timer);
-          resolve(true);
-        },
-        { once: true }
-      );
+      onControllerChange = (): void => {
+        window.clearTimeout(timer);
+        resolve(true);
+      };
+      timer = window.setTimeout(() => {
+        // Timed out: drop the listener so repeated update attempts cannot
+        // accumulate handlers that resolve an already-settled promise.
+        if (onControllerChange) {
+          navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+        }
+        resolve(false);
+      }, 5000);
+      navigator.serviceWorker.addEventListener('controllerchange', onControllerChange, {
+        once: true,
+      });
     });
 
     await serviceWorkerUpdater?.(false);

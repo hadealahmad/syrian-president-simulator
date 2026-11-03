@@ -116,7 +116,7 @@
     $budgetStore.canAffordWithFxCoverage(20_000_000, 8_000_000_000)
   );
   let isDeminingCoveredByFX = $derived(
-    $budgetStore.isCoveredByFX(20_000_000, 800_000_000_000)
+    $budgetStore.isCoveredByFX(20_000_000, 8_000_000_000)
   );
 
   let isSelectedForPowerBoost = $derived($draftStore.powerBoostGovId === selectedId);
@@ -125,7 +125,7 @@
     $budgetStore.canAffordWithFxCoverage(10_000_000, 3_000_000_000)
   );
   let isPowerBoostCoveredByFX = $derived(
-    $budgetStore.isCoveredByFX(10_000_000, 300_000_000_000)
+    $budgetStore.isCoveredByFX(10_000_000, 3_000_000_000)
   );
 
   // Barrier-blocker states (mirrors the decrees/emergency/assets treatment)
@@ -151,14 +151,26 @@
   let isProjectAffordablePC = $derived(
     Boolean(node?.strategicProject && node.strategicProject.costPoliticalCapital <= $budgetStore.remainingPC)
   );
+  // Ring-fenced grant dollars still unspent by the rest of the draft pay the
+  // project's USD leg before reserves do (engine PHASE 4 rule).
+  let projectGrantUSD = $derived($budgetStore.grantAvailableUSD);
+  let projectNetUSD = $derived(
+    node?.strategicProject ? Math.max(0, node.strategicProject.costUSD - projectGrantUSD) : 0
+  );
   let isProjectAffordableUSD = $derived(
-    Boolean(node?.strategicProject && node.strategicProject.costUSD <= $budgetStore.remainingUSD)
+    Boolean(node?.strategicProject && projectNetUSD <= $budgetStore.remainingUSD)
   );
   let isProjectAffordable = $derived(
-    Boolean(node?.strategicProject && $budgetStore.canAffordWithFxCoverage(node.strategicProject.costUSD, node.strategicProject.costSYP))
+    Boolean(
+      node?.strategicProject &&
+        $budgetStore.canAffordWithFxCoverage(projectNetUSD, node.strategicProject.costSYP)
+    )
   );
   let isProjectCoveredByFX = $derived(
-    Boolean(node?.strategicProject && $budgetStore.isCoveredByFX(node.strategicProject.costUSD, node.strategicProject.costSYP))
+    Boolean(
+      node?.strategicProject &&
+        $budgetStore.isCoveredByFX(projectNetUSD, node.strategicProject.costSYP)
+    )
   );
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
@@ -183,7 +195,10 @@
     const sii = node?.suwaydaIntegrationIndex ?? 8;
     const ssp = node?.suwaydaSecessionProb ?? 24;
     let policy = $draftStore.southernPolicy;
-    if (policy === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 4) policy = 'LOCAL_VOUCHERS';
+    // remainingPC already includes the accord's own 4-PC upkeep, so the
+    // engine falls back only when the treasury cannot cover that cost
+    // (remainingPC < 0). Comparing against 4 broke the exact-4-PC case.
+    if (policy === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 0) policy = 'LOCAL_VOUCHERS';
     switch (policy) {
       case 'HISTORIC_ACCORD': return { sii: Math.min(100, sii + 18), ssp: Math.max(0, ssp - 15) };
       case 'UNCONDITIONAL_AID': return { sii: Math.min(55, sii + 3), ssp: Math.max(0, ssp - 10) };
@@ -202,7 +217,7 @@
       case 'UN_LIAISON': gti = Math.max(10, gti - 10); break;
     }
     let south = $draftStore.southernPolicy;
-    if (south === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 4) south = 'LOCAL_VOUCHERS';
+    if (south === 'HISTORIC_ACCORD' && $budgetStore.remainingPC < 0) south = 'LOCAL_VOUCHERS';
     if (south === 'HISTORIC_ACCORD') gti = Math.max(15, gti - 5);
     else if (south === 'BLOCKADE') gti = Math.min(100, gti + 10);
     return { gti, ddi, nrc };
@@ -224,7 +239,7 @@
         aria-label="المحافظة السابقة"
         title="المحافظة السابقة"
       >
-        ‹
+        ›
       </button>
       <select
         aria-label="اختيار المحافظة"
@@ -246,7 +261,7 @@
         aria-label="المحافظة التالية"
         title="المحافظة التالية"
       >
-        ›
+        ‹
       </button>
     </div>
   </div>

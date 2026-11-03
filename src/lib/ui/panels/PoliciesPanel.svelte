@@ -10,6 +10,13 @@ import { activeFacilityLocks } from '../../engine/facilities';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
+  // ABSORB_MILITIAS payroll delta: the engine sets headcount to 1.4M × 1.20,
+  // so the card advertises the real +280k jobs and their SYP bill.
+  let absorbHeadcount = $derived(Math.round(1_400_000 * 1.2) - ($gameStore.macro.civilServiceHeadcount ?? 1_400_000));
+  let absorbPayrollB = $derived(
+    ((absorbHeadcount * ($gameStore.macro.civilServiceWageSYP ?? 4_050) * 6) / 1_000_000_000).toFixed(2)
+  );
+
   // IMF conditionality lock: while active, diesel policy is pinned to CRACKDOWN.
   function dieselGuard(value: 'CRACKDOWN' | 'STANDARD' | 'PERMISSIVE'): string | null {
     const res = draftStore.setFieldGuarded($gameStore, 'dieselSmuggling', value);
@@ -114,7 +121,6 @@ import { activeFacilityLocks } from '../../engine/facilities';
         <span class="font-bold text-[10.5px]">شطب الوهمي</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+8.50B توفير</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-5 فساد</span>
           <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+7 احتقان</span>
         </div>
       </button>
@@ -125,10 +131,10 @@ import { activeFacilityLocks } from '../../engine/facilities';
       >
         <span class="font-bold text-[10.5px]">استيعاب المسلحين</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">+8000 وظيفة</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-6 توتر</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">+{absorbHeadcount.toLocaleString('en-US')} وظيفة</span>
+          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-4 توتر</span>
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+امتثال تدريجي</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+5 فساد</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-{absorbPayrollB}B كلفة</span>
         </div>
       </button>
     </div>
@@ -136,7 +142,7 @@ import { activeFacilityLocks } from '../../engine/facilities';
       {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
         <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
       {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
-        <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن، مقابل تضخم كتلة الرواتب الحكومية وزيادة الفساد الإداري — مع اتساع القاعدة الضريبية تدريجياً (+1 امتثال/دور حتى +4).
+        <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن (-4 احتقان)، مقابل تضخم كتلة الرواتب الحكومية (+{absorbHeadcount.toLocaleString('en-US')} وظيفة) — مع اتساع القاعدة الضريبية تدريجياً (+1 امتثال/دور حتى +4).
       {:else}
         <span class="text-wheat-mid font-medium">الأثر:</span> الحفاظ على قوام الموظفين ورواتب الملاك الحكومي الراهن دون تعديل.
       {/if}
@@ -215,7 +221,7 @@ import { activeFacilityLocks } from '../../engine/facilities';
         <span class="font-bold text-[10.5px]">حملة صارمة</span>
         <div class="flex items-center gap-0.5 flex-wrap justify-center">
           <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+كهرباء وإنتاج</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+6 توتر</span>
+          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+4 توتر</span>
         </div>
       </button>
 

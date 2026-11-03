@@ -7,6 +7,8 @@ import {
 } from '../engine/turn-manager';
 import { gameStore } from './game-store';
 import {
+  getOligarchSettlementIncome,
+  getOligarchLiquidationIncome,
   getOligarchSettlementPCCost,
   getOligarchLiquidationPCCost,
   getOligarchNationalizePCEarned,
@@ -17,7 +19,13 @@ import {
   IMPORT_SURGE_COST_USD,
   LOAN_TERMINATION_PC_EARNED,
 } from '../engine/revenues';
-import { getFacilityDef, activeFacilityLocks } from '../engine/facilities';
+import {
+  getFacilityDef,
+  activeFacilityLocks,
+  computeFacilityTurn,
+  facilityBreached,
+} from '../engine/facilities';
+import { BASELINE_MACRO } from '../engine/constants';
 
 export interface TurnBudget {
   initialPC: number;
@@ -29,8 +37,14 @@ export interface TurnBudget {
   committedSYP: number;
 
   remainingPC: number;
+  /** Signed: negative means the draft over-commits reserves (over-budget). */
   remainingUSD: number;
   remainingSYP: number;
+
+  /** Largest voluntary early repayment the engine can actually pay this turn. */
+  maxDebtRepaymentUSD: number;
+  /** Ring-fenced grant dollars still available for further project USD costs. */
+  grantAvailableUSD: number;
 
   usdNeededToCoverSYP: (costSYP: number) => number;
   canAffordWithFxCoverage: (costUSD: number, costSYP: number) => boolean;
@@ -39,19 +53,67 @@ export interface TurnBudget {
 
 export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives): TurnBudget {
   const initialPC = gameState.macro.politicalCapital;
-  const initialUSD = gameState.macro.reservesUSD;
   const initialSYP = gameState.macro.treasurySYP;
+
+  // Same-turn hard-currency inflows the engine credits BEFORE it spends
+  // (Phase 2 loan/mortgage/oligarch cash, plus general facility tranches that
+  // reach reserves through the audit). Without these the UI blocked perfectly
+  // affordable plans — e.g. signing the IMF loan and then funding a project.
+  let sameTurnInflowUSD = 0;
+
+  // Loans that will actually be signed this turn (Paris repudiation shuts the
+  // western/Gulf windows in PHASE 2 — mirror that gate or the preview promises
+  // money the commit never disburses).
+  for (const loanId of draft.signedLoanIds ?? []) {
+    const loan = gameState.foreignLoans.find((l) => l.id === loanId);
+    if (!loan || loan.isSigned) continue;
+    if (
+      gameState.flags?.Debt_Repudiated_Paris === 1 &&
+      (loanId === 'loan_imf_wb' || loanId === 'loan_gulf_swf')
+    ) {
+      continue;
+    }
+    sameTurnInflowUSD += loan.disbursementUSD;
+  }
+
+  // Emergency mortgages not yet executed.
+  for (const mortgageId of draft.executedMortgageIds ?? []) {
+    const mort = gameState.sovereignMortgages?.find((m) => m.id === mortgageId);
+    if (mort && !mort.isMortgaged) sameTurnInflowUSD += mort.immediateCashUSD;
+  }
+
+  // Oligarch settlements / liquidations credit reserves in PHASE 1.
+  if (draft.oligarchDecisions) {
+    for (const [assetId, action] of Object.entries(draft.oligarchDecisions)) {
+      const asset = gameState.confiscatedAssets.find((a) => a.id === assetId);
+      if (!asset || asset.status !== 'PENDING') continue;
+      if (action === 'SETTLEMENT_80_20') sameTurnInflowUSD += getOligarchSettlementIncome(asset.valuationUSD);
+      else if (action === 'FOREIGN_LIQUIDATION') sameTurnInflowUSD += getOligarchLiquidationIncome(asset.valuationUSD);
+    }
+  }
+
+  // Concessional facilities: general tranches reach reserves; the ring-fenced
+  // share is project-only money and does not inflate cash. New ring-fenced
+  // tranches land AFTER project execution (applyFacilityTurn runs post-audit),
+  // so only the already-banked bucket can fund projects this turn.
+  const facilityTurn = computeFacilityTurn(gameState, draft);
+  sameTurnInflowUSD += Math.max(0, facilityTurn.inflowUSD - facilityTurn.ringFencedUSD);
+  let grantAvailableUSD = gameState.macro.grantBucketUSD ?? 0;
+
+  const initialUSD = gameState.macro.reservesUSD + sameTurnInflowUSD;
 
   let committedPC = 0;
   let committedUSD = 0;
   let committedSYP = 0;
 
-  // 1. Provincial Projects
+  // 1. Provincial Projects (ring-fenced grant dollars pay the USD leg first)
   for (const projId of draft.provincialProjects || []) {
     for (const gov of Object.values(gameState.governorates)) {
       if (gov.strategicProject && gov.strategicProject.id === projId) {
         committedPC += gov.strategicProject.costPoliticalCapital;
-        committedUSD += gov.strategicProject.costUSD;
+        const grantCover = Math.min(grantAvailableUSD, gov.strategicProject.costUSD);
+        grantAvailableUSD -= grantCover;
+        committedUSD += gov.strategicProject.costUSD - grantCover;
         committedSYP += gov.strategicProject.costSYP;
         break;
       }
@@ -110,21 +172,31 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
   }
 
   // 6. Foreign Loans (Political Capital commitments)
+  // Mirrors PHASE 2: Paris repudiation shuts the IMF/World Bank and Gulf
+  // windows entirely, so no PC is ever charged for them.
   if (draft.signedLoanIds && draft.signedLoanIds.length > 0) {
     for (const loanId of draft.signedLoanIds) {
       const loan = gameState.foreignLoans.find((l) => l.id === loanId);
-      if (loan && !loan.isSigned) {
-        committedPC += loan.politicalCapitalCost;
+      if (!loan || loan.isSigned) continue;
+      if (
+        gameState.flags?.Debt_Repudiated_Paris === 1 &&
+        (loanId === 'loan_imf_wb' || loanId === 'loan_gulf_swf')
+      ) {
+        continue;
       }
+      committedPC += loan.politicalCapitalCost;
     }
   }
 
   // 6b. Concessional facilities (Political Capital commitments)
+  // A facility whose condition is already breached this turn is refused by
+  // applyFacilityTurn, so it must not reserve PC in the budget either.
   if (draft.signedFacilityIds && draft.signedFacilityIds.length > 0) {
     for (const facilityId of draft.signedFacilityIds) {
       const def = getFacilityDef(facilityId);
       const existing = gameState.facilities?.find((f) => f.id === facilityId);
       if (def && (!existing || existing.status === 'AVAILABLE')) {
+        if (facilityBreached(gameState, draft, facilityId)) continue;
         committedPC += def.politicalCapitalCost;
       }
     }
@@ -170,14 +242,36 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     committedUSD += 8_000_000;
   }
 
+  // 8c. Golan armored deployment (audit's golanDrainSYP)
+  if (draft.golanBorderStance === 'DEPLOY_ARMOR') {
+    committedSYP += 9_000_000_000;
+  }
+
   // 9. Central Bank Dollar Auction
   committedUSD += draft.dollarAuctionUSD || 0;
 
-  const remainingPC = Math.max(0, Math.min(200, initialPC - committedPC));
-  const remainingUSD = Math.max(0, initialUSD - committedUSD);
+  // 9b. Voluntary early debt repayment. The engine pays it from reserves left
+  // after terminations and other outlays, so clamp the commitment to the same
+  // envelope; the panel reads maxDebtRepaymentUSD back for its slider.
+  const signedPrincipalUSD = gameState.foreignLoans
+    .filter((l) => l.isSigned)
+    .reduce((sum, l) => sum + (l.remainingPrincipalUSD ?? l.disbursementUSD), 0);
+  const maxDebtRepaymentUSD = Math.max(
+    0,
+    Math.min(signedPrincipalUSD, initialUSD - committedUSD)
+  );
+  committedUSD += Math.min(Math.max(0, draft.extraDebtRepaymentUSD ?? 0), maxDebtRepaymentUSD);
+
+  // Kept signed for validation (over-budget must be detectable); only the
+  // display layer clamps these to zero.
+  const remainingPC = Math.min(200, initialPC - committedPC);
+  const remainingUSD = initialUSD - committedUSD;
   const remainingSYP = initialSYP - committedSYP;
 
-  const parallelRate = Math.max(1, gameState.macro.parallelRateSYP || 14000);
+  const parallelRate = Math.max(
+    1,
+    gameState.macro.parallelRateSYP || BASELINE_MACRO.parallelRateSYP
+  );
 
   const usdNeededToCoverSYP = (costSYP: number): number => {
     // Mirrors canAffordDirectiveCost: only the new cost needs FX backing,
@@ -205,6 +299,8 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     remainingPC,
     remainingUSD,
     remainingSYP,
+    maxDebtRepaymentUSD,
+    grantAvailableUSD,
     usdNeededToCoverSYP,
     canAffordWithFxCoverage,
     isCoveredByFX,
@@ -213,40 +309,62 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
 const DRAFT_STORAGE_KEY = 'syria_president_draft_v1';
 
+/**
+ * Decrees whose effect is a standing state (continuous toggle) or a per-turn
+ * action the player can re-issue each turn. Everything else is a one-time
+ * intent that must not survive a reload or a committed turn looking pre-set.
+ * Engine mirror: `ONE_TIME_DECREES` in turn-manager PHASE 0.
+ */
+const PERSISTENT_POLITICAL_ACTIONS = [
+  'MARTIAL_LAW',
+  'SMUGGLING_BORDER_SWEEP',
+  'CABINET_HEARING',
+];
+
+/**
+ * Normalise a parsed draft payload: backfill new fields, then drop every
+ * one-shot intent that must not survive a reload looking pre-selected while
+ * keeping continuous/periodic decisions. Exported for the regression script.
+ */
+export function normalizeStoredDraft(parsed: Partial<TurnDirectives>): TurnDirectives {
+  const normalized = { ...getDefaultTurnDirectives(), ...parsed } as TurnDirectives;
+  normalized.activePoliticalActions = (normalized.activePoliticalActions || []).filter((a) =>
+    PERSISTENT_POLITICAL_ACTIONS.includes(a)
+  );
+  normalized.populistGrant = false;
+  normalized.importSurge = false;
+  normalized.terminatedLoanIds = [];
+  normalized.extraDebtRepaymentUSD = 0;
+  normalized.dollarAuctionUSD = 0;
+  normalized.deminingPriorityId = null;
+  normalized.powerBoostGovId = null;
+  return normalized;
+}
+
 function loadStoredDraft(): TurnDirectives {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Backfill fields added after the save was written so old drafts
-        // never carry undefined directive keys into the engine or budget.
-        const normalized = { ...getDefaultTurnDirectives(), ...parsed };
-        // One-time decree intents must not survive a reload looking
-        // pre-toggled; only the continuous martial-law state carries over.
-        normalized.activePoliticalActions = (normalized.activePoliticalActions || []).filter(
-          (a: string) => a === 'MARTIAL_LAW'
-        );
-        // One-shot patronage intents never survive a reload either.
-        normalized.populistGrant = false;
-        normalized.importSurge = false;
-        normalized.terminatedLoanIds = [];
-        return normalized;
-      } catch (e) {
-        console.error('Failed to parse saved draft:', e);
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (saved) {
+        return normalizeStoredDraft(JSON.parse(saved));
       }
     }
+  } catch (e) {
+    // Corrupt JSON, a partial write, or blocked storage (SecurityError in
+    // sandboxed/private contexts) must fall back to a fresh draft, never
+    // abort store initialisation.
+    console.error('Failed to load saved draft:', e);
   }
   return getDefaultTurnDirectives();
 }
 
 function persistDraft(draft: TurnDirectives): void {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    } catch (e) {
-      console.error('Failed to save draft:', e);
     }
+  } catch (e) {
+    console.error('Failed to save draft:', e);
   }
 }
 
@@ -304,9 +422,19 @@ function createDraftStore() {
         populistGrant: false,
         importSurge: false,
         terminatedLoanIds: [],
-        // Retain continuous states (MARTIAL_LAW) until lifted, reset one-time and periodic decrees:
-        activePoliticalActions: (d.activePoliticalActions || []).filter((a) => a === 'MARTIAL_LAW'),
-        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, demining, brain gain, charity fund) are preserved!
+        // One-shot per-turn FX/operational directives: a dollar auction, a
+        // demining priority and a power-boost target are sized against THIS
+        // turn's reserves and must never be charged again silently.
+        dollarAuctionUSD: 0,
+        deminingPriorityId: null,
+        powerBoostGovId: null,
+        // Retain continuous states (MARTIAL_LAW) and per-turn decisions the
+        // player can re-issue (border sweep, cabinet hearing); strip one-time
+        // decree intents that are now enacted law.
+        activePoliticalActions: (d.activePoliticalActions || []).filter((a) =>
+          PERSISTENT_POLITICAL_ACTIONS.includes(a)
+        ),
+        // Selected ongoing policies (subsidies, wages, tax rates, diesel smuggling, brain gain, charity fund) are preserved!
       }));
     },
     togglePoliticalAction: (action: string) => {

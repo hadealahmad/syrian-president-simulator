@@ -1,6 +1,8 @@
 // Shared data + helpers for command panels (ported from MinistryDrawer, tabs removed).
 // Filter dimming follows the TopRibbon drill-down via selectedStatForOptions.
 
+import type { GameState } from '../../engine/types';
+
 export type DecreeBehaviorType = 'ONE_TIME' | 'CONTINUOUS_TOGGLE' | 'PERIODIC';
 
 export interface PoliticalDecreeItem {
@@ -169,6 +171,73 @@ export function formatM(val: number): string {
   return (val / 1_000_000).toFixed(1);
 }
 
+// ── Fiscal preview helpers ──────────────────────────────────────────────────
+// The tax panel used to advertise its own made-up formulas, so the numbers on
+// the sliders disagreed with the turn receipt. These mirror the authoritative
+// formulas in src/lib/engine/revenues.ts (auditSemiannualBudget §§1,2,4) and
+// src/lib/engine/turn-manager.ts (PHASE 4 grid CapEx, PHASE 6 wage relief);
+// the audit-split regression test pins the two implementations together.
+
+/** Remittance pool used by the standard capture branch (engine: $500M/turn). */
+export const REMITTANCE_POOL_USD = 500_000_000;
+
+/** Dynamic tax compliance, exactly as revenues.ts §1 computes it (0.12–0.88). */
+export function previewComplianceRate(state: GameState): number {
+  const ministries = Object.values(state.ministries);
+  const avgMinistryCompetence =
+    ministries.length > 0
+      ? ministries.reduce((acc, m) => acc + m.competence, 0) / ministries.length
+      : 50;
+  const govs = Object.values(state.governorates);
+  const avgPRRI = govs.length > 0 ? govs.reduce((acc, g) => acc + g.prri, 0) / govs.length : 45;
+  const raw =
+    0.47 +
+    (state.macro.dailyPowerHours / 24) * 0.25 +
+    (avgMinistryCompetence / 100) * 0.25 -
+    (state.macro.systemicCorruption / 100) * 0.3 -
+    (avgPRRI / 100) * 0.25 +
+    (state.macro.militiaAbsorptionBonus ?? 0);
+  return Math.max(0.12, Math.min(0.88, raw));
+}
+
+/** Corporate profit tax (revenues.ts §4): 24B base at 22%, scaled by compliance. */
+export function previewCorporateTaxSYP(rate: number, complianceRate: number): number {
+  return Math.round(24_000_000_000 * (rate / 22) * complianceRate);
+}
+
+/** Telecom airtime excise (revenues.ts §4): 16.5B at 15%, no compliance factor. */
+export function previewTelecomExciseSYP(rate: number): number {
+  return Math.round(16_500_000_000 * (rate / 15));
+}
+
+/** Crossings transit revenue (revenues.ts §2): 75k trucks × fee × capture × compliance × 0.85. */
+export function previewTransitRevenueUSD(
+  feeUSD: number,
+  capturePct: number,
+  complianceRate: number
+): number {
+  return Math.round(75_000 * feeUSD * (capturePct / 100) * complianceRate * 0.85);
+}
+
+/** Grid CapEx gain (turn-manager PHASE 4), including the zero-CapEx decay. */
+export function previewGridCapExGain(
+  capexUSD: number,
+  energyCompetence: number,
+  corruptionPct: number
+): { mw: number; hours: number } {
+  if (!(capexUSD > 0)) return { mw: -120, hours: -0.5 };
+  const compFactor = Math.max(0.6, (energyCompetence / 100) * 1.5);
+  const corrupFactor = 1 - (corruptionPct / 100) * 0.4;
+  const effectiveCapExUSD = capexUSD * compFactor * corrupFactor;
+  const mw = Math.round((effectiveCapExUSD / 1_000_000) * 15);
+  return { mw, hours: Number((mw / 250).toFixed(1)) };
+}
+
+/** Wage-bump unrest relief (turn-manager PHASE 6): +25% → -3, uncapped. */
+export function previewWageUnrestRelief(wageBumpPercent: number): number {
+  return Math.round((wageBumpPercent / 25) * 3);
+}
+
 export function formatBillion(syp: number): string {
   const val = Number((syp / 1_000_000_000).toFixed(2));
   if (Object.is(val, -0) || val === 0) return '0.00';
@@ -286,16 +355,42 @@ export const PANEL_OPTION_KEYS: Record<string, string[]> = {
 
 export const PROVINCIAL_OPTION_KEYS: Array<'project' | 'demining' | 'power'> = ['project', 'demining', 'power'];
 
+// Which top-ribbon stat each decree actually moves. Decrees were passed to
+// isOptionRelated() by id, which had no case for them, so every decree card
+// was dimmed and unclickable whenever any stat filter was active.
+export const DECREE_RELATED_STATS: Record<string, string[]> = {
+  ANTI_CORRUPTION_COMMISSION: ['systemicCorruption', 'civicTrust', 'unrestIndex', 'treasurySYP'],
+  PROPERTY_RESTITUTION_PORTAL: ['civicTrust', 'unrestIndex', 'population'],
+  SMUGGLING_BORDER_SWEEP: ['systemicCorruption', 'reservesUSD', 'taxCompliancePct'],
+  TRIBAL_CUSTOMS_COUNCIL: ['unrestIndex', 'civicTrust'],
+  CABINET_HEARING: ['politicalCapital', 'civicTrust', 'civilServiceHeadcount'],
+  UNITY_SPEECH: ['politicalCapital', 'civicTrust', 'unrestIndex'],
+  OPPOSITION_SEATS: ['politicalCapital', 'civicTrust'],
+  MARTIAL_LAW: ['unrestIndex', 'civicTrust', 'politicalCapital'],
+  REPUDIATE_IRAN_INFORMAL: ['politicalCapital', 'sovereignDebtUSD', 'civicTrust'],
+  REPUDIATE_IRAN_FORMAL: ['politicalCapital', 'sovereignDebtUSD', 'reservesUSD'],
+  REPUDIATE_RUSSIA: ['politicalCapital', 'sovereignDebtUSD', 'sovereignLeverage'],
+  REPUDIATE_PARIS: ['politicalCapital', 'sovereignDebtUSD', 'sovereignLeverage', 'civicTrust'],
+};
+
 export function panelHasRelated(selectedStat: string | null, panelId: string): boolean {
   if (!selectedStat) return false;
   if (panelId === 'provincial') {
     return PROVINCIAL_OPTION_KEYS.some((k) => isProvincialActionRelated(selectedStat, k));
+  }
+  if (panelId === 'decrees') {
+    return (
+      isOptionRelated(selectedStat, 'populistGrant') ||
+      Object.keys(DECREE_RELATED_STATS).some((id) => isOptionRelated(selectedStat, id))
+    );
   }
   return (PANEL_OPTION_KEYS[panelId] ?? []).some((k) => isOptionRelated(selectedStat, k));
 }
 
 export function isOptionRelated(selectedStat: string | null, optionKey: string): boolean {
   if (!selectedStat) return true;
+  const decreeStats = DECREE_RELATED_STATS[optionKey];
+  if (decreeStats) return decreeStats.includes(selectedStat);
   switch (optionKey) {
     case 'wageBumpPercent':
       return ['unrestIndex', 'civilServiceWageUSD', 'civilPayrollSYP', 'treasurySYP', 'm2MoneySupplySYP', 'civicTrust'].includes(selectedStat);
@@ -351,7 +446,7 @@ export const SUSPENDED_CARD_CLASS =
 export const SUSPENDED_CONTENT_CLASS = 'opacity-35 saturate-50';
 export const SUSPENDED_ICON = 'barrier';
 export function pcShortageText(costPC: number, remainingPC: number): string {
-  return `موقوف مؤقتاً: يتطلب ${costPC} رصيد (المتاح ${remainingPC})`;
+  return `موقوف مؤقتاً: يتطلب ${costPC} رصيد (المتاح ${Math.max(0, Math.floor(remainingPC))})`;
 }
 
 // How-it-works explanations for stats (shown in topbar + stats-table tooltips).

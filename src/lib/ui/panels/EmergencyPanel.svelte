@@ -8,6 +8,7 @@
 import type { ForeignLoanPackage, SovereignMortgageOption, FacilityState } from '../../engine/types';
 import { CONCESSIONAL_FACILITIES } from '../../engine/constants';
 import { canSignFacility, getFacilityState } from '../../engine/facilities';
+import { focusTrap } from '../actions/focus-trap';
 
 let selectedStat = $derived($uiStore.selectedStatForOptions);
 let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $state(null);
@@ -32,10 +33,21 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
       .filter((l) => l.isSigned)
       .reduce((acc, l) => acc + (l.remainingPrincipalUSD ?? l.disbursementUSD), 0)
   );
+  // The engine pays early repayment from reserves left after terminations and
+  // every other outlay, so the slider is bounded by the budget's same clamp —
+  // not by gross reserves (which offered payments the engine would skip).
   let maxRepayM = $derived(
-    Math.max(0, Math.floor(Math.min(200, ($gameStore.macro.reservesUSD ?? 0) / 1_000_000, totalRemainingPrincipal / 1_000_000) / 5) * 5)
+    Math.max(0, Math.floor(($budgetStore.maxDebtRepaymentUSD ?? 0) / 1_000_000 / 5) * 5)
   );
   let repayM = $derived(($draftStore.extraDebtRepaymentUSD ?? 0) / 1_000_000);
+
+  // Re-clamp a stored payment when reserves/commitments shrink it between edits.
+  $effect(() => {
+    const maxUSD = $budgetStore.maxDebtRepaymentUSD;
+    if (($draftStore.extraDebtRepaymentUSD ?? 0) > maxUSD) {
+      draftStore.setField('extraDebtRepaymentUSD', maxUSD);
+    }
+  });
 
   // Emergency import surge: $40M of reserves for +6 PC and blackout relief
   let canAffordSurge = $derived(
@@ -402,7 +414,10 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
       tabindex="-1"
       aria-label="إلغاء"
     ></button>
-    <div class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none scroll-area overflow-y-auto modal-card">
+    <div
+      use:focusTrap
+      class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none scroll-area overflow-y-auto modal-card"
+    >
       {#if loan}
         <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{loan.titleAr}</h3>
         <p class="text-[11px] text-wheat-dark leading-relaxed">{loan.lenderAr} — {loan.concessionSummaryAr}</p>

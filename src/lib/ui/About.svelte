@@ -2,6 +2,7 @@
   import GameIcon from './GameIcon.svelte';
   import { PROJECT_LINKS } from '../project-links';
   import { uiStore } from '../stores/ui-store';
+  import { focusTrap } from './actions/focus-trap';
 
   interface SourceRef {
     label: string;
@@ -130,6 +131,7 @@
 
 {#if $uiStore.isAboutOpen}
   <div
+    use:focusTrap
     class="pointer-events-auto fixed inset-0 z-[200] overflow-y-auto bg-charcoal-deep font-arabic scroll-area"
     role="dialog"
     aria-modal="true"
