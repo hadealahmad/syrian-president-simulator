@@ -23,6 +23,10 @@ export interface UIState {
   showMigrationArrows: boolean;
   /** CRT tube glass over the map canvas (purely visual; off = raw map). */
   crtTube: boolean;
+  /** Alerts hidden by the player until the next committed turn. */
+  dismissedAlertIds: string[];
+  /** Phone alarm tray (pill on portrait, bell panel on landscape). */
+  isAlertsOpen: boolean;
 }
 
 const TOUR_KEY = 'president_guide_tour_v2';
@@ -59,10 +63,6 @@ function checkGameStarted(): boolean {
   return false;
 }
 
-function isCompactViewport(): boolean {
-  return typeof window !== 'undefined' && window.innerWidth < 1024;
-}
-
 function createUIStore() {
   const initialStarted = checkGameStarted();
   const { subscribe, update } = writable<UIState>({
@@ -82,6 +82,8 @@ function createUIStore() {
     isStatsSidebarOpen: false,
     showMigrationArrows: true,
     crtTube: true,
+    dismissedAlertIds: [],
+    isAlertsOpen: false,
   });
 
   return {
@@ -90,13 +92,13 @@ function createUIStore() {
       update((s) => ({
         ...s,
         selectedGovernorateId: id,
-        // Map clicks pin the provincial command panel (drawers retired).
-        // On desktop (lg+), the stats sidebar is independent; on compact
-        // viewports (<1024px) we auto-close the sidebar so it doesn't cover
-        // the provincial panel.
+        // Map clicks pin the provincial command panel. The new shell has a
+        // single responsive Sheet, so any open panel (including stats) gives
+        // way to the provincial dossier.
         activeCommandPanel: id ? 'provincial' : s.activeCommandPanel,
         commandPanelPinned: id ? true : s.commandPanelPinned,
-        isStatsSidebarOpen: id && isCompactViewport() ? false : s.isStatsSidebarOpen,
+        isStatsSidebarOpen: false,
+        isAlertsOpen: false,
       }));
     },
     setTurnFlowStage: (stage: UIState['turnFlowStage']) => {
@@ -140,31 +142,53 @@ function createUIStore() {
       update((s) => ({ ...s, selectedStatForOptions: null }));
     },
     openCommandPanel: (id: string | null, pinned: boolean = false) => {
-      // On desktop (lg+) bottom panels never touch the independent stats sidebar;
-      // on compact screens (<1024px) opening a bottom panel closes the overlay sidebar.
+      // Single Sheet shell: opening a section always dismisses the stats view.
       update((s) => ({
         ...s,
         activeCommandPanel: id,
         commandPanelPinned: pinned,
-        isStatsSidebarOpen: id && isCompactViewport() ? false : s.isStatsSidebarOpen,
+        isStatsSidebarOpen: false,
+        isAlertsOpen: false,
       }));
     },
     closeCommandPanel: () => {
-      // Only the bottom panel; the stats sidebar has its own toggle and
-      // survives canvas/governorate map clicks and other hub buttons.
+      // Close the command section only. The stats view uses its own toggle;
+      // `closeActivePanel()` closes whichever one the Sheet is showing.
       update((s) => ({ ...s, activeCommandPanel: null, commandPanelPinned: false }));
+    },
+    /** Close whichever section the Sheet is currently showing. */
+    closeActivePanel: () => {
+      update((s) => ({
+        ...s,
+        activeCommandPanel: null,
+        commandPanelPinned: false,
+        isStatsSidebarOpen: false,
+      }));
     },
     toggleStatsSidebar: (open?: boolean) => {
       update((s) => {
         const nextOpen = open ?? !s.isStatsSidebarOpen;
-        const closeBottom = nextOpen && isCompactViewport();
         return {
           ...s,
           isStatsSidebarOpen: nextOpen,
-          activeCommandPanel: closeBottom ? null : s.activeCommandPanel,
-          commandPanelPinned: closeBottom ? false : s.commandPanelPinned,
+          activeCommandPanel: nextOpen ? null : s.activeCommandPanel,
+          commandPanelPinned: nextOpen ? false : s.commandPanelPinned,
+          isAlertsOpen: false,
         };
       });
+    },
+    setAlertsOpen: (open: boolean) => {
+      update((s) => ({ ...s, isAlertsOpen: open }));
+    },
+    dismissAlert: (id: string) => {
+      update((s) =>
+        s.dismissedAlertIds.includes(id)
+          ? s
+          : { ...s, dismissedAlertIds: [...s.dismissedAlertIds, id] }
+      );
+    },
+    clearDismissedAlerts: () => {
+      update((s) => (s.dismissedAlertIds.length ? { ...s, dismissedAlertIds: [] } : s));
     },
     setMigrationArrows: (show: boolean) => {
       update((s) => ({ ...s, showMigrationArrows: show }));
@@ -192,6 +216,8 @@ function createUIStore() {
         activeCommandPanel: null,
         commandPanelPinned: false,
         isStatsSidebarOpen: false,
+        dismissedAlertIds: [],
+        isAlertsOpen: false,
       }));
     },
   };

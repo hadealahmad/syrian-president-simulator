@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Concept D responsive variants (shell layout). Defined once here so every
+   component can use `phone-p:` / `phone-l:` prefixes. Default = desktop/tablet. */
+@custom-variant phone-p (@media (max-width: 767px) and (orientation: portrait));
+@custom-variant phone-l (@media (max-height: 500px) and (orientation: landscape));
+
 @font-face {
   font-family: 'Thmanyah Sans';
   src: url('/fonts/thmanyah/thmanyah-sans-light.woff2') format('woff2');
@@ -530,5 +535,211 @@
 @media (orientation: landscape) and (max-height: 560px) {
   .cmd-panel {
     max-height: calc(var(--vp-h) - 96px);
+  }
+}
+
+/* ==========================================================================
+   CONCEPT D SHELL — foundation tokens, radii and motion.
+   Values are taken from concepts/concept-d-hybrid.html; colours are derived
+   from the active theme tokens wherever one exists so every theme follows.
+   The global zero-radius reset above still applies to the legacy UI; the
+   explicit `.shell-round-*` classes are the only rounded surfaces.
+   ========================================================================== */
+:root {
+  --shell-top-h: 64px;
+  --shell-tab-h: 61px;
+  --shell-gap: 12px;
+  --radius-shell: 14px;
+  --radius-card: 12px;
+  --radius-chip: 999px;
+  --shell-line: rgb(from var(--color-wheat-mid) r g b / 0.16);
+  --shell-line-soft: rgb(from var(--color-wheat-mid) r g b / 0.08);
+  --shell-glass: rgb(from var(--color-forest-deep) r g b / 0.9);
+  --shell-glass-soft: rgb(from var(--color-forest-mid) r g b / 0.72);
+  --shell-muted: var(--color-wheat-dark);
+  --shell-shadow-dock: 0 18px 50px rgb(0 0 0 / 0.55);
+  --shell-shadow-sheet: -30px 0 80px rgb(0 0 0 / 0.55);
+  --shell-shadow-alert: 0 6px 18px rgb(0 0 0 / 0.22);
+  --shell-surface: linear-gradient(
+    170deg,
+    rgb(from var(--color-forest-mid) r g b / 0.96),
+    rgb(from var(--color-forest-deep) r g b / 0.99)
+  );
+  --shell-seal-gold: radial-gradient(
+    circle at 34% 28%,
+    color-mix(in srgb, var(--color-wheat-gold) 55%, white),
+    var(--color-wheat-gold) 42%,
+    color-mix(in srgb, var(--color-wheat-gold) 82%, black) 78%,
+    color-mix(in srgb, var(--color-wheat-gold) 64%, black)
+  );
+  --shell-seal-ink: color-mix(in srgb, var(--color-wheat-gold) 18%, black);
+}
+@media (max-width: 767px) and (orientation: portrait) {
+  :root {
+    --shell-top-h: 56px;
+  }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --shell-top-h: 44px;
+  }
+}
+
+/* Rounded exceptions to the global angular reset (shell only). */
+.shell-round-seal,
+.shell-round-seal::before,
+.shell-round-seal::after {
+  border-radius: 50% !important;
+}
+.shell-round-sheet-side {
+  border-start-start-radius: var(--radius-shell) !important;
+  border-end-start-radius: var(--radius-shell) !important;
+}
+.shell-round-sheet-bottom {
+  border-start-start-radius: 20px !important;
+  border-start-end-radius: 20px !important;
+}
+.shell-round-dock {
+  border-radius: 18px !important;
+}
+.shell-round-item {
+  border-radius: 12px !important;
+}
+.shell-round-alert {
+  border-radius: 11px !important;
+}
+.shell-round-chip {
+  border-radius: var(--radius-chip) !important;
+}
+.shell-round-pop {
+  border-radius: var(--radius-card) !important;
+}
+
+/* Shell motion (wrapped for reduced-motion below). */
+@keyframes shell-sheet-in-side {
+  from { opacity: 0.55; transform: translateX(-22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shell-sheet-in-end {
+  from { opacity: 0.55; transform: translateX(22px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes shell-sheet-in-bottom {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes shell-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes shell-seal-ring {
+  0% { box-shadow: 0 0 0 0 rgb(from var(--color-status-danger) r g b / 0.45); }
+  70% { box-shadow: 0 0 0 8px rgb(from var(--color-status-danger) r g b / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(from var(--color-status-danger) r g b / 0); }
+}
+.shell-enter-side { animation: shell-sheet-in-side 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.shell-enter-end { animation: shell-sheet-in-end 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.shell-enter-bottom { animation: shell-sheet-in-bottom 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.shell-fade-in { animation: shell-fade-in 0.22s ease-out both; }
+.shell-alert-live { animation: shell-seal-ring 2.4s infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .shell-enter-side,
+  .shell-enter-end,
+  .shell-enter-bottom,
+  .shell-fade-in,
+  .shell-alert-live {
+    animation: none !important;
+  }
+}
+
+/* End-Turn gold seal (Concept D). The zero-radius reset is overridden by
+   `.shell-round-seal`; the two inner engraved rings are pseudo elements. */
+.shell-seal {
+  color: var(--shell-seal-ink);
+  background: var(--shell-seal-gold);
+  border: 1px solid color-mix(in srgb, var(--color-wheat-light) 78%, transparent);
+  box-shadow:
+    0 14px 40px rgb(from var(--color-wheat-gold) r g b / 0.24),
+    0 4px 12px rgb(0 0 0 / 0.4),
+    inset 0 0 0 5px rgb(0 0 0 / 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.shell-seal:hover {
+  transform: scale(1.045);
+  box-shadow:
+    0 18px 48px rgb(from var(--color-wheat-gold) r g b / 0.34),
+    0 4px 12px rgb(0 0 0 / 0.4),
+    inset 0 0 0 5px rgb(0 0 0 / 0.08);
+}
+.shell-seal:active {
+  transform: scale(0.97);
+}
+.shell-seal::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px dashed rgb(0 0 0 / 0.42);
+  pointer-events: none;
+}
+.shell-seal::after {
+  content: "";
+  position: absolute;
+  inset: 13px;
+  border: 1px solid rgb(0 0 0 / 0.16);
+  pointer-events: none;
+}
+.shell-seal:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+  cursor: not-allowed;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shell-seal {
+    transition: none;
+  }
+  .shell-seal:hover,
+  .shell-seal:active {
+    transform: none;
+  }
+}
+
+/* When a command Sheet is open, the legacy floating deck cluster (guide /
+   settings / migration) sits in the same corner and would stack over the
+   sheet header. Hide the cluster while the sheet is open; the settings
+   curtain inside the same component stays mounted and reachable as soon as
+   the sheet closes. */
+.shell-deck-collapsed > div:first-child {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Touch sizing for the legacy system cluster (guide / settings / migration)
+   while it is mounted inside the new shell. The cluster's own compact sizes
+   are desktop-oriented; on phones every control must be at least 44×44. */
+@media (max-width: 767px) and (orientation: portrait), (max-height: 500px) and (orientation: landscape) {
+  .shell-deck-host > div:first-child button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Desktop sheets are non-modal, so the bottom command dock must not slide
+   under the open drawer. On wide desktops the dock shifts toward the
+   inline-start edge (clear of both the sheet and the End-Turn seal) while
+   staying horizontally scrollable if the viewport is tight. */
+@media (min-width: 1100px) {
+  .shell-dock-shifted {
+    inset-inline-start: 142px;
+    inset-inline-end: auto;
+    margin-inline: 0;
+    max-width: calc(var(--vp-w) - 700px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .shell-dock-shifted::-webkit-scrollbar {
+    display: none;
   }
 }
