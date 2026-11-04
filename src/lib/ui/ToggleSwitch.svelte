@@ -12,6 +12,7 @@
   } = $props();
 </script>
 
+<!-- 44×44 hit area; the visible track stays compact inside it. -->
 <button
   type="button"
   role="switch"
@@ -21,13 +22,21 @@
   onclick={() => {
     if (!disabled) onchange?.(!checked);
   }}
-  class="relative h-6 w-11 shrink-0 rounded-full border transition-colors {checked
-    ? 'bg-forest-mid border-forest-accent'
-    : 'bg-charcoal-surface border-charcoal-mid'} {disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+  class="group relative inline-flex h-11 w-14 shrink-0 items-center justify-center focus-visible:outline-none {disabled
+    ? 'cursor-not-allowed opacity-50'
+    : 'cursor-pointer'}"
 >
   <span
-    class="absolute top-[2px] h-[18px] w-[18px] rounded-full transition-all {checked
-      ? 'left-[2px] bg-forest-accent shadow'
-      : 'left-[22px] bg-wheat-dark'}"
-  ></span>
+    class="relative block h-7 w-12 overflow-hidden border transition-colors {checked
+      ? 'border-forest-accent bg-forest-mid'
+      : 'border-charcoal-mid bg-charcoal-surface'} group-focus-visible:ring-2 group-focus-visible:ring-wheat-gold/70"
+    style="border-radius: 999px !important;"
+  >
+    <span
+      class="absolute top-1/2 block h-5 w-5 -translate-y-1/2 shadow transition-all {checked
+        ? 'bg-forest-accent'
+        : 'bg-wheat-dark'}"
+      style="border-radius: 50% !important; {checked ? 'inset-inline-end: 2px;' : 'inset-inline-start: 2px;'}"
+    ></span>
+  </span>
 </button>

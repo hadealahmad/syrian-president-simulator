@@ -1,12 +1,11 @@
 <script lang="ts">
-import { draftStore } from '../../stores/draft-store';
-import { gameStore } from '../../stores/game-store';
-import { uiStore } from '../../stores/ui-store';
-import GameIcon from '../GameIcon.svelte';
-import { activeFacilityLocks } from '../../engine/facilities';
-  import {
-    isOptionRelated,
-  } from './shared';
+  import { draftStore } from '../../stores/draft-store';
+  import { gameStore } from '../../stores/game-store';
+  import { uiStore } from '../../stores/ui-store';
+  import GameIcon from '../GameIcon.svelte';
+  import Segmented, { type SegmentedOption } from '../controls/Segmented.svelte';
+  import { activeFacilityLocks } from '../../engine/facilities';
+  import { isOptionRelated } from './shared';
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
@@ -33,230 +32,304 @@ import { activeFacilityLocks } from '../../engine/facilities';
   function toggleExplainer(key: string): void {
     openExplainers[key] = !openExplainers[key];
   }
+
+  const foodOptions: SegmentedOption[] = [
+    {
+      value: 'AUSTERE',
+      label: 'تقشف',
+      chips: [
+        { text: '+15 احتقان', tone: 'bad' },
+        { text: '+9.00B توفير', tone: 'good' },
+      ],
+    },
+    {
+      value: 'STANDARD',
+      label: 'اعتيادي',
+      chips: [
+        { text: '0 احتقان', tone: 'neutral' },
+        { text: 'مستقر', tone: 'neutral' },
+      ],
+    },
+    {
+      value: 'GENEROUS',
+      label: 'موسع',
+      chips: [
+        { text: '-12 احتقان', tone: 'good' },
+        { text: '-8.00B كلفة', tone: 'bad' },
+      ],
+    },
+  ];
+
+  let workforceOptions = $derived.by((): SegmentedOption[] => [
+    {
+      value: 'MAINTAIN',
+      label: 'تثبيت الملاك',
+      chips: [
+        { text: 'استقرار', tone: 'neutral' },
+        { text: 'اعتيادي', tone: 'neutral' },
+      ],
+    },
+    {
+      value: 'PRUNE_CIVIL_SERVICE',
+      label: 'شطب الوهمي',
+      chips: [
+        { text: '+8.50B توفير', tone: 'good' },
+        { text: '+7 احتقان', tone: 'bad' },
+      ],
+    },
+    {
+      value: 'ABSORB_MILITIAS',
+      label: 'استيعاب المسلحين',
+      chips: [
+        { text: `+${absorbHeadcount.toLocaleString('en-US')} وظيفة`, tone: 'good' },
+        { text: '-4 توتر', tone: 'good' },
+        { text: '+امتثال تدريجي', tone: 'good' },
+        { text: `-${absorbPayrollB}B كلفة`, tone: 'bad' },
+      ],
+    },
+  ]);
+
+  const wheatOptions: SegmentedOption[] = [
+    {
+      value: 'SUBSIDIZED_LOW',
+      label: 'سعر إلزامي',
+      chips: [
+        { text: '+$60M استيراد', tone: 'bad' },
+        { text: '+6 احتقان', tone: 'bad' },
+      ],
+    },
+    {
+      value: 'MARKET_PARITY',
+      label: 'سعر عادل',
+      chips: [
+        { text: 'استقرار', tone: 'neutral' },
+        { text: 'سوق حر', tone: 'neutral' },
+      ],
+    },
+    {
+      value: 'PREMIUM_INCENTIVE',
+      label: 'علاوة تحفيز',
+      chips: [
+        { text: 'توريد 100%', tone: 'good' },
+        { text: '-4.50B كلفة', tone: 'bad' },
+      ],
+    },
+  ];
+
+  let dieselOptions = $derived.by((): SegmentedOption[] => [
+    {
+      value: 'CRACKDOWN',
+      label: 'حملة صارمة',
+      chips: [
+        { text: '+كهرباء وإنتاج', tone: 'good' },
+        { text: '+4 توتر', tone: 'bad' },
+      ],
+    },
+    {
+      value: 'STANDARD',
+      label: 'رقابة اعتيادية',
+      title: dieselLock ? dieselLockNote : 'رقابة روتينية',
+      chips: [
+        { text: 'متوازن', tone: 'neutral' },
+        { text: 'روتيني', tone: 'neutral' },
+      ],
+    },
+    {
+      value: 'PERMISSIVE',
+      label: 'غض الطرف',
+      title: dieselLock ? dieselLockNote : 'تفادي الصدام',
+      chips: [
+        { text: 'تفادي الصدام', tone: 'neutral' },
+        { text: '-كهرباء', tone: 'bad' },
+      ],
+    },
+  ]);
+
+  function cardClass(key: string): string {
+    if (!selectedStat) return 'pointer-events-auto opacity-100';
+    return isOptionRelated(selectedStat, key)
+      ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100'
+      : 'opacity-20 pointer-events-none select-none grayscale';
+  }
 </script>
 
 <div class="space-y-3">
-  <div class="flex items-center gap-2 border-b border-charcoal-mid pb-2">
-    <GameIcon name="vote" cls="w-5 h-5 text-wheat-gold shrink-0" />
-    <h3 class="text-sm font-bold text-wheat-light font-heading">السياسات الكبرى</h3>
-  </div>
-
-  <!-- 2. Food Subsidies Tier -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'foodSubsidyLevel') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex items-center gap-1.5">
-      <button type="button" onclick={() => toggleExplainer("food")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
-        <GameIcon name="help" cls="w-4 h-4" />
+  <!-- Food Subsidies Tier -->
+  <article
+    class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass(
+      'foodSubsidyLevel'
+    )}"
+  >
+    <div class="flex items-start gap-1.5">
+      <button
+        type="button"
+        onclick={() => toggleExplainer('food')}
+        aria-label="إظهار الأثر"
+        aria-expanded={openExplainers.food ?? false}
+        class="-ms-2 flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
+      >
+        <GameIcon name="help" cls="h-4 w-4" />
       </button>
-      <span class="text-xs font-bold text-wheat-gold font-heading block">التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
+      <div class="min-w-0 flex-1 pt-2">
+        <div class="flex items-center gap-1.5 font-heading text-[11.5px] font-bold leading-tight text-wheat-gold">
+          <GameIcon name="coins" cls="h-3.5 w-3.5 shrink-0" />
+          <span>التحكم في أسعار وتوفر الخبز والمواد الأساسية</span>
+        </div>
+      </div>
     </div>
-    <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
-      <button
-        onclick={() => draftStore.setField('foodSubsidyLevel', 'AUSTERE')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'AUSTERE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">تقشف</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+15 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+9.00B توفير</span>
-        </div>
-      </button>
 
-      <button
-        onclick={() => draftStore.setField('foodSubsidyLevel', 'STANDARD')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">اعتيادي</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">0 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">مستقر</span>
-        </div>
-      </button>
+    <Segmented
+      value={$draftStore.foodSubsidyLevel}
+      options={foodOptions}
+      label="سياسة دعم الغذاء"
+      onchange={(value) => draftStore.setField('foodSubsidyLevel', value as 'AUSTERE' | 'STANDARD' | 'GENEROUS')}
+    />
 
-      <button
-        onclick={() => draftStore.setField('foodSubsidyLevel', 'GENEROUS')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.foodSubsidyLevel === 'GENEROUS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">موسع</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-12 احتقان</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-8.00B كلفة</span>
-        </div>
-      </button>
-    </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.food ? '' : 'hidden'}">
+    <div class="py-1 text-[10.5px] leading-relaxed text-wheat-dark {openExplainers.food ? '' : 'hidden'}">
       {#if $draftStore.foodSubsidyLevel === 'AUSTERE'}
-        <span class="text-amber-300 font-medium">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة SP، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
+        <span class="font-medium text-amber-300">الأثر:</span> تقليص مخصصات الدعم بنسبة 50% وتوفير سيولة SP، لكن يرفع أسعار الخبز ويزيد الاحتقان الشعبي (+15 نقطة).
       {:else if $draftStore.foodSubsidyLevel === 'GENEROUS'}
-        <span class="text-forest-accent font-medium">الأثر:</span> تثبيت شامل لأسعار الخبز والسلع وتخفيض الاحتقان (-12 نقطة)، مع استنزاف إضافي لسيولة SP والدولار لاستيراد القمح.
+        <span class="font-medium text-forest-accent">الأثر:</span> تثبيت شامل لأسعار الخبز والسلع وتخفيض الاحتقان (-12 نقطة)، مع استنزاف إضافي لسيولة SP والدولار لاستيراد القمح.
       {:else}
-        <span class="text-wheat-mid font-medium">الأثر:</span> دعم متوازن يضمن توفير الخبز والمواد التموينية المدعومة ضمن الحدود المالية المقبولة للموازنة.
+        <span class="font-medium text-wheat-mid">الأثر:</span> دعم متوازن يضمن توفير الخبز والمواد التموينية المدعومة ضمن الحدود المالية المقبولة للموازنة.
       {/if}
     </div>
-  </div>
+  </article>
 
-  <!-- 3. State Workforce Policy -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'workforceStrategy') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex items-center gap-1.5">
-      <button type="button" onclick={() => toggleExplainer("workforce")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
-        <GameIcon name="help" cls="w-4 h-4" />
+  <!-- State Workforce Policy -->
+  <article
+    class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass(
+      'workforceStrategy'
+    )}"
+  >
+    <div class="flex items-start gap-1.5">
+      <button
+        type="button"
+        onclick={() => toggleExplainer('workforce')}
+        aria-label="إظهار الأثر"
+        aria-expanded={openExplainers.workforce ?? false}
+        class="-ms-2 flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
+      >
+        <GameIcon name="help" cls="h-4 w-4" />
       </button>
-      <span class="text-xs font-bold text-wheat-gold font-heading block">إدارة الوظائف الحكومية والبطالة المقنعة</span>
+      <div class="min-w-0 flex-1 pt-2">
+        <div class="flex items-center gap-1.5 font-heading text-[11.5px] font-bold leading-tight text-wheat-gold">
+          <GameIcon name="meeple-group" cls="h-3.5 w-3.5 shrink-0" />
+          <span>إدارة الوظائف الحكومية والبطالة المقنعة</span>
+        </div>
+      </div>
     </div>
-    <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
-      <button
-        onclick={() => draftStore.setField('workforceStrategy', 'MAINTAIN')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'MAINTAIN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">تثبيت الملاك</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">استقرار</span>
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">اعتيادي</span>
-        </div>
-      </button>
 
-      <button
-        onclick={() => draftStore.setField('workforceStrategy', 'PRUNE_CIVIL_SERVICE')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">شطب الوهمي</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+8.50B توفير</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+7 احتقان</span>
-        </div>
-      </button>
+    <Segmented
+      value={$draftStore.workforceStrategy}
+      options={workforceOptions}
+      label="سياسة الوظائف الحكومية"
+      onchange={(value) =>
+        draftStore.setField(
+          'workforceStrategy',
+          value as 'MAINTAIN' | 'PRUNE_CIVIL_SERVICE' | 'ABSORB_MILITIAS'
+        )}
+    />
 
-      <button
-        onclick={() => draftStore.setField('workforceStrategy', 'ABSORB_MILITIAS')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.workforceStrategy === 'ABSORB_MILITIAS' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">استيعاب المسلحين</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[8.5px]">+{absorbHeadcount.toLocaleString('en-US')} وظيفة</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">-4 توتر</span>
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+امتثال تدريجي</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-{absorbPayrollB}B كلفة</span>
-        </div>
-      </button>
-    </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.workforce ? '' : 'hidden'}">
+    <div class="py-1 text-[10.5px] leading-relaxed text-wheat-dark {openExplainers.workforce ? '' : 'hidden'}">
       {#if $draftStore.workforceStrategy === 'PRUNE_CIVIL_SERVICE'}
-        <span class="text-amber-300 font-medium">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
+        <span class="font-medium text-amber-300">الأثر:</span> شطب البطالة المقنعة والرواتب الوهمية يوفر سيولة الخزينة ويرفع كفاءة الوزارات، مع احتقان وظيفي مؤقت.
       {:else if $draftStore.workforceStrategy === 'ABSORB_MILITIAS'}
-        <span class="text-amber-300 font-medium">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن (-4 احتقان)، مقابل تضخم كتلة الرواتب الحكومية (+{absorbHeadcount.toLocaleString('en-US')} وظيفة) — مع اتساع القاعدة الضريبية تدريجياً (+1 امتثال/دور حتى +4).
+        <span class="font-medium text-amber-300">الأثر:</span> استيعاب المقاتلين لتهدئة الجبهات واستقرار الأمن (-4 احتقان)، مقابل تضخم كتلة الرواتب الحكومية (+{absorbHeadcount.toLocaleString('en-US')} وظيفة) — مع اتساع القاعدة الضريبية تدريجياً (+1 امتثال/دور حتى +4).
       {:else}
-        <span class="text-wheat-mid font-medium">الأثر:</span> الحفاظ على قوام الموظفين ورواتب الملاك الحكومي الراهن دون تعديل.
+        <span class="font-medium text-wheat-mid">الأثر:</span> الحفاظ على قوام الموظفين ورواتب الملاك الحكومي الراهن دون تعديل.
       {/if}
     </div>
-  </div>
+  </article>
 
-  <!-- 4. Wheat Pricing -->
-  <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'wheatProcurement') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex items-center gap-1.5">
-      <button type="button" onclick={() => toggleExplainer("wheat")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
-        <GameIcon name="help" cls="w-4 h-4" />
+  <!-- Wheat Pricing -->
+  <article
+    class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass(
+      'wheatProcurement'
+    )}"
+  >
+    <div class="flex items-start gap-1.5">
+      <button
+        type="button"
+        onclick={() => toggleExplainer('wheat')}
+        aria-label="إظهار الأثر"
+        aria-expanded={openExplainers.wheat ?? false}
+        class="-ms-2 flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
+      >
+        <GameIcon name="help" cls="h-4 w-4" />
       </button>
-      <span class="text-xs font-bold text-wheat-gold font-heading block">تسعير شراء القمح المحلي من المزارعين</span>
+      <div class="min-w-0 flex-1 pt-2">
+        <div class="flex items-center gap-1.5 font-heading text-[11.5px] font-bold leading-tight text-wheat-gold">
+          <GameIcon name="trade" cls="h-3.5 w-3.5 shrink-0" />
+          <span>تسعير شراء القمح المحلي من المزارعين</span>
+        </div>
+      </div>
     </div>
-    <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
-      <button
-        onclick={() => draftStore.setField('wheatProcurement', 'SUBSIDIZED_LOW')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'SUBSIDIZED_LOW' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">سعر إلزامي</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+$60M استيراد</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+6 احتقان</span>
-        </div>
-      </button>
 
-      <button
-        onclick={() => draftStore.setField('wheatProcurement', 'MARKET_PARITY')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'MARKET_PARITY' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">سعر عادل</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">استقرار</span>
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">سوق حر</span>
-        </div>
-      </button>
+    <Segmented
+      value={$draftStore.wheatProcurement}
+      options={wheatOptions}
+      label="سياسة شراء القمح"
+      onchange={(value) =>
+        draftStore.setField(
+          'wheatProcurement',
+          value as 'SUBSIDIZED_LOW' | 'MARKET_PARITY' | 'PREMIUM_INCENTIVE'
+        )}
+    />
 
-      <button
-        onclick={() => draftStore.setField('wheatProcurement', 'PREMIUM_INCENTIVE')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.wheatProcurement === 'PREMIUM_INCENTIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">علاوة تحفيز</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">توريد 100%</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-4.50B كلفة</span>
-        </div>
-      </button>
-    </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.wheat ? '' : 'hidden'}">
+    <div class="py-1 text-[10.5px] leading-relaxed text-wheat-dark {openExplainers.wheat ? '' : 'hidden'}">
       {#if $draftStore.wheatProcurement === 'SUBSIDIZED_LOW'}
-        <span class="text-amber-300 font-medium">الأثر:</span> لا يخفّض نفقات الخزينة بـSP، بل يرفع فاتورة استيراد القمح بالدولار (+$60M) لأن المزارعين يهرّبون المحصول ويتراجع المخزون التمويني.
+        <span class="font-medium text-amber-300">الأثر:</span> لا يخفّض نفقات الخزينة بـSP، بل يرفع فاتورة استيراد القمح بالدولار (+$60M) لأن المزارعين يهرّبون المحصول ويتراجع المخزون التمويني.
       {:else if $draftStore.wheatProcurement === 'PREMIUM_INCENTIVE'}
-        <span class="text-forest-accent font-medium">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بـSP.
+        <span class="font-medium text-forest-accent">الأثر:</span> علاوة مجزية تضمن توريد كامل القمح السوري وتقلص استيراد الحبوب بالدولار، مقابل زيادة نفقات الخزينة بـSP.
       {:else}
-        <span class="text-wheat-mid font-medium">الأثر:</span> تسعير عادل يضمن توريد القمح المحلي بالسعر الرائج واستقرار مخزون الطحين.
+        <span class="font-medium text-wheat-mid">الأثر:</span> تسعير عادل يضمن توريد القمح المحلي بالسعر الرائج واستقرار مخزون الطحين.
       {/if}
     </div>
-  </div>
+  </article>
 
-  <!-- 5. Diesel Smuggling Control -->
-  <div class="py-2.5 space-y-2 transition-all duration-300 {selectedStat ? (isOptionRelated(selectedStat, 'dieselSmuggling') ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100' : 'opacity-20 pointer-events-none select-none grayscale') : 'pointer-events-auto opacity-100'}">
-    <div class="flex items-center gap-1.5">
-      <button type="button" onclick={() => toggleExplainer("diesel")} aria-label="إظهار الأثر" class="shrink-0 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer">
-        <GameIcon name="help" cls="w-4 h-4" />
+  <!-- Diesel Smuggling Control -->
+  <article
+    class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass(
+      'dieselSmuggling'
+    )}"
+  >
+    <div class="flex items-start gap-1.5">
+      <button
+        type="button"
+        onclick={() => toggleExplainer('diesel')}
+        aria-label="إظهار الأثر"
+        aria-expanded={openExplainers.diesel ?? false}
+        class="-ms-2 flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
+      >
+        <GameIcon name="help" cls="h-4 w-4" />
       </button>
-      <span class="text-xs font-bold text-wheat-gold font-heading block">مكافحة تهريب المشتقات النفطية</span>
-      {#if dieselLock}
-        <span class="px-1.5 py-0.2 rounded-none bg-amber-950 border border-amber-500/50 text-amber-300 text-[8.5px] font-mono">{dieselLockNote}</span>
-      {/if}
+      <div class="min-w-0 flex-1 space-y-1 pt-2">
+        <div class="flex flex-wrap items-center gap-1.5 font-heading text-[11.5px] font-bold leading-tight text-wheat-gold">
+          <GameIcon name="power-generator" cls="h-3.5 w-3.5 shrink-0" />
+          <span>مكافحة تهريب المشتقات النفطية</span>
+          {#if dieselLock}
+            <span class="border border-amber-500/50 bg-amber-950 px-1.5 py-0.5 font-mono text-[8.5px] font-normal text-amber-300">{dieselLockNote}</span>
+          {/if}
+        </div>
+      </div>
     </div>
-    <div class="grid grid-cols-3 gap-1.5 text-[10.5px]">
-      <button
-        onclick={() => draftStore.setField('dieselSmuggling', 'CRACKDOWN')}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'CRACKDOWN' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'}"
-      >
-        <span class="font-bold text-[10.5px]">حملة صارمة</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8.5px]">+كهرباء وإنتاج</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">+4 توتر</span>
-        </div>
-      </button>
 
-      <button
-        onclick={() => dieselGuard('STANDARD')}
-        title={dieselLock ? dieselLockNote : ''}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'STANDARD' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'} {dieselLock ? 'opacity-50' : ''}"
-      >
-        <span class="font-bold text-[10.5px]">رقابة اعتيادية</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">متوازن</span>
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-dark font-mono font-bold text-[8.5px]">روتيني</span>
-        </div>
-      </button>
+    <Segmented
+      value={$draftStore.dieselSmuggling}
+      options={dieselOptions}
+      label="سياسة مكافحة تهريب المشتقات"
+      onchange={(value) => dieselGuard(value as 'CRACKDOWN' | 'STANDARD' | 'PERMISSIVE')}
+    />
 
-      <button
-        onclick={() => dieselGuard('PERMISSIVE')}
-        title={dieselLock ? dieselLockNote : ''}
-        class="p-2 border text-center transition-colors rounded-none flex flex-col items-center justify-between gap-1 cursor-pointer {$draftStore.dieselSmuggling === 'PERMISSIVE' ? 'bg-forest-surface border-wheat-mid text-wheat-gold font-bold shadow-sm' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light'} {dieselLock ? 'opacity-50' : ''}"
-      >
-        <span class="font-bold text-[10.5px]">غض الطرف</span>
-        <div class="flex items-center gap-0.5 flex-wrap justify-center">
-          <span class="px-1 py-0.2 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8.5px]">تفادي الصدام</span>
-          <span class="px-1 py-0.2 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8.5px]">-كهرباء</span>
-        </div>
-      </button>
-    </div>
-    <div class="text-[11px] text-wheat-dark leading-relaxed py-1.5 {openExplainers.diesel ? '' : 'hidden'}">
+    <div class="py-1 text-[10.5px] leading-relaxed text-wheat-dark {openExplainers.diesel ? '' : 'hidden'}">
       {#if $draftStore.dieselSmuggling === 'CRACKDOWN'}
-        <span class="text-forest-accent font-medium">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
+        <span class="font-medium text-forest-accent">الأثر:</span> ضبط تهريب المازوت وتوجيهه لمحطات التوليد لرفع ساعات الكهرباء، مع استنفار أمني واحتكاك مع شبكات التهريب.
       {:else if $draftStore.dieselSmuggling === 'PERMISSIVE'}
-        <span class="text-amber-300 font-medium">الأثر:</span> تفادي الصدام العشائري، مقابل هدر المحروقات المدعومة وتراجع ساعات التغذية الكهربائية.
+        <span class="font-medium text-amber-300">الأثر:</span> تفادي الصدام العشائري، مقابل هدر المحروقات المدعومة وتراجع ساعات التغذية الكهربائية.
       {:else}
-        <span class="text-wheat-mid font-medium">الأثر:</span> رقابة روتينية توازن بين حماية المحروقات وتجنب التصعيد الحدودي.
+        <span class="font-medium text-wheat-mid">الأثر:</span> رقابة روتينية توازن بين حماية المحروقات وتجنب التصعيد الحدودي.
       {/if}
     </div>
-  </div>
+  </article>
 </div>
