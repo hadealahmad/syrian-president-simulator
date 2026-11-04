@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
-  import SyriaMap from './lib/spatial3d/SyriaMap3D.svelte';
+  import GameMap from './lib/ui/map/GameMap.svelte';
   import FloatingCommandDeck from './lib/ui/FloatingCommandDeck.svelte';
   import TurnReviewModal from './lib/ui/TurnReviewModal.svelte';
   import EventModal from './lib/ui/EventModal.svelte';
@@ -108,7 +108,7 @@
     class="fixed inset-x-0 bottom-0 z-10 overflow-hidden"
     style="top: calc(var(--shell-top-h) * var(--hud-zoom));"
   >
-    <SyriaMap />
+    <GameMap />
   </div>
 
   <!-- HUD layer: transformed to scale on 2K-class screens; a zero-box
