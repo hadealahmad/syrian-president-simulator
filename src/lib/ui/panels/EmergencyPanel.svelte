@@ -3,19 +3,43 @@
   import { draftStore, budgetStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
-  import ToggleSwitch from '../ToggleSwitch.svelte';
-  import { DECREES, isOptionRelated, SUSPENDED_CARD_CLASS, SUSPENDED_CONTENT_CLASS, SUSPENDED_ICON, pcShortageText } from './shared';
-import type { ForeignLoanPackage, SovereignMortgageOption, FacilityState } from '../../engine/types';
-import { CONCESSIONAL_FACILITIES } from '../../engine/constants';
-import { canSignFacility, getFacilityState } from '../../engine/facilities';
-import { focusTrap } from '../actions/focus-trap';
+  import DecreeCard from '../decrees/DecreeCard.svelte';
+  import CardDialog from '../decrees/CardDialog.svelte';
+  import DecreeConfirmDialog from '../decrees/DecreeConfirmDialog.svelte';
+  import EffectChip from '../decrees/EffectChip.svelte';
+  import RangeStepper from '../decrees/RangeStepper.svelte';
+  import {
+    decreeCategoryOf,
+    decreePcCost,
+    pcSeal,
+    usdSeal,
+    type DecreeCardState,
+    type EffectChipData,
+  } from '../decrees/decree-meta';
+  import {
+    DECREES,
+    isOptionRelated,
+    pcShortageText,
+    type PoliticalDecreeItem,
+  } from './shared';
+  import type { ForeignLoanPackage, SovereignMortgageOption, FacilityState } from '../../engine/types';
+  import { CONCESSIONAL_FACILITIES } from '../../engine/constants';
+  import { canSignFacility, getFacilityState } from '../../engine/facilities';
+  import { IMPORT_SURGE_COST_USD } from '../../engine/revenues';
 
-let selectedStat = $derived($uiStore.selectedStatForOptions);
-let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $state(null);
+  let selectedStat = $derived($uiStore.selectedStatForOptions);
+  let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $state(null);
+  let repudiateModal: PoliticalDecreeItem | null = $state(null);
+
+  // ── Shared summary strip ──────────────────────────────────────────────────
+  let availablePC = $derived(Math.max(0, Math.floor($budgetStore.remainingPC)));
+  let reservesM = $derived(Math.round(($gameStore.macro.reservesUSD ?? 0) / 1_000_000));
+  let debtB = $derived((($gameStore.macro.sovereignDebtUSD ?? 0) / 1_000_000_000).toFixed(2));
 
   // Done items sink to the bottom; under a topbar filter, related items rise
   // to the top (stable sort preserves source order within ranks).
-  function rank(done: boolean, key: string): number {    if (done) return 2;
+  function rank(done: boolean, key: string): number {
+    if (done) return 2;
     if (selectedStat && !isOptionRelated(selectedStat, key)) return 1;
     return 0;
   }
@@ -50,26 +74,44 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
   });
 
   // Emergency import surge: $40M of reserves for +6 PC and blackout relief
+  let surgeActive = $derived($draftStore.importSurge);
   let canAffordSurge = $derived(
-    $draftStore.importSurge || ($gameStore.macro.reservesUSD ?? 0) >= 40_000_000
+    surgeActive || ($gameStore.macro.reservesUSD ?? 0) >= IMPORT_SURGE_COST_USD
   );
 
-  function dimClass(key: string): string {
-    return selectedStat
-      ? isOptionRelated(selectedStat, key)
-        ? 'ring-2 ring-wheat-gold/80 shadow-lg pointer-events-auto opacity-100'
-        : 'opacity-20 pointer-events-none select-none grayscale'
-      : 'pointer-events-auto opacity-100';
+  function dimmedFor(key: string): boolean {
+    return selectedStat ? !isOptionRelated(selectedStat, key) : false;
+  }
+  function highlightedFor(key: string): boolean {
+    return selectedStat ? isOptionRelated(selectedStat, key) : false;
   }
 
+  // Golan stance is a southern-theatre lever; these are the stats it moves.
+  const GOLAN_STATS = [
+    'unrestIndex',
+    'reservesUSD',
+    'treasurySYP',
+    'sovereignLeverage',
+    'politicalCapital',
+    'civicTrust',
+  ];
+  function golanRelated(): boolean {
+    return selectedStat ? GOLAN_STATS.includes(selectedStat) : false;
+  }
+
+  // ── Loan / mortgage / facility selection ─────────────────────────────────
   function openModal(kind: 'loan' | 'mortgage' | 'facility', id: string): void {
     modalSel = { kind, id };
   }
   function modalLoan(): ForeignLoanPackage | undefined {
-    return modalSel?.kind === 'loan' ? $gameStore.foreignLoans.find((l) => l.id === modalSel!.id) : undefined;
+    return modalSel?.kind === 'loan'
+      ? $gameStore.foreignLoans.find((l) => l.id === modalSel!.id)
+      : undefined;
   }
   function modalMortgage(): SovereignMortgageOption | undefined {
-    return modalSel?.kind === 'mortgage' ? $gameStore.sovereignMortgages.find((m) => m.id === modalSel!.id) : undefined;
+    return modalSel?.kind === 'mortgage'
+      ? $gameStore.sovereignMortgages.find((m) => m.id === modalSel!.id)
+      : undefined;
   }
   function modalFacility() {
     return modalSel?.kind === 'facility'
@@ -79,6 +121,72 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
   function facilityStatus(id: string): FacilityState | undefined {
     return getFacilityState($gameStore, id);
   }
+
+  function isLoanSelected(loan: ForeignLoanPackage): boolean {
+    return $draftStore.signedLoanIds.includes(loan.id) || loan.isSigned;
+  }
+  let modalLoanIsSelected = $derived.by(() => {
+    const loan = modalLoan();
+    return loan ? isLoanSelected(loan) : false;
+  });
+  let modalLoanCanAfford = $derived.by(() => {
+    const loan = modalLoan();
+    return loan ? modalLoanIsSelected || $budgetStore.remainingPC >= loan.politicalCapitalCost : false;
+  });
+  let modalMortgagedSel = $derived.by(() => {
+    const mort = modalMortgage();
+    return mort
+      ? $draftStore.executedMortgageIds.includes(mort.id) || mort.isMortgaged
+      : false;
+  });
+  let modalFacilitySel = $derived.by(() => {
+    const fac = modalFacility();
+    return fac ? $draftStore.signedFacilityIds.includes(fac.id) : false;
+  });
+  let modalFacilityCheck = $derived.by(() => {
+    const fac = modalFacility();
+    return fac
+      ? canSignFacility($gameStore, fac.id, $budgetStore.remainingPC)
+      : { ok: false, reasonAr: '' };
+  });
+  let modalConfirmOk = $derived.by(() => {
+    if (modalSel?.kind === 'loan') {
+      const loan = modalLoan();
+      return Boolean(
+        loan && !loan.isSigned && (modalLoanIsSelected || modalLoanCanAfford)
+      );
+    }
+    if (modalSel?.kind === 'mortgage') {
+      const mort = modalMortgage();
+      return Boolean(mort && !mort.isMortgaged);
+    }
+    if (modalSel?.kind === 'facility') {
+      return Boolean(modalFacility() && (modalFacilitySel || modalFacilityCheck.ok));
+    }
+    return false;
+  });
+  let modalConfirmLabel = $derived.by(() => {
+    if (modalSel?.kind === 'loan') {
+      const loan = modalLoan();
+      if (!loan) return 'تأكيد التوقيع';
+      if (modalLoanIsSelected) return 'إلغاء الاعتماد';
+      if (!modalLoanCanAfford) return `رصيد غير كافٍ (${loan.politicalCapitalCost})`;
+      return 'تأكيد التوقيع';
+    }
+    if (modalSel?.kind === 'mortgage') {
+      return modalMortgagedSel ? 'إلغاء الاعتماد' : 'تأكيد الرهن';
+    }
+    if (modalSel?.kind === 'facility') {
+      if (modalFacilitySel) return 'إلغاء الاعتماد';
+      if (!modalFacilityCheck.ok) return modalFacilityCheck.reasonAr;
+      return 'تأكيد التوقيع';
+    }
+    return 'تأكيد';
+  });
+  let modalTitle = $derived(
+    modalLoan()?.titleAr ?? modalMortgage()?.titleAr ?? modalFacility()?.titleAr ?? 'تفاصيل التمويل'
+  );
+
   function confirmModal(): void {
     const loan = modalLoan();
     if (loan && !loan.isSigned) {
@@ -112,380 +220,630 @@ let modalSel: { kind: 'loan' | 'mortgage' | 'facility'; id: string } | null = $s
       modalSel = null;
     }
   }
+
+  // ── Repudiation (Paris / Iran / Russia) ──────────────────────────────────
+  let sovereignDecrees = $derived(
+    DECREES.filter((d) => decreeCategoryOf(d).id === 'sovereignty')
+  );
+
+  function decreeState(dec: PoliticalDecreeItem): DecreeCardState {
+    if ($gameStore.enactedDecrees?.includes(dec.id)) return 'enacted';
+    if ($draftStore.activePoliticalActions.includes(dec.id)) return 'queued';
+    if (decreePcCost(dec.id) > $budgetStore.remainingPC) return 'locked';
+    return 'available';
+  }
+  function confirmRepudiation(): void {
+    if (repudiateModal) {
+      const costPC = decreePcCost(repudiateModal.id);
+      const active = $draftStore.activePoliticalActions.includes(repudiateModal.id);
+      if (active || costPC <= $budgetStore.remainingPC) {
+        draftStore.togglePoliticalAction(repudiateModal.id);
+      }
+    }
+    repudiateModal = null;
+  }
+
+  // ── Golan border stance (same draft field the provincial dossier writes) ──
+  interface GolanOption {
+    id: 'RESTRAINT' | 'LOCAL_GENDARMERIE' | 'DEPLOY_ARMOR' | 'UN_LIAISON';
+    titleAr: string;
+    descAr: string;
+    chips: EffectChipData[];
+  }
+  const GOLAN_OPTIONS: GolanOption[] = [
+    {
+      id: 'RESTRAINT',
+      titleAr: 'ضبط النفس',
+      descAr: 'تهدئة الجولان مجاناً دون تحريك قوة.',
+      chips: [
+        { text: '−15 توتر', tone: 'good' },
+        { text: '+18 تحدٍّ درعاوي', tone: 'bad' },
+      ],
+    },
+    {
+      id: 'LOCAL_GENDARMERIE',
+      titleAr: 'درك محلي',
+      descAr: 'أمن محلي وإيراد معابر متوازن.',
+      chips: [
+        { text: '−8 تحدٍّ', tone: 'good' },
+        { text: '+5% نصيب', tone: 'neutral' },
+        { text: '+5 توتر', tone: 'bad' },
+      ],
+    },
+    {
+      id: 'DEPLOY_ARMOR',
+      titleAr: 'نشر الدروع',
+      descAr: 'قوة نارية بثمن سيادي (9.0B SP).',
+      chips: [
+        { text: '−20 تحدٍّ', tone: 'good' },
+        { text: '+25 توتر!', tone: 'bad' },
+        { text: '−9.0B SP', tone: 'bad' },
+      ],
+    },
+    {
+      id: 'UN_LIAISON',
+      titleAr: 'ارتباط أندوف',
+      descAr: 'تهدئة زرقاء بلا تحدٍّ (القنيطرة فقط).',
+      chips: [
+        { text: '−10 توتر', tone: 'good' },
+        { text: '+2 ثقة', tone: 'good' },
+        { text: '−$8M/دور', tone: 'bad' },
+      ],
+    },
+  ];
+
+  // ── Martial law (direct continuous switch, as in the old panel) ───────────
+  let martialLaw = $derived(DECREES.find((d) => d.id === 'MARTIAL_LAW'));
 </script>
 
 <div class="space-y-3">
-  <div class="flex items-center gap-2 border-b border-charcoal-mid pb-2">
-    <GameIcon name="siren" cls="w-5 h-5 text-wheat-gold shrink-0" />
-    <h3 class="text-sm font-bold text-wheat-light font-heading">التمويل الطارئ وقانون الطوارئ</h3>
-  </div>
+  <!-- ── Finance snapshot ─────────────────────────────────────────────────── -->
+  <section
+    class="grid grid-cols-3 gap-1.5 border border-wheat-mid/15 bg-charcoal-deep/45 p-2 shell-round-pop"
+    aria-label="موجز التمويل"
+  >
+    <div class="text-center">
+      <div class="text-[8px] text-wheat-dark">رصيد متاح</div>
+      <div class="font-heading text-[17px] leading-tight text-wheat-gold">{availablePC}</div>
+    </div>
+    <div class="border-x border-wheat-mid/10 text-center">
+      <div class="text-[8px] text-wheat-dark">الاحتياطي</div>
+      <div class="font-heading text-[17px] leading-tight text-wheat-light">${reservesM}M</div>
+    </div>
+    <div class="text-center">
+      <div class="text-[8px] text-wheat-dark">الدين الخارجي</div>
+      <div class="font-heading text-[17px] leading-tight text-umber-crimson">${debtB}B</div>
+    </div>
+  </section>
 
-  <!-- Foreign loans grid -->
-  <div class="space-y-2">
-    <h4 class="text-xs font-bold text-wheat-gold font-heading">خطوط الائتمان والتمويل الخارجي</h4>
-    <div class="grid grid-cols-1 gap-2">
-      {#each orderedLoans as loan}
+  <!-- ── Foreign credit lines ─────────────────────────────────────────────── -->
+  <section class="space-y-2" aria-label="خطوط الائتمان والتمويل الخارجي">
+    <div class="flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+        <GameIcon name="banknote" cls="h-3.5 w-3.5 shrink-0" />
+        خطوط الائتمان والتمويل الخارجي
+      </h4>
+      <span class="text-[8.5px] text-wheat-dark">{orderedLoans.length} خط</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 phone-p:grid-cols-1 phone-l:grid-cols-1">
+      {#each orderedLoans as loan (loan.id)}
         {@const isSelected = $draftStore.signedLoanIds.includes(loan.id) || loan.isSigned}
         {@const canAffordLoan = isSelected || $budgetStore.remainingPC >= loan.politicalCapitalCost}
         {#if loan.isSigned}
           {@const remaining = loan.remainingPrincipalUSD ?? loan.disbursementUSD}
-          {@const service = Math.floor(((remaining * loan.interestRatePct) / 100 / 2))}
+          {@const service = Math.floor((remaining * loan.interestRatePct) / 100 / 2)}
           {@const isTerminating = ($draftStore.terminatedLoanIds ?? []).includes(loan.id)}
           {@const canTerminate = isTerminating || ($budgetStore.remainingUSD >= remaining && remaining > 0)}
-          <div class="px-2 py-2 border border-forest-accent/40 bg-forest-surface/40 opacity-90 space-y-1 {isTerminating ? 'ring-2 ring-wheat-gold/80' : ''}">
-            <div class="flex items-center gap-1.5">
-              <GameIcon name="check-mark" cls="w-4 h-4 text-forest-accent shrink-0" />
-              <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{loan.titleAr}</span>
-            </div>
-            <span class="flex items-center gap-1 flex-wrap">
-              <span class="px-1.5 py-px rounded-full bg-forest-surface border border-charcoal-mid text-wheat-light font-mono font-bold text-[8px]">
-                المتبقي ${(remaining / 1_000_000).toFixed(1)}M$
-              </span>
-              <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">
-                <span class="font-bold">−</span>خدمة ${(service / 1_000_000).toFixed(1)}M$ / دور
-              </span>
-            </span>
+          <DecreeCard
+            id={loan.id}
+            title={loan.titleAr}
+            description={loan.lenderAr}
+            category="تمويل خارجي"
+            categoryClass="text-status-info"
+            stripClass="bg-status-info"
+            typeLabel="موقع"
+            typeIcon="banknote"
+            sealValue={usdSeal(loan.disbursementUSD).value}
+            sealUnit={usdSeal(loan.disbursementUSD).unit}
+            sealTone="neutral"
+            chips={[
+              { text: `المتبقي $${(remaining / 1_000_000).toFixed(1)}M`, tone: 'neutral' },
+              { text: `−خدمة $${(service / 1_000_000).toFixed(1)}M / دور`, tone: 'bad' },
+            ]}
+            state={isTerminating ? 'queued' : 'info'}
+            dimmed={dimmedFor('loans')}
+            highlighted={highlightedFor('loans')}
+            ariaLabel={loan.titleAr}
+          >
             {#if remaining > 0}
               <button
+                type="button"
                 disabled={!canTerminate}
-                onclick={() => { if (canTerminate) draftStore.toggleLoanTermination(loan.id); }}
+                onclick={() => {
+                  if (canTerminate) draftStore.toggleLoanTermination(loan.id);
+                }}
                 title={`فسخ سيادي: سداد كامل المتبقي (${(remaining / 1_000_000).toFixed(1)}M$) من الاحتياطي مقابل +6 رصيد سياسي و+4 رافعة سيادية`}
-                class="w-full mt-1 px-1.5 py-1 border text-[9px] font-bold rounded-none transition-colors {isTerminating ? 'bg-forest-surface border-forest-accent text-forest-accent cursor-pointer' : canTerminate ? 'bg-charcoal-surface border-charcoal-mid text-wheat-dark hover:text-wheat-light hover:border-wheat-mid/60 cursor-pointer' : 'bg-charcoal-surface border-charcoal-mid text-wheat-dark opacity-50 cursor-not-allowed'}"
+                class="min-h-9 w-full border px-1.5 py-1.5 text-[9px] font-bold transition-colors focus-visible:border-wheat-gold focus-visible:outline-none phone-p:min-h-11 phone-l:min-h-11 {isTerminating
+                  ? 'cursor-pointer border-forest-accent bg-forest-surface text-forest-accent'
+                  : canTerminate
+                    ? 'cursor-pointer border-charcoal-mid bg-charcoal-surface text-wheat-dark hover:border-wheat-mid/60 hover:text-wheat-light'
+                    : 'cursor-not-allowed border-charcoal-mid bg-charcoal-surface text-wheat-dark opacity-50'}"
               >
-                {isTerminating ? 'فسخ سيادي مُعتمد (+6 سياسي / +4 سيادة)' : !canTerminate ? 'احتياطي غير كافٍ للفسخ' : `فسخ سيادي (−$${(remaining / 1_000_000).toFixed(1)}M → +6 سياسي / +4 سيادة)`}
+                {isTerminating
+                  ? 'فسخ سيادي مُعتمد (+6 سياسي / +4 سيادة)'
+                  : !canTerminate
+                    ? 'احتياطي غير كافٍ للفسخ'
+                    : `فسخ سيادي (−$${(remaining / 1_000_000).toFixed(1)}M → +6 سياسي / +4 سيادة)`}
               </button>
             {/if}
-          </div>
+          </DecreeCard>
         {:else}
-          <button
+          <DecreeCard
+            id={loan.id}
+            title={loan.titleAr}
+            description={loan.lenderAr}
+            category="تمويل خارجي"
+            categoryClass="text-status-info"
+            stripClass="bg-status-info"
+            typeLabel="قرض خارجي"
+            typeIcon="banknote"
+            sealValue={pcSeal(loan.politicalCapitalCost).value}
+            sealUnit={pcSeal(loan.politicalCapitalCost).unit}
+            sealTone={pcSeal(loan.politicalCapitalCost).tone}
+            chips={[
+              { text: `+$${loan.disbursementUSD / 1_000_000}M`, tone: 'good' },
+              { text: `فائدة ${loan.interestRatePct}%`, tone: 'neutral' },
+              { text: `−${loan.politicalCapitalCost} رصيد سياسي`, tone: 'bad' },
+            ]}
+            state={isSelected ? 'queued' : canAffordLoan ? 'available' : 'locked'}
+            stateNote={canAffordLoan
+              ? ''
+              : pcShortageText(loan.politicalCapitalCost, $budgetStore.remainingPC)}
+            actionLabel={isSelected ? '' : 'توقيع القرض'}
+            dimmed={dimmedFor('loans')}
+            highlighted={highlightedFor('loans')}
             onclick={() => openModal('loan', loan.id)}
-            title={canAffordLoan ? loan.titleAr : pcShortageText(loan.politicalCapitalCost, $budgetStore.remainingPC)}
-            class="px-2 py-2 text-start border bg-forest-deep/60 cursor-pointer transition-all {canAffordLoan ? 'border-charcoal-mid hover:border-wheat-mid/70 hover:bg-forest-surface' : SUSPENDED_CARD_CLASS} {dimClass('loans')} {isSelected ? 'ring-2 ring-wheat-gold/80' : ''}"
-          >
-            <div class="space-y-1.5 {canAffordLoan ? '' : SUSPENDED_CONTENT_CLASS}">
-              <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">{loan.titleAr}</span>
-              <span class="flex items-center gap-1 flex-wrap">
-                <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">
-                  +${loan.disbursementUSD / 1_000_000}M
-                </span>
-                <span class="px-1.5 py-px rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[8px]">
-                  فائدة {loan.interestRatePct}%
-                </span>
-                <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">
-                  <span class="font-bold">−</span>{loan.politicalCapitalCost} رصيد سياسي
-                </span>
-                {#if isSelected}
-                  <span class="w-2 h-2 rounded-full bg-wheat-gold animate-pulse shrink-0"></span>
-                {/if}
-              </span>
-            </div>
-            {#if !canAffordLoan}
-              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
-              </div>
-            {/if}
-          </button>
+            ariaLabel={(isSelected ? 'إلغاء اعتماد: ' : 'توقيع: ') + loan.titleAr}
+          />
         {/if}
       {/each}
     </div>
 
     <!-- Early principal repayment (highest-rate loans first) -->
     {#if totalRemainingPrincipal > 0}
-      <div class="py-2.5 border-b border-charcoal-mid/50 space-y-2">
-        <div class="flex justify-between items-start text-xs">
-          <div>
-            <span class="text-xs font-bold text-wheat-gold font-heading block">سداد مبكر لأصل الدين (${repayM}M)</span>
-            <span class="text-[10px] text-wheat-dark">يُخصم من الاحتياطي ويُطفئ أعلى القروض فائدة أولاً (+2 leverage لكل $100M)</span>
-          </div>
-          <span class="px-2 py-0.5 rounded-full bg-forest-surface text-wheat-gold font-mono font-bold text-[10px]">
-            ${repayM}M
-          </span>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max={maxRepayM}
-          step="5"
-          value={Math.min(repayM, maxRepayM)}
-          oninput={(e) => draftStore.setField('extraDebtRepaymentUSD', Number(e.currentTarget.value) * 1_000_000)}
-          class="w-full accent-wheat-gold cursor-pointer rounded-none bg-charcoal-surface h-1.5 border border-charcoal-mid"
-        />
-        <div class="flex justify-between text-[10px] text-wheat-dark font-mono">
-          <span>$0M</span>
-          <span>${maxRepayM}M</span>
-        </div>
-      </div>
+      <RangeStepper
+        label="سداد مبكر لأصل الدين"
+        hint="يُخصم من الاحتياطي ويُطفئ أعلى القروض فائدة أولاً (رافعة +2 لكل $100M)"
+        value={Math.min(repayM, maxRepayM)}
+        min={0}
+        max={maxRepayM}
+        step={5}
+        display={`$${repayM}M`}
+        minLabel="$0M"
+        maxLabel={`$${maxRepayM}M`}
+        ariaLabel="سداد مبكر لأصل الدين بالمليون دولار"
+        onchange={(value) =>
+          draftStore.setField('extraDebtRepaymentUSD', value * 1_000_000)}
+      />
     {/if}
 
     <!-- Emergency food/fuel import surge: burn $40M of reserves for +6 PC -->
-    <div class="py-2.5 border-b border-charcoal-mid/50 flex items-center justify-between gap-2">
-      <div class="space-y-1">
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="text-xs font-bold text-wheat-gold block font-heading">دفعة استيراد إغاثية طارئة (غذاء ووقود)</span>
-          <span class="px-1.5 py-0.2 rounded-none bg-forest-surface border border-forest-accent/40 text-forest-accent text-[8.5px] font-mono">لمرة واحدة هذا الدور</span>
-        </div>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">-$40M</span>
-          <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">+6 رصيد سياسي</span>
-          <span class="px-2 py-0.5 rounded-full bg-forest-surface border border-wheat-mid/40 text-wheat-gold font-mono font-bold text-[9.5px]">-1 سا تقنين / -2 احتقان</span>
-        </div>
-      </div>
-      <ToggleSwitch
-        checked={$draftStore.importSurge}
-        disabled={!$draftStore.importSurge && !canAffordSurge}
-        label="دفعة استيراد إغاثية طارئة"
-        onchange={(next) => {
-          if (next ? canAffordSurge : true) draftStore.setField('importSurge', next);
-        }}
-      />
+    <DecreeCard
+      id="importSurge"
+      title="دفعة استيراد إغاثية طارئة (غذاء ووقود)"
+      description="شراء دولاري سريع يسد نقص الغذاء والوقود ويطفئ الغضب الشعبي."
+      category="شراء الشرعية"
+      categoryClass="text-wheat-mid"
+      stripClass="bg-wheat-mid"
+      typeLabel="دوري"
+      typeIcon="cycle"
+      sealValue={`−${(IMPORT_SURGE_COST_USD / 1_000_000).toFixed(0)}`}
+      sealUnit="مليون $"
+      sealTone="money"
+      chips={[
+        { text: '+6 رصيد سياسي', tone: 'good' },
+        { text: '−1 سا تقنين / −2 احتقان', tone: 'good' },
+        { text: 'لمرة واحدة هذا الدور', tone: 'neutral' },
+      ]}
+      state={surgeActive ? 'queued' : canAffordSurge ? 'available' : 'locked'}
+      stateNote={canAffordSurge
+        ? ''
+        : 'موقوف مؤقتاً: احتياطي النقد الأجنبي غير كافٍ ($40M)'}
+      actionLabel={surgeActive ? '' : 'أضف إلى الحصيلة'}
+      dimmed={dimmedFor('importSurge')}
+      highlighted={highlightedFor('importSurge')}
+      onclick={() => {
+        const next = !$draftStore.importSurge;
+        if (next ? canAffordSurge : true) draftStore.setField('importSurge', next);
+      }}
+      ariaLabel={surgeActive ? 'إزالة دفعة الاستيراد' : 'إضافة دفعة الاستيراد'}
+    />
+  </section>
+
+  <!-- ── Concessional facilities ──────────────────────────────────────────── -->
+  <section class="space-y-2" aria-label="تسهيلات وتمويل مشروط">
+    <div class="flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+        <GameIcon name="scale" cls="h-3.5 w-3.5 shrink-0" />
+        تسهيلات وتمويل مشروط
+      </h4>
+      <span class="text-[8.5px] text-wheat-dark">{CONCESSIONAL_FACILITIES.length} تسهيل</span>
     </div>
 
-    <!-- Concessional facilities: cheap money with strings attached -->
-    <div class="space-y-2 pt-1">
-      <h4 class="text-xs font-bold text-wheat-gold font-heading">تسهيلات وتمويل مشروط</h4>
-      <div class="grid grid-cols-1 gap-2">
-        {#each CONCESSIONAL_FACILITIES as fac}
-          {@const st = facilityStatus(fac.id)}
-          {@const isSelected = $draftStore.signedFacilityIds.includes(fac.id)}
-          {@const totalM = fac.tranches.reduce((a, t) => a + t.amountUSD, 0) / 1_000_000}
-          {#if !st || st.status === 'AVAILABLE'}
-            {@const check = canSignFacility($gameStore, fac.id, $budgetStore.remainingPC)}
-            {@const canSign = isSelected || check.ok}
-            <button
-              onclick={() => openModal('facility', fac.id)}
-              title={canSign ? fac.titleAr : check.reasonAr}
-              class="px-2 py-2 space-y-1.5 text-start border bg-forest-deep/60 cursor-pointer transition-all {canSign ? 'border-charcoal-mid hover:border-wheat-mid/70 hover:bg-forest-surface' : SUSPENDED_CARD_CLASS} {dimClass('loans')} {isSelected ? 'ring-2 ring-wheat-gold/80' : ''}"
-            >
-              <div class="space-y-1.5 {canSign ? '' : SUSPENDED_CONTENT_CLASS}">
-                <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">{fac.titleAr}</span>
-                <span class="flex items-center gap-1 flex-wrap">
-                  {#if totalM > 0}
-                    <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">
-                      +${totalM}M على {fac.tranches.length} شرائح
-                    </span>
-                  {:else}
-                    <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">
-                      خفض دائم للقسط
-                    </span>
-                  {/if}
-                  <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">
-                    <span class="font-bold">−</span>{fac.politicalCapitalCost} رصيد سياسي
-                  </span>
-                  <span class="px-1.5 py-px rounded-full bg-amber-950 border border-amber-500/50 text-amber-300 font-mono font-bold text-[8px]">
-                    شرط: {fac.conditionAr}
-                  </span>
-                  {#if isSelected}
-                    <span class="w-2 h-2 rounded-full bg-wheat-gold animate-pulse shrink-0"></span>
-                  {/if}
-                </span>
-                <span class="text-[9px] text-umber-crimson block">إذا أخللت: {fac.breachAr}</span>
-              </div>
-              {#if !canSign}
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <GameIcon name={SUSPENDED_ICON} cls="w-10 h-10 text-umber-glow opacity-90 drop-shadow-lg" />
-                </div>
-              {/if}
-            </button>
-          {:else}
-            <div class="px-2 py-2 border space-y-1 {st.status === 'BREACHED' ? 'border-umber-crimson/60 bg-umber-deep/40' : 'border-forest-accent/40 bg-forest-surface/40'} opacity-90">
-              <div class="flex items-center gap-1.5">
-                <GameIcon name={st.status === 'BREACHED' ? 'siren' : 'check-mark'} cls="w-4 h-4 {st.status === 'BREACHED' ? 'text-umber-crimson' : 'text-forest-accent'} shrink-0" />
-                <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{fac.titleAr}</span>
-              </div>
-              <span class="flex items-center gap-1 flex-wrap">
-                {#if st.status === 'ACTIVE'}
-                  <span class="px-1.5 py-px rounded-full bg-forest-surface border border-charcoal-mid text-wheat-light font-mono font-bold text-[8px]">
-                    الشرائح {st.tranchesDrawn}/{fac.tranches.length}
-                  </span>
-                  {#if st.conditionTurnsLeft > 0}
-                    <span class="px-1.5 py-px rounded-full bg-amber-950 border border-amber-500/50 text-amber-300 font-mono font-bold text-[8px]">
-                      الشرط سارٍ: {st.conditionTurnsLeft} دورات
-                    </span>
-                  {/if}
-                  {#if fac.id === 'facility_gulf_reconstruction_grant'}
-                    <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">
-                      رصيد المنحة للمشاريع: ${(($gameStore.macro.grantBucketUSD ?? 0) / 1_000_000).toFixed(0)}M
-                    </span>
-                  {/if}
-                {:else if st.status === 'BREACHED'}
-                  <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">
-                    مجمّدة — إخلال بالشرط
-                  </span>
-                {:else}
-                  <span class="px-1.5 py-px rounded-full bg-forest-surface border border-charcoal-mid text-wheat-light font-mono font-bold text-[8px]">
-                    مكتملة ✓
-                  </span>
-                {/if}
-              </span>
-            </div>
-          {/if}
-        {/each}
-      </div>
-    </div>
-
-    <!-- Sovereign mortgages grid -->
-    <div class="space-y-2 pt-1">
-      <h4 class="text-xs font-bold text-wheat-gold font-heading">الرهون والامتيازات السيادية الطارئة</h4>
-      <div class="grid grid-cols-1 gap-2">
-        {#each orderedMortgages as mort}
-          {@const isMortgaged = $draftStore.executedMortgageIds.includes(mort.id) || mort.isMortgaged}
-          {#if mort.isMortgaged}
-            <div class="flex items-center gap-1.5 px-2 py-2 border border-forest-accent/40 bg-forest-surface/40 opacity-90">
-              <GameIcon name="check-mark" cls="w-4 h-4 text-forest-accent shrink-0" />
-              <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{mort.titleAr}</span>
-            </div>
-          {:else}
-            <button
-              onclick={() => openModal('mortgage', mort.id)}
-              class="px-2 py-2 space-y-1.5 text-start border border-charcoal-mid bg-forest-deep/60 hover:border-wheat-mid/70 hover:bg-forest-surface cursor-pointer transition-all {dimClass('mortgages')} {isMortgaged ? 'ring-2 ring-wheat-gold/80' : ''}"
-            >
-              <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight block">{mort.titleAr}</span>
-              <span class="flex items-center gap-1 flex-wrap">
-                <span class="px-1.5 py-px rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[8px]">
-                  +${mort.immediateCashUSD / 1_000_000}M
-                </span>
-                <span class="px-1.5 py-px rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[8px]">
-                  <span class="font-bold">−</span>${mort.turnRevenueLossUSD / 1_000_000}M / دور
-                </span>
-                {#if isMortgaged}
-                  <span class="w-2 h-2 rounded-full bg-wheat-gold animate-pulse shrink-0"></span>
-                {/if}
-              </span>
-            </button>
-          {/if}
-        {/each}
-      </div>
-    </div>
-  </div>
-
-  <!-- Emergency law (martial law direct switch) -->
-  <div class="space-y-2">
-    <h4 class="text-xs font-bold text-wheat-gold font-heading">قانون الطوارئ</h4>
-    {#each DECREES.filter((d) => d.id === 'MARTIAL_LAW') as dec}
-      {@const isActive = $draftStore.activePoliticalActions.includes(dec.id)}
-      <div
-        class="w-full px-2 py-2 space-y-1.5 border border-charcoal-mid bg-forest-deep/60 {isActive ? 'ring-2 ring-wheat-gold/80' : ''}"
-      >
-        <div class="flex items-center justify-between gap-2">
-          <span class="text-[10.5px] font-bold text-wheat-light font-heading leading-tight">{dec.titleAr}</span>
-          <ToggleSwitch
-            checked={isActive}
-            label="إعلان حالة الطوارئ"
-            onchange={() => draftStore.togglePoliticalAction(dec.id)}
+    <div class="grid grid-cols-2 gap-2 phone-p:grid-cols-1 phone-l:grid-cols-1">
+      {#each CONCESSIONAL_FACILITIES as fac (fac.id)}
+        {@const st = facilityStatus(fac.id)}
+        {@const isSelected = $draftStore.signedFacilityIds.includes(fac.id)}
+        {@const totalM = fac.tranches.reduce((a, t) => a + t.amountUSD, 0) / 1_000_000}
+        {#if !st || st.status === 'AVAILABLE'}
+          {@const check = canSignFacility($gameStore, fac.id, $budgetStore.remainingPC)}
+          {@const canSign = isSelected || check.ok}
+          <DecreeCard
+            id={fac.id}
+            title={fac.titleAr}
+            description={fac.lenderAr}
+            category="تسهيل مشروط"
+            categoryClass="text-status-warn"
+            stripClass="bg-status-warn"
+            typeLabel="شرائح"
+            typeIcon="coins"
+            sealValue={pcSeal(fac.politicalCapitalCost).value}
+            sealUnit={pcSeal(fac.politicalCapitalCost).unit}
+            sealTone={pcSeal(fac.politicalCapitalCost).tone}
+            chips={[
+              totalM > 0
+                ? { text: `+$${totalM}M على ${fac.tranches.length} شرائح`, tone: 'good' as const }
+                : { text: 'خفض دائم للقسط', tone: 'good' as const },
+              { text: `−${fac.politicalCapitalCost} رصيد سياسي`, tone: 'bad' },
+              { text: `−${fac.leverageCost} رافعة`, tone: 'bad' },
+            ]}
+            warnNote={`شرط: ${fac.conditionAr}`}
+            note={`إذا أخللت: ${fac.breachAr}`}
+            state={isSelected ? 'queued' : canSign ? 'available' : 'locked'}
+            stateNote={canSign ? '' : check.reasonAr}
+            actionLabel={isSelected ? '' : 'توقيع التسهيل'}
+            dimmed={dimmedFor('loans')}
+            highlighted={highlightedFor('loans')}
+            onclick={() => openModal('facility', fac.id)}
+            ariaLabel={(isSelected ? 'إلغاء اعتماد: ' : 'توقيع: ') + fac.titleAr}
           />
-        </div>
-        <span class="flex items-center gap-1 flex-wrap">
-          {#each dec.effectsAr.filter((fx) => fx.scope === 'national') as fx}
-            <span
-              class="px-1.5 py-px rounded-full border font-mono font-bold text-[8px] {fx.tone === 'good'
-                ? 'bg-forest-mid border-forest-accent/60 text-forest-accent'
-                : 'bg-umber-deep border-umber-border text-umber-crimson'}"
-            >
-              {fx.text}
+        {:else}
+          <DecreeCard
+            id={fac.id}
+            title={fac.titleAr}
+            description={fac.lenderAr}
+            category="تسهيل مشروط"
+            categoryClass="text-status-warn"
+            stripClass="bg-status-warn"
+            typeLabel={st.status === 'BREACHED' ? 'مجمّد' : st.status === 'COMPLETED' ? 'مكتمل' : 'سارٍ'}
+            typeIcon={st.status === 'BREACHED' ? 'siren' : 'check-mark'}
+            chips={[
+              ...(st.status === 'ACTIVE'
+                ? [
+                    {
+                      text: `الشرائح ${st.tranchesDrawn}/${fac.tranches.length}`,
+                      tone: 'neutral' as const,
+                    },
+                    ...(st.conditionTurnsLeft > 0
+                      ? [
+                          {
+                            text: `الشرط سارٍ: ${st.conditionTurnsLeft} دورات`,
+                            tone: 'warn' as const,
+                          },
+                        ]
+                      : []),
+                    ...(fac.id === 'facility_gulf_reconstruction_grant'
+                      ? [
+                          {
+                            text: `رصيد المنحة للمشاريع: $${(($gameStore.macro.grantBucketUSD ?? 0) / 1_000_000).toFixed(0)}M`,
+                            tone: 'good' as const,
+                          },
+                        ]
+                      : []),
+                  ]
+                : []),
+              ...(st.status === 'BREACHED'
+                ? [{ text: 'مجمّدة — إخلال بالشرط', tone: 'bad' as const }]
+                : []),
+              ...(st.status === 'COMPLETED'
+                ? [{ text: 'مكتملة ✓', tone: 'good' as const }]
+                : []),
+            ]}
+            state="info"
+            infoTone={st.status === 'BREACHED' ? 'danger' : 'good'}
+            dimmed={dimmedFor('loans')}
+            highlighted={highlightedFor('loans')}
+            ariaLabel={fac.titleAr}
+          />
+        {/if}
+      {/each}
+    </div>
+  </section>
+
+  <!-- ── Sovereign mortgages ──────────────────────────────────────────────── -->
+  <section class="space-y-2" aria-label="الرهون والامتيازات السيادية">
+    <div class="flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+        <GameIcon name="key" cls="h-3.5 w-3.5 shrink-0" />
+        الرهون والامتيازات السيادية الطارئة
+      </h4>
+      <span class="text-[8.5px] text-wheat-dark">{orderedMortgages.length} امتياز</span>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 phone-p:grid-cols-1 phone-l:grid-cols-1">
+      {#each orderedMortgages as mort (mort.id)}
+        {@const isMortgaged = $draftStore.executedMortgageIds.includes(mort.id) || mort.isMortgaged}
+        {#if mort.isMortgaged}
+          <DecreeCard
+            id={mort.id}
+            title={mort.titleAr}
+            description={mort.assetNameAr}
+            category="رهن سيادي"
+            categoryClass="text-status-info"
+            stripClass="bg-status-info"
+            typeLabel="منفّذ"
+            typeIcon="check-mark"
+            chips={[{ text: 'امتياز قائم', tone: 'neutral' }]}
+            state="enacted"
+            dimmed={dimmedFor('mortgages')}
+            highlighted={highlightedFor('mortgages')}
+            ariaLabel={mort.titleAr}
+          />
+        {:else}
+          <DecreeCard
+            id={mort.id}
+            title={mort.titleAr}
+            description={mort.assetNameAr}
+            category="رهن سيادي"
+            categoryClass="text-status-info"
+            stripClass="bg-status-info"
+            typeLabel="مرة واحدة"
+            typeIcon="key"
+            sealValue={usdSeal(mort.immediateCashUSD).value}
+            sealUnit={usdSeal(mort.immediateCashUSD).unit}
+            sealTone="gain"
+            chips={[
+              { text: `−$${mort.turnRevenueLossUSD / 1_000_000}M / دور`, tone: 'bad' },
+              { text: `امتياز ${mort.concessionDurationYears} سنة`, tone: 'neutral' },
+            ]}
+            state={isMortgaged ? 'queued' : 'available'}
+            actionLabel={isMortgaged ? '' : 'عرض الرهن'}
+            dimmed={dimmedFor('mortgages')}
+            highlighted={highlightedFor('mortgages')}
+            onclick={() => openModal('mortgage', mort.id)}
+            ariaLabel={(isMortgaged ? 'إلغاء اعتماد: ' : 'رهن: ') + mort.titleAr}
+          />
+        {/if}
+      {/each}
+    </div>
+  </section>
+
+  <!-- ── Debt repudiation ─────────────────────────────────────────────────── -->
+  <section class="space-y-2" aria-label="التنصل من الديون">
+    <div class="flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+        <GameIcon name="gavel" cls="h-3.5 w-3.5 shrink-0" />
+        التنصل من الديون غير الموثقة
+      </h4>
+      <span class="text-[8.5px] text-wheat-dark">باريس · إيران · روسيا</span>
+    </div>
+    <p class="text-[9px] leading-snug text-wheat-dark">
+      شطب الديون مقابل رصيد سياسي، بثمن توتر إقليمي وإغلاق نوافذ تمويل.
+    </p>
+    <div class="grid grid-cols-2 gap-2 phone-p:grid-cols-1 phone-l:grid-cols-1">
+      {#each sovereignDecrees as dec (dec.id)}
+        {@const cat = decreeCategoryOf(dec)}
+        {@const state = decreeState(dec)}
+        {@const seal = pcSeal(decreePcCost(dec.id))}
+        <DecreeCard
+          id={dec.id}
+          title={dec.titleAr}
+          description={dec.descAr}
+          category={cat.labelAr}
+          categoryClass={cat.textClass}
+          stripClass={cat.stripClass}
+          typeLabel="مرة واحدة"
+          typeIcon="gavel"
+          sealValue={seal.value}
+          sealUnit={seal.unit}
+          sealTone={seal.tone}
+          chips={[
+            ...dec.effectsAr
+              .filter((fx) => fx.scope === 'national')
+              .map((fx) => ({
+                text: fx.text,
+                tone: (fx.tone === 'good' ? 'good' : 'bad') as 'good' | 'bad',
+              })),
+          ]}
+          state={state}
+          actionLabel={state === 'available' ? 'أضف إلى الحصيلة' : ''}
+          dimmed={selectedStat ? !isOptionRelated(selectedStat, dec.id) : false}
+          highlighted={selectedStat ? isOptionRelated(selectedStat, dec.id) : false}
+          onclick={state === 'enacted' ? undefined : () => (repudiateModal = dec)}
+          ariaLabel={`${state === 'enacted' ? 'منفّذ: ' : 'فتح: '}${dec.titleAr}`}
+        />
+      {/each}
+    </div>
+  </section>
+
+  <!-- ── Golan border stance ──────────────────────────────────────────────── -->
+  <section class="space-y-2" aria-label="موقف حدود الجولان">
+    <div class="flex items-center justify-between gap-2">
+      <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+        <GameIcon name="castle" cls="h-3.5 w-3.5 shrink-0" />
+        موقف حدود الجولان
+      </h4>
+      <span class="text-[8.5px] text-wheat-dark">مسرح الجنوب</span>
+    </div>
+    <div class="grid grid-cols-2 gap-2 phone-p:grid-cols-1 phone-l:grid-cols-1">
+      {#each GOLAN_OPTIONS as option (option.id)}
+        {@const selected = $draftStore.golanBorderStance === option.id}
+        <DecreeCard
+          id={`golan_${option.id}`}
+          title={option.titleAr}
+          description={option.descAr}
+          category="موقف حدودي"
+          categoryClass="text-forest-accent"
+          stripClass="bg-forest-accent"
+          typeLabel={option.id === 'DEPLOY_ARMOR' ? 'تصعيد' : 'اختيار'}
+          typeIcon={option.id === 'DEPLOY_ARMOR' ? 'siren' : 'checked-shield'}
+          chips={option.chips}
+          state={selected ? 'queued' : 'available'}
+          queuedLabel="معتمد"
+          actionLabel={selected ? '' : 'اعتماد الموقف'}
+          dimmed={golanRelated() ? false : Boolean(selectedStat)}
+          highlighted={golanRelated()}
+          onclick={() => draftStore.setField('golanBorderStance', option.id)}
+          ariaLabel={`اعتماد موقف: ${option.titleAr}`}
+        />
+      {/each}
+    </div>
+  </section>
+
+  <!-- ── Emergency law (martial law direct switch) ────────────────────────── -->
+  <section class="space-y-2" aria-label="قانون الطوارئ">
+    <h4 class="flex items-center gap-1.5 font-heading text-[11px] font-bold text-wheat-gold">
+      <GameIcon name="siren" cls="h-3.5 w-3.5 shrink-0" />
+      قانون الطوارئ
+    </h4>
+    {#if martialLaw}
+      {@const active = $draftStore.activePoliticalActions.includes(martialLaw.id)}
+      <DecreeCard
+        id={martialLaw.id}
+        title={martialLaw.titleAr}
+        description={martialLaw.descAr}
+        category="الأمن والحدود"
+        categoryClass="text-status-warn"
+        stripClass="bg-status-warn"
+        typeLabel="مستمر"
+        typeIcon="power-button"
+        chips={martialLaw.effectsAr
+          .filter((fx) => fx.scope === 'national')
+          .map((fx) => ({
+            text: fx.text,
+            tone: (fx.tone === 'good' ? 'good' : 'bad') as 'good' | 'bad',
+          }))}
+        state={active ? 'queued' : 'available'}
+        actionLabel={active ? '' : 'إعلان حالة الطوارئ'}
+        dimmed={selectedStat ? !isOptionRelated(selectedStat, martialLaw.id) : false}
+        highlighted={selectedStat ? isOptionRelated(selectedStat, martialLaw.id) : false}
+        onclick={() => draftStore.togglePoliticalAction(martialLaw.id)}
+        ariaLabel={active ? 'إنهاء حالة الطوارئ' : 'إعلان حالة الطوارئ'}
+      >
+        {#if active}
+          <div class="space-y-0.5 border-t border-status-warn/25 pt-1.5 text-[9px] text-status-warn">
+            <span class="block font-bold">ديبَف مستمر سارٍ:</span>
+            <span class="block leading-snug">
+              تخفيض الاحتقان مستمر، مع هبوط متواصل في الثقة الشعبية (−4 كل دور) حتى تنهي حالة
+              الطوارئ يدوياً.
             </span>
-          {/each}
-        </span>
-        {#if isActive}
-          <div class="py-1 text-[10px] space-y-0.5 text-amber-200">
-            <span class="font-bold text-amber-300 block">ديبَف مستمر سارٍ:</span>
-            <span>تخفيض الاحتقان مستمر، مع هبوط متواصل في الثقة الشعبية (-4 كل دور) حتى تنهي حالة الطوارئ يدوياً.</span>
           </div>
         {/if}
-      </div>
-    {/each}
-  </div>
+      </DecreeCard>
+    {/if}
+  </section>
 </div>
 
-<!-- Emergency detail modal -->
-{#if modalSel}
-  {@const loan = modalLoan()}
-  {@const mort = modalMortgage()}
-  {@const fac = modalFacility()}
-  {@const isLoanSelected = loan ? $draftStore.signedLoanIds.includes(loan.id) || loan.isSigned : false}
-  {@const canAffordLoan = loan ? isLoanSelected || $budgetStore.remainingPC >= loan.politicalCapitalCost : false}
-  {@const isMortgagedSel = mort ? $draftStore.executedMortgageIds.includes(mort.id) || mort.isMortgaged : false}
-  {@const facSelected = fac ? $draftStore.signedFacilityIds.includes(fac.id) : false}
-  {@const facCheck = fac ? canSignFacility($gameStore, fac.id, $budgetStore.remainingPC) : { ok: false, reasonAr: '' }}
-  {@const confirmOk = loan ? !loan.isSigned && (isLoanSelected || canAffordLoan) : mort ? !mort.isMortgaged : fac ? (facSelected || facCheck.ok) : false}
-  <div class="fixed inset-0 z-[70] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="تفاصيل التمويل الطارئ">
-    <button
-      class="absolute inset-0 bg-black/60 cursor-default"
-      onclick={() => (modalSel = null)}
-      tabindex="-1"
-      aria-label="إلغاء"
-    ></button>
-    <div
-      use:focusTrap
-      class="relative w-full max-w-[420px] bg-forest-deep border-2 border-wheat-mid/70 shadow-2xl p-5 space-y-3 text-wheat-light font-arabic rounded-none scroll-area overflow-y-auto modal-card"
-    >
-      {#if loan}
-        <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{loan.titleAr}</h3>
-        <p class="text-[11px] text-wheat-dark leading-relaxed">{loan.lenderAr} — {loan.concessionSummaryAr}</p>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
-            +${loan.disbursementUSD / 1_000_000}M
-          </span>
-          <span class="px-2 py-0.5 rounded-full bg-charcoal-surface border border-charcoal-mid text-wheat-mid font-mono font-bold text-[9.5px]">
-            فائدة {loan.interestRatePct}% (خدمة ${((loan.disbursementUSD * loan.interestRatePct) / 100 / 2 / 1_000_000).toFixed(1)}M/دور)
-          </span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
-            <span class="font-bold">−</span>{loan.politicalCapitalCost} رصيد سياسي
-          </span>
-        </div>
-      {:else if mort}
-        <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{mort.titleAr}</h3>
-        <p class="text-[11px] text-wheat-dark leading-relaxed">{mort.assetNameAr} — امتياز لـ {mort.concessionDurationYears} سنة</p>
-        <p class="text-[10px] text-umber-crimson leading-relaxed">{mort.sovereigntyPenaltyAr}</p>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
-            +${mort.immediateCashUSD / 1_000_000}M
-          </span>
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
-            <span class="font-bold">−</span>${mort.turnRevenueLossUSD / 1_000_000}M / دور
-          </span>
-        </div>
-      {:else if fac}
-        <h3 class="text-sm font-bold text-wheat-gold font-heading leading-snug">{fac.titleAr}</h3>
-        <p class="text-[11px] text-wheat-dark leading-relaxed">{fac.lenderAr} — {fac.descriptionAr}</p>
-        <p class="text-[11px] text-amber-300 leading-relaxed">الشرط: {fac.conditionAr}</p>
-        <p class="text-[10px] text-umber-crimson leading-relaxed">ماذا يحدث إذا أخللت: {fac.breachAr}</p>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          {#if fac.tranches.length > 0}
-            {#each fac.tranches as t, i}
-              <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
-                الشريحة {i + 1}: +${t.amountUSD / 1_000_000}M{t.ringFenced ? ' (للمشاريع حصراً)' : ''}
-              </span>
-            {/each}
-          {:else}
-            <span class="px-2 py-0.5 rounded-full bg-forest-mid border border-forest-accent/60 text-forest-accent font-mono font-bold text-[9.5px]">
-              تفعيل لمرة واحدة
-            </span>
-          {/if}
-          <span class="px-2 py-0.5 rounded-full bg-umber-deep border border-umber-border text-umber-crimson font-mono font-bold text-[9.5px]">
-            <span class="font-bold">−</span>{fac.politicalCapitalCost} رصيد سياسي · −{fac.leverageCost} رافعة
-          </span>
-        </div>
-        {#if !facSelected && !facCheck.ok}
-          <p class="text-[11px] text-umber-crimson leading-relaxed">{facCheck.reasonAr}</p>
-        {/if}
-      {/if}
-      <div class="flex justify-end gap-2 pt-1">
-        <button
-          onclick={() => (modalSel = null)}
-          class="px-4 py-2 text-xs font-bold border border-charcoal-mid bg-charcoal-surface text-wheat-mid hover:text-wheat-light hover:border-charcoal-light cursor-pointer transition-colors rounded-none font-heading"
-        >
-          إلغاء
-        </button>
-        <button
-          disabled={!confirmOk}
-          onclick={confirmModal}
-          class="px-4 py-2 text-xs font-bold border transition-colors rounded-none font-heading {confirmOk
-            ? 'bg-wheat-gold text-forest-deep border-wheat-gold hover:bg-wheat-light cursor-pointer'
-            : 'bg-charcoal-surface text-wheat-dark border-charcoal-mid cursor-not-allowed opacity-60'}"
-        >
-          {loan ? (isLoanSelected ? 'إلغاء الاعتماد' : !canAffordLoan ? `رصيد غير كافٍ (${loan.politicalCapitalCost})` : 'تأكيد التوقيع') : isMortgagedSel ? 'إلغاء الاعتماد' : fac ? (facSelected ? 'إلغاء الاعتماد' : !facCheck.ok ? facCheck.reasonAr : 'تأكيد التوقيع') : 'تأكيد الرهن'}
-        </button>
+<!-- ── Loan / mortgage / facility detail dialog ───────────────────────────── -->
+<CardDialog
+  open={modalSel !== null}
+  title={modalTitle}
+  ariaLabel="تفاصيل التمويل الطارئ"
+  kicker="تمويل طارئ"
+  confirmLabel={modalConfirmLabel}
+  confirmDisabled={!modalConfirmOk}
+  onconfirm={confirmModal}
+  onclose={() => (modalSel = null)}
+>
+  {#if modalLoan()}
+    {@const loan = modalLoan()!}
+    <div class="space-y-2.5">
+      <p class="text-[11px] leading-relaxed text-wheat-dark">
+        {loan.lenderAr} — {loan.concessionSummaryAr}
+      </p>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <EffectChip
+          text={`+$${loan.disbursementUSD / 1_000_000}M`}
+          tone="good"
+          cls="text-[9px] px-2 py-0.5"
+        />
+        <EffectChip
+          text={`فائدة ${loan.interestRatePct}% (خدمة $${((loan.disbursementUSD * loan.interestRatePct) / 100 / 2 / 1_000_000).toFixed(1)}M/دور)`}
+          tone="neutral"
+          cls="text-[9px] px-2 py-0.5"
+        />
+        <EffectChip
+          text={`−${loan.politicalCapitalCost} رصيد سياسي`}
+          tone="bad"
+          cls="text-[9px] px-2 py-0.5"
+        />
       </div>
     </div>
-  </div>
-{/if}
+  {:else if modalMortgage()}
+    {@const mort = modalMortgage()!}
+    <div class="space-y-2.5">
+      <p class="text-[11px] leading-relaxed text-wheat-dark">
+        {mort.assetNameAr} — امتياز لـ {mort.concessionDurationYears} سنة
+      </p>
+      <p class="text-[10px] leading-relaxed text-umber-crimson">{mort.sovereigntyPenaltyAr}</p>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <EffectChip
+          text={`+$${mort.immediateCashUSD / 1_000_000}M`}
+          tone="good"
+          cls="text-[9px] px-2 py-0.5"
+        />
+        <EffectChip
+          text={`−$${mort.turnRevenueLossUSD / 1_000_000}M / دور`}
+          tone="bad"
+          cls="text-[9px] px-2 py-0.5"
+        />
+      </div>
+    </div>
+  {:else if modalFacility()}
+    {@const fac = modalFacility()!}
+    <div class="space-y-2.5">
+      <p class="text-[11px] leading-relaxed text-wheat-dark">
+        {fac.lenderAr} — {fac.descriptionAr}
+      </p>
+      <p class="text-[11px] leading-relaxed text-status-warn">الشرط: {fac.conditionAr}</p>
+      <p class="text-[10px] leading-relaxed text-umber-crimson">
+        ماذا يحدث إذا أخللت: {fac.breachAr}
+      </p>
+      <div class="flex flex-wrap items-center gap-1.5">
+        {#if fac.tranches.length > 0}
+          {#each fac.tranches as t, i (i)}
+            <EffectChip
+              text={`الشريحة ${i + 1}: +$${t.amountUSD / 1_000_000}M${t.ringFenced ? ' (للمشاريع حصراً)' : ''}`}
+              tone="good"
+              cls="text-[9px] px-2 py-0.5"
+            />
+          {/each}
+        {:else}
+          <EffectChip text="تفعيل لمرة واحدة" tone="good" cls="text-[9px] px-2 py-0.5" />
+        {/if}
+        <EffectChip
+          text={`−${fac.politicalCapitalCost} رصيد سياسي · −${fac.leverageCost} رافعة`}
+          tone="bad"
+          cls="text-[9px] px-2 py-0.5"
+        />
+      </div>
+      {#if !modalFacilitySel && !modalFacilityCheck.ok}
+        <p class="text-[11px] leading-relaxed text-umber-crimson">
+          {modalFacilityCheck.reasonAr}
+        </p>
+      {/if}
+    </div>
+  {/if}
+</CardDialog>
+
+<!-- ── Repudiation confirmation (same rules as the decrees panel) ─────────── -->
+<DecreeConfirmDialog
+  decree={repudiateModal}
+  isActive={repudiateModal
+    ? $draftStore.activePoliticalActions.includes(repudiateModal.id)
+    : false}
+  remainingPC={$budgetStore.remainingPC}
+  onconfirm={confirmRepudiation}
+  onclose={() => (repudiateModal = null)}
+/>
