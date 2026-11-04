@@ -1,5 +1,5 @@
 // Shared data + helpers for command panels (ported from MinistryDrawer, tabs removed).
-// Filter dimming follows the TopRibbon drill-down via selectedStatForOptions.
+// Filter dimming follows the top-bar stat drill-down via selectedStatForOptions.
 
 import type { GameState } from '../../engine/types';
 

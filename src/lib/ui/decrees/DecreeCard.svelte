@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import GameIcon from '../GameIcon.svelte';
-  import EffectChip from './EffectChip.svelte';
+  import EffectChip from '../controls/EffectChip.svelte';
   import type { DecreeCardState, EffectChipData, SealTone } from './decree-meta';
 
   interface Props {
@@ -136,7 +136,7 @@
   {#if chips.length > 0}
     <div class="mt-auto flex flex-wrap content-end gap-1 pt-2">
       {#each chips as chip, i (chip.text + i)}
-        <EffectChip text={chip.text} tone={chip.tone} />
+        <EffectChip icon="" text={chip.text} tone={chip.tone} />
       {/each}
     </div>
   {/if}

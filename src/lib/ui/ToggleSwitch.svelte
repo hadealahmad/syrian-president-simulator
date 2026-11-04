@@ -27,16 +27,15 @@
     : 'cursor-pointer'}"
 >
   <span
-    class="relative block h-7 w-12 overflow-hidden border transition-colors {checked
+    class="relative block h-7 w-12 overflow-hidden rounded-full border transition-colors {checked
       ? 'border-forest-accent bg-forest-mid'
       : 'border-charcoal-mid bg-charcoal-surface'} group-focus-visible:ring-2 group-focus-visible:ring-wheat-gold/70"
-    style="border-radius: 999px !important;"
   >
     <span
-      class="absolute top-1/2 block h-5 w-5 -translate-y-1/2 shadow transition-all {checked
+      class="absolute top-1/2 block h-5 w-5 -translate-y-1/2 rounded-full shadow transition-all {checked
         ? 'bg-forest-accent'
         : 'bg-wheat-dark'}"
-      style="border-radius: 50% !important; {checked ? 'inset-inline-end: 2px;' : 'inset-inline-start: 2px;'}"
+      style="{checked ? 'inset-inline-end: 2px;' : 'inset-inline-start: 2px;'}"
     ></span>
   </span>
 </button>

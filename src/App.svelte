@@ -101,12 +101,13 @@
 </script>
 
 <main class="app-shell relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
-  <!-- Map viewport: fills everything below the new top bar. The Sheet
-       overlays it instead of crushing it (Concept D). -->
+  <!-- Map viewport: fills everything below the new top bar. On desktop the
+       open Sheet narrows it (via --shell-map-end) so the whole map stays
+       visible beside the drawer; on phones the Sheet is modal and overlays. -->
   <div
     data-tour="map"
-    class="fixed inset-x-0 bottom-0 z-10 overflow-hidden"
-    style="top: calc(var(--shell-top-h) * var(--hud-zoom));"
+    class="map-viewport fixed inset-x-0 bottom-0 z-10 overflow-hidden"
+    style="top: calc(var(--shell-top-h) * var(--hud-zoom)); inset-inline-end: min(var(--shell-map-end, 0px), calc(100vw - 32px));"
   >
     <GameMap />
   </div>

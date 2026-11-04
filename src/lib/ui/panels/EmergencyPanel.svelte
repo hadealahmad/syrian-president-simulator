@@ -6,8 +6,8 @@
   import DecreeCard from '../decrees/DecreeCard.svelte';
   import CardDialog from '../decrees/CardDialog.svelte';
   import DecreeConfirmDialog from '../decrees/DecreeConfirmDialog.svelte';
-  import EffectChip from '../decrees/EffectChip.svelte';
-  import RangeStepper from '../decrees/RangeStepper.svelte';
+  import EffectChip from '../controls/EffectChip.svelte';
+  import BigSlider from '../controls/BigSlider.svelte';
   import {
     decreeCategoryOf,
     decreePcCost,
@@ -299,20 +299,20 @@
 <div class="space-y-3">
   <!-- ── Finance snapshot ─────────────────────────────────────────────────── -->
   <section
-    class="grid grid-cols-3 gap-1.5 border border-wheat-mid/15 bg-charcoal-deep/45 p-2 shell-round-pop"
+    class="grid grid-cols-3 gap-1.5 border border-wheat-mid/15 bg-charcoal-deep/45 p-2 shell-round-pop phone-l:gap-1 phone-l:p-1.5"
     aria-label="موجز التمويل"
   >
-    <div class="text-center">
+    <div class="text-center phone-l:flex phone-l:items-center phone-l:justify-center phone-l:gap-1">
       <div class="text-[8px] text-wheat-dark">رصيد متاح</div>
-      <div class="font-heading text-[17px] leading-tight text-wheat-gold">{availablePC}</div>
+      <div class="font-heading text-[17px] leading-tight text-wheat-gold phone-l:text-[14px] phone-l:leading-none">{availablePC}</div>
     </div>
-    <div class="border-x border-wheat-mid/10 text-center">
+    <div class="border-x border-wheat-mid/10 text-center phone-l:flex phone-l:items-center phone-l:justify-center phone-l:gap-1">
       <div class="text-[8px] text-wheat-dark">الاحتياطي</div>
-      <div class="font-heading text-[17px] leading-tight text-wheat-light">${reservesM}M</div>
+      <div class="font-heading text-[17px] leading-tight text-wheat-light phone-l:text-[14px] phone-l:leading-none">${reservesM}M</div>
     </div>
-    <div class="text-center">
+    <div class="text-center phone-l:flex phone-l:items-center phone-l:justify-center phone-l:gap-1">
       <div class="text-[8px] text-wheat-dark">الدين الخارجي</div>
-      <div class="font-heading text-[17px] leading-tight text-umber-crimson">${debtB}B</div>
+      <div class="font-heading text-[17px] leading-tight text-umber-crimson phone-l:text-[14px] phone-l:leading-none">${debtB}B</div>
     </div>
   </section>
 
@@ -412,7 +412,8 @@
 
     <!-- Early principal repayment (highest-rate loans first) -->
     {#if totalRemainingPrincipal > 0}
-      <RangeStepper
+      <BigSlider
+        framed
         label="سداد مبكر لأصل الدين"
         hint="يُخصم من الاحتياطي ويُطفئ أعلى القروض فائدة أولاً (رافعة +2 لكل $100M)"
         value={Math.min(repayM, maxRepayM)}
@@ -764,19 +765,22 @@
       </p>
       <div class="flex flex-wrap items-center gap-1.5">
         <EffectChip
+          icon=""
           text={`+$${loan.disbursementUSD / 1_000_000}M`}
           tone="good"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
         <EffectChip
+          icon=""
           text={`فائدة ${loan.interestRatePct}% (خدمة $${((loan.disbursementUSD * loan.interestRatePct) / 100 / 2 / 1_000_000).toFixed(1)}M/دور)`}
           tone="neutral"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
         <EffectChip
+          icon=""
           text={`−${loan.politicalCapitalCost} رصيد سياسي`}
           tone="bad"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
       </div>
     </div>
@@ -789,14 +793,16 @@
       <p class="text-[10px] leading-relaxed text-umber-crimson">{mort.sovereigntyPenaltyAr}</p>
       <div class="flex flex-wrap items-center gap-1.5">
         <EffectChip
+          icon=""
           text={`+$${mort.immediateCashUSD / 1_000_000}M`}
           tone="good"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
         <EffectChip
+          icon=""
           text={`−$${mort.turnRevenueLossUSD / 1_000_000}M / دور`}
           tone="bad"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
       </div>
     </div>
@@ -814,18 +820,20 @@
         {#if fac.tranches.length > 0}
           {#each fac.tranches as t, i (i)}
             <EffectChip
+              icon=""
               text={`الشريحة ${i + 1}: +$${t.amountUSD / 1_000_000}M${t.ringFenced ? ' (للمشاريع حصراً)' : ''}`}
               tone="good"
-              cls="text-[9px] px-2 py-0.5"
+              class="text-[9px] px-2 py-0.5"
             />
           {/each}
         {:else}
-          <EffectChip text="تفعيل لمرة واحدة" tone="good" cls="text-[9px] px-2 py-0.5" />
+          <EffectChip icon="" text="تفعيل لمرة واحدة" tone="good" class="text-[9px] px-2 py-0.5" />
         {/if}
         <EffectChip
+          icon=""
           text={`−${fac.politicalCapitalCost} رصيد سياسي · −${fac.leverageCost} رافعة`}
           tone="bad"
-          cls="text-[9px] px-2 py-0.5"
+          class="text-[9px] px-2 py-0.5"
         />
       </div>
       {#if !modalFacilitySel && !modalFacilityCheck.ok}

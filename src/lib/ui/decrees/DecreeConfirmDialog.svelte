@@ -1,6 +1,6 @@
 <script lang="ts">
   import CardDialog from './CardDialog.svelte';
-  import EffectChip from './EffectChip.svelte';
+  import EffectChip from '../controls/EffectChip.svelte';
   import { allEffectChips, decreePcCost, decreeTypeLabel } from './decree-meta';
   import type { PoliticalDecreeItem } from '../panels/shared';
 
@@ -44,14 +44,14 @@
 
       <div class="flex flex-wrap items-center gap-1.5">
         {#each chips as chip, i (chip.text + i)}
-          <EffectChip text={chip.text} tone={chip.tone} cls="text-[9px] px-2 py-0.5" />
+          <EffectChip icon="" text={chip.text} tone={chip.tone} class="text-[9px] px-2 py-0.5" />
         {/each}
         {#if costPC > 0}
-          <EffectChip text="−{costPC} رصيد سياسي" tone="bad" cls="text-[9px] px-2 py-0.5" />
+          <EffectChip icon="" text="−{costPC} رصيد سياسي" tone="bad" class="text-[9px] px-2 py-0.5" />
         {:else if costPC < 0}
-          <EffectChip text="+{Math.abs(costPC)} رصيد سياسي" tone="good" cls="text-[9px] px-2 py-0.5" />
+          <EffectChip icon="" text="+{Math.abs(costPC)} رصيد سياسي" tone="good" class="text-[9px] px-2 py-0.5" />
         {:else}
-          <EffectChip text="دون كلفة سياسية" tone="neutral" cls="text-[9px] px-2 py-0.5" />
+          <EffectChip icon="" text="دون كلفة سياسية" tone="neutral" class="text-[9px] px-2 py-0.5" />
         {/if}
       </div>
 

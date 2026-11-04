@@ -4,10 +4,9 @@ import type { MigrationFlow } from '../../engine/types';
 /**
  * Internal governorate-to-governorate migration arrows.
  *
- * This is a direct port of the routing/heuristics in the old
- * `SyriaMap.svelte` (which the 3D map also mirrors): try offset side × bow
- * side, keep the path farthest from foreign province centres, combine the
- * committed ledger with the live projected draft flows.
+ * Routing/heuristics ported from the legacy map renderer: try offset side ×
+ * bow side, keep the path farthest from foreign province centres, and combine
+ * the committed ledger with the live projected draft flows.
  */
 export interface MigrationArrow {
   fromId: string;

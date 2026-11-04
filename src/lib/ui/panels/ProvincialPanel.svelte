@@ -314,8 +314,8 @@
       </div>
     </div>
 
-    <!-- 2×2 metric tiles -->
-    <div class="grid grid-cols-2 gap-1.5">
+    <!-- 2×2 metric tiles (one compact row on landscape phones) -->
+    <div class="grid grid-cols-2 gap-1.5 phone-l:grid-cols-4 phone-l:gap-1">
       <div class="border border-wheat-mid/10 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
         <div class="flex items-center gap-1 text-[8.5px] text-wheat-dark">
           <GameIcon name="power-generator" cls="h-3 w-3 shrink-0" />
@@ -892,8 +892,7 @@
 </div>
 
 <style>
-  /* Concept D province dossier — rounded surfaces are explicit exceptions to
-     the global angular reset. */
+  /* Concept D province dossier — rounded surfaces. */
   .pd-sect {
     display: flex;
     align-items: center;
@@ -916,7 +915,7 @@
     place-items: center;
     width: 80px;
     height: 80px;
-    border-radius: 50% !important;
+    border-radius: 50%;
     background: conic-gradient(
       var(--tone, var(--color-wheat-gold)) calc(var(--p, 0) * 1%),
       rgb(from var(--color-wheat-light) r g b / 0.07) 0
@@ -926,7 +925,7 @@
     content: '';
     position: absolute;
     inset: 6px;
-    border-radius: 50% !important;
+    border-radius: 50%;
     background: color-mix(in srgb, var(--color-charcoal-deep) 78%, var(--color-forest-mid));
   }
   .pd-gauge-tx {
@@ -952,7 +951,7 @@
   .pd-bar {
     height: 3px;
     overflow: hidden;
-    border-radius: 4px !important;
+    border-radius: 4px;
     background: rgb(from var(--color-wheat-light) r g b / 0.08);
   }
   .pd-bar-tall {
@@ -961,49 +960,12 @@
   .pd-fill {
     display: block;
     height: 100%;
-    border-radius: 4px !important;
+    border-radius: 4px;
     transition: width 0.4s ease;
   }
   .pd-bar i.absolute {
-    border-radius: 0 !important;
+    border-radius: 0;
   }
-  /* The shared ToggleSwitch is styled for the legacy angular UI; inside the
-     Concept D dossier its track/knob must read as a pill (component-scoped,
-     the shared component itself is untouched). */
-  .pd-toggle :global(span) {
-    border-radius: 999px !important;
-  }
-
-  /* app.css's `* { border-radius: 0 !important }` lives in the `base` layer.
-     Layered important declarations beat unlayered ones, so component-scoped
-     roundness must also be declared inside that same layer to win back the
-     Concept D surfaces. */
-  @layer base {
-    .pd-gauge,
-    .pd-gauge-inner {
-      border-radius: 50% !important;
-    }
-    .pd-gauge::before {
-      border-radius: 50% !important;
-    }
-    .pd-bar,
-    .pd-fill {
-      border-radius: 4px !important;
-    }
-    .pd-root :global(.shell-round-pop) {
-      border-radius: 12px !important;
-    }
-    .pd-root :global(.shell-round-item) {
-      border-radius: 10px !important;
-    }
-    .pd-root :global(.shell-round-chip) {
-      border-radius: 999px !important;
-    }
-    .pd-toggle :global(span) {
-      border-radius: 999px !important;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     .pd-fill {
       transition: none;

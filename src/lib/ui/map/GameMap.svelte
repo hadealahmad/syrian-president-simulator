@@ -796,7 +796,7 @@
         >
           <span
             class="h-1.5 w-1.5 shrink-0"
-            style="background:{item.legend[1].color};border-radius:2px !important;"
+            style="background:{item.legend[1].color};border-radius:2px;"
             aria-hidden="true"
           ></span>
           <span class="whitespace-nowrap font-heading">{item.labelAr}</span>
@@ -812,7 +812,7 @@
         <span class="flex items-center gap-1 whitespace-nowrap">
           <i
             class="h-2.5 w-2.5 shrink-0"
-            style="background:{entry.color};border-radius:2px !important;"
+            style="background:{entry.color};border-radius:2px;"
             aria-hidden="true"
           ></i>
           <span dir="ltr">{entry.label}</span>
@@ -998,7 +998,7 @@
     gap: 0;
     padding: 0 6px;
     border: 1.5px solid var(--tone, var(--color-wheat-gold));
-    border-radius: 999px !important;
+    border-radius: 999px;
     background: rgb(from var(--color-charcoal-deep) r g b / 0.94);
     box-shadow: 0 3px 10px rgb(0 0 0 / 0.45);
     color: var(--color-wheat-light);
@@ -1068,18 +1068,11 @@
     }
   }
 
-  /* app.css's `* { border-radius: 0 !important }` lives in the `base` layer;
-     layered important declarations beat unlayered ones, so Concept D's rounded
-     map chrome is re-declared inside that layer with higher specificity. */
-  @layer base {
-    .map-root .map-badge {
-      border-radius: 999px !important;
-    }
-    .map-root :global(.shell-round-pop) {
-      border-radius: 12px !important;
-    }
-    .map-root :global(.shell-round-item) {
-      border-radius: 9px !important;
-    }
+  /* Concept D map chrome stays rounded alongside the rest of the shell. */
+  .map-root :global(.shell-round-pop) {
+    border-radius: 12px;
+  }
+  .map-root :global(.shell-round-item) {
+    border-radius: 9px;
   }
 </style>

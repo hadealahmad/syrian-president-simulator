@@ -1,5 +1,5 @@
 <script module lang="ts">
-  export type EffectTone = 'good' | 'bad' | 'neutral';
+  export type EffectTone = 'good' | 'bad' | 'neutral' | 'warn';
 </script>
 
 <script lang="ts">
@@ -35,6 +35,10 @@
     return `${label} ${sign}${amount}`.trim();
   });
 
+  // A leading sign/digit would otherwise be re-ordered by the RTL paragraph
+  // (the minus would jump to the far edge). LRM anchors the numeric run.
+  let shown = $derived(/^[+\u2212-]/.test(body) ? `\u200E${body}` : body);
+
   let glyph = $derived(
     icon === undefined ? (tone === 'good' ? 'check-mark' : tone === 'bad' ? 'cross-mark' : '') : icon
   );
@@ -44,7 +48,9 @@
       ? 'border-forest-accent/40 bg-forest-mid text-forest-accent'
       : tone === 'bad'
         ? 'border-umber-border/60 bg-umber-deep text-umber-crimson'
-        : 'border-charcoal-mid bg-charcoal-surface text-wheat-mid'
+        : tone === 'warn'
+          ? 'border-status-warn/40 bg-umber-deep text-status-warn'
+          : 'border-charcoal-mid bg-charcoal-surface text-wheat-mid'
   );
 </script>
 
@@ -55,5 +61,5 @@
   {#if glyph}
     <GameIcon name={glyph} cls="h-2.5 w-2.5 shrink-0" />
   {/if}
-  <span class="min-w-0">{body}</span>
+  <span class="min-w-0">{shown}</span>
 </span>

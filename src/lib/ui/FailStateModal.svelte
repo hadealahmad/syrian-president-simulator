@@ -34,8 +34,7 @@
 
       <div class="space-y-3 px-6 pb-6 pt-7">
         <div
-          class="mx-auto flex h-14 w-14 items-center justify-center border-2 border-umber-crimson bg-umber-deep font-heading text-2xl font-bold text-wheat-light"
-          style="border-radius: 50% !important;"
+          class="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-umber-crimson bg-umber-deep font-heading text-2xl font-bold text-wheat-light"
           aria-hidden="true"
         >
           !

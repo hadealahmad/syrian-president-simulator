@@ -224,7 +224,7 @@
   .tour-body :global(.lead) {
     color: rgb(from var(--color-wheat-light) r g b / 0.95);
   }
-  /* Takeaway lists: square gold markers match the zero-radius UI language */
+  /* Takeaway lists: square gold markers keep the angular marker language */
   .tour-body :global(ul) {
     display: grid;
     gap: 7px;

@@ -18,7 +18,7 @@
 
 <div class="space-y-3">
   <!-- Segmented tab control (Sheet already owns the title/close header). -->
-  <div class="sticky -top-3 z-10 -mx-1 -mt-3 bg-forest-deep pt-3">
+  <div class="sticky -top-3 z-10 -mx-1 -mt-3 bg-forest-deep pt-3 phone-l:-top-2 phone-l:-mt-2 phone-l:pt-2">
     <div
       class="flex gap-0.5 border border-wheat-mid/15 p-1 shell-round-item"
       role="group"

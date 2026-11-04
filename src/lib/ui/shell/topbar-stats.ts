@@ -2,10 +2,9 @@ import type { ProjectedStat, ProjectedTurnSummary } from '../../engine/types';
 import { STAT_EXPLAINERS_AR, STAT_STATE_TEXT, statState } from '../panels/shared';
 
 /**
- * Shared TopBar stat model. Ported from the retired `TopRibbon.svelte` so the
- * new bar keeps every value and its live-rehearsal preview (current →
- * projected, delta % and beneficial/harmful colouring) instead of duplicating
- * the mapping in markup.
+ * Shared TopBar stat model, so the new bar keeps every value and its live-
+ * rehearsal preview (current → projected, delta % and beneficial/harmful
+ * colouring) without duplicating the mapping in markup.
  */
 export interface TopStat {
   /** Stat id used by `selectedStatForOptions` / `STAT_EXPLAINERS_AR`. */

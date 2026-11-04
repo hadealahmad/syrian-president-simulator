@@ -23,14 +23,10 @@
         ? 'bottom: 8px; inset-inline-end: 8px;'
         : 'bottom: calc(20px + env(safe-area-inset-bottom)); inset-inline-start: 22px;'
   );
-  // The global angular reset lives in `@layer base` with !important, and for
-  // important declarations layered styles beat unlayered ones — so the shared
-  // `.shell-round-*` overrides cannot win here. An inline !important radius is
-  // the one form the cascade puts above every author layer; the embedded rings
-  // are real spans (not pseudo-elements) so they round with it.
+  // Shape and embossed rings come from `.shell-round-seal` / `rounded-full`
+  // classes; only position, size and the wax gradient live inline.
   let sealStyle = $derived(
     `${positionStyle} width: ${size}px; height: ${size}px; ` +
-      'border-radius: 50% !important; ' +
       'background: var(--shell-seal-gold); color: var(--shell-seal-ink); ' +
       'border: 1px solid color-mix(in srgb, var(--color-wheat-light) 78%, transparent); ' +
       'box-shadow: 0 14px 40px rgb(from var(--color-wheat-gold) r g b / 0.24), 0 4px 12px rgb(0 0 0 / 0.4), inset 0 0 0 5px rgb(0 0 0 / 0.08);'
@@ -55,18 +51,18 @@
   title={gameOver
     ? 'انتهت اللعبة'
     : 'مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها'}
-  class="pointer-events-auto fixed z-[46] flex flex-col items-center justify-center transition-transform duration-150 hover:scale-[1.045] active:scale-[0.97] disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-45 disabled:grayscale"
+  class="shell-round-seal pointer-events-auto fixed z-[46] flex flex-col items-center justify-center transition-transform duration-150 hover:scale-[1.045] active:scale-[0.97] disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-45 disabled:grayscale"
   style={sealStyle}
 >
   <!-- Embossed rings pressed into the wax. -->
   <span
-    class="pointer-events-none absolute inset-[6px] border border-dashed"
-    style="border-radius: 50% !important; border-color: rgb(0 0 0 / 0.42);"
+    class="pointer-events-none absolute inset-[6px] rounded-full border border-dashed"
+    style="border-color: rgb(0 0 0 / 0.42);"
     aria-hidden="true"
   ></span>
   <span
-    class="pointer-events-none absolute inset-[13px] border"
-    style="border-radius: 50% !important; border-color: rgb(0 0 0 / 0.16);"
+    class="pointer-events-none absolute inset-[13px] rounded-full border"
+    style="border-color: rgb(0 0 0 / 0.16);"
     aria-hidden="true"
   ></span>
 
@@ -99,8 +95,8 @@
 
   {#if pending > 0}
     <span
-      class="absolute -top-1 -end-1 z-20 flex h-[23px] min-w-[23px] items-center justify-center px-1 font-mono text-[10px] font-bold leading-none text-charcoal-white shadow-md"
-      style="border-radius: 50% !important; background: var(--color-status-danger); border: 2px solid var(--color-charcoal-deep);"
+      class="absolute -top-1 -end-1 z-20 flex h-[23px] min-w-[23px] items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold leading-none text-charcoal-white shadow-md"
+      style="background: var(--color-status-danger); border: 2px solid var(--color-charcoal-deep);"
       aria-label="{pending} قرارات معلّقة"
       title="{pending} قرار معلّق في المسودة"
     >

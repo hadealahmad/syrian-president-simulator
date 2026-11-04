@@ -12,6 +12,14 @@
     disabled?: boolean;
     minLabel?: string;
     maxLabel?: string;
+    /** Optional formatted value overriding the bubble's `format`/raw output. */
+    display?: string;
+    /** Optional explanatory line, shown when the slider is framed. */
+    hint?: string;
+    /** Accessible name for the range input (defaults to `label`). */
+    ariaLabel?: string;
+    /** Draw the bordered card header used by the emergency panel. */
+    framed?: boolean;
   }
 
   let {
@@ -26,6 +34,10 @@
     disabled = false,
     minLabel = '',
     maxLabel = '',
+    display: displayOverride,
+    hint = '',
+    ariaLabel = '',
+    framed = false,
   }: Props = $props();
 
   let pct = $derived(max > min ? ((value - min) / (max - min)) * 100 : 0);
@@ -34,7 +46,9 @@
       ? ((defaultValue - min) / (max - min)) * 100
       : null
   );
-  let display = $derived(format ? format(value) : value.toLocaleString('en-US'));
+  let display = $derived(
+    displayOverride ?? (format ? format(value) : value.toLocaleString('en-US'))
+  );
 
   function clamp(next: number): number {
     const stepped = min + Math.round((next - min) / step) * step;
@@ -47,8 +61,28 @@
   }
 </script>
 
-<div class="min-w-0 {disabled ? 'opacity-50' : ''}">
-  <div class="flex items-center gap-1.5">
+<div
+  class="min-w-0 {disabled ? 'opacity-50' : ''} {framed
+    ? 'border border-wheat-mid/15 bg-charcoal-surface/40 p-3 shell-round-pop'
+    : ''}"
+>
+  {#if framed}
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <div class="font-heading text-xs font-bold text-wheat-gold">{label}</div>
+        {#if hint}
+          <p class="mt-0.5 text-[9px] leading-snug text-wheat-dark">{hint}</p>
+        {/if}
+      </div>
+      <span
+        class="shrink-0 border border-wheat-mid/30 bg-forest-surface px-2 py-0.5 font-mono text-[10px] font-bold text-wheat-gold shell-round-chip"
+      >
+        {display}
+      </span>
+    </div>
+  {/if}
+
+  <div class="flex items-center gap-1.5 {framed ? 'mt-2' : ''}">
     <button
       type="button"
       class="flex h-11 w-11 shrink-0 items-center justify-center border border-charcoal-mid bg-charcoal-surface font-mono text-lg leading-none text-wheat-mid transition-colors hover:bg-forest-mid hover:text-wheat-gold disabled:cursor-not-allowed disabled:opacity-40"
@@ -67,7 +101,7 @@
 
       <div class="relative h-11">
         <div
-          class="pointer-events-none absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden border border-charcoal-mid bg-charcoal-surface"
+          class="pointer-events-none absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 overflow-hidden border border-charcoal-mid bg-charcoal-surface shell-round-chip"
           aria-hidden="true"
         >
           <div class="h-full bg-wheat-gold/60" style="width: {pct}%;"></div>
@@ -90,7 +124,7 @@
           {value}
           {disabled}
           dir="rtl"
-          aria-label={label}
+          aria-label={ariaLabel || label}
           aria-valuetext={display}
           oninput={(event) => commit(Number(event.currentTarget.value))}
         />

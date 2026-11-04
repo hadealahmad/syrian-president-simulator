@@ -22,7 +22,7 @@
     labelAr: string;
   }
 
-  // Same order/labels/icons as the retired CommandHub. In RTL the first item
+  // Same order/labels/icons as the command hub it replaced. In RTL the first item
   // renders at the right edge.
   const SECTIONS: Section[] = [
     { id: 'provincial', icon: 'castle', labelAr: 'المحافظة' },

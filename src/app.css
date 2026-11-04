@@ -184,8 +184,8 @@
    Registry of ids: `src/lib/themes.ts` (`THEMES`). State + persistence:
    `src/lib/stores/theme-store.ts`. Toggle UI: `FloatingCommandDeck`.
    To add a theme: copy the `mono` block, rename the selector, edit values.
-   Map/canvas JS colors MUST read these via `cssVar()` (`themes.ts`),
-   never hardcode hex — see `SyriaMap.svelte`.
+   Map/JS colors MUST read these via `cssVar()` (`themes.ts`),
+   never hardcode hex — see `GameMap.svelte`.
    ========================================================================== */
 :root,
 :root[data-theme='default'] {
@@ -324,13 +324,9 @@
     font-feature-settings: "tnum" 1;
   }
 
-  /* Strict zero-radius reset for crisp Nordic-RTS angular UI */
-  *, *::before, *::after {
-    border-radius: 0px !important;
-  }
 }
 /* Stylized scrollbars — angular gold/teal system matching the modal frames.
-   Zero radius per the global reset; diagonal-sheen thumb echoes the striped
+   The thumb stays deliberately square; its diagonal-sheen echoes the striped
    frame language. Firefox uses the thin + color pair below. */
 :root {
   scrollbar-color: var(--color-wheat-gold) var(--color-forest-deep);
@@ -387,7 +383,7 @@
    per dialog, do not restyle per-modal): bold 3px diagonal dashes; the base
    sets thickness, each variant only swaps the colorway. Every color is a
    theme var so all themes follow (gold reads yellow, crimson reads pure red
-   in mono). Pair with the global zero-radius reset. */
+   in mono). */
 .modal-frame-stripes {
   border: 3px solid transparent;
   border-image-slice: 1;
@@ -542,8 +538,8 @@
    CONCEPT D SHELL — foundation tokens, radii and motion.
    Values are taken from concepts/concept-d-hybrid.html; colours are derived
    from the active theme tokens wherever one exists so every theme follows.
-   The global zero-radius reset above still applies to the legacy UI; the
-   explicit `.shell-round-*` classes are the only rounded surfaces.
+   Concept D is rounded: these `.shell-round-*` helpers name the shared radii
+   so cards, chips, sheets and the seal stay consistent.
    ========================================================================== */
 :root {
   --shell-top-h: 64px;
@@ -585,34 +581,44 @@
   }
 }
 
-/* Rounded exceptions to the global angular reset (shell only). */
+/* Concept D radii helpers (shell surfaces and controls). */
 .shell-round-seal,
 .shell-round-seal::before,
 .shell-round-seal::after {
-  border-radius: 50% !important;
+  border-radius: 50%;
 }
 .shell-round-sheet-side {
-  border-start-start-radius: var(--radius-shell) !important;
-  border-end-start-radius: var(--radius-shell) !important;
+  border-start-start-radius: var(--radius-shell);
+  border-end-start-radius: var(--radius-shell);
 }
 .shell-round-sheet-bottom {
-  border-start-start-radius: 20px !important;
-  border-start-end-radius: 20px !important;
+  border-start-start-radius: 20px;
+  border-start-end-radius: 20px;
 }
 .shell-round-dock {
-  border-radius: 18px !important;
+  border-radius: 18px;
 }
 .shell-round-item {
-  border-radius: 12px !important;
+  border-radius: 12px;
 }
 .shell-round-alert {
-  border-radius: 11px !important;
+  border-radius: 11px;
 }
 .shell-round-chip {
-  border-radius: var(--radius-chip) !important;
+  border-radius: var(--radius-chip);
 }
 .shell-round-pop {
-  border-radius: var(--radius-card) !important;
+  border-radius: var(--radius-card);
+}
+
+/* Desktop map viewport narrows beside an open Sheet (height stays put). */
+.map-viewport {
+  transition: inset-inline-end 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-viewport {
+    transition: none;
+  }
 }
 
 /* Shell motion (wrapped for reduced-motion below). */
@@ -652,8 +658,8 @@
   }
 }
 
-/* End-Turn gold seal (Concept D). The zero-radius reset is overridden by
-   `.shell-round-seal`; the two inner engraved rings are pseudo elements. */
+/* End-Turn gold seal (Concept D). `.shell-round-seal` keeps it circular; the
+   two inner engraved rings are pseudo elements. */
 .shell-seal {
   color: var(--shell-seal-ink);
   background: var(--shell-seal-gold);

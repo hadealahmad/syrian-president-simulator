@@ -16,7 +16,7 @@
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "deploy": "node scripts/deploy-gh-pages.js",
     "test": "npm run test:engine",
-    "test:engine": "npm run test:events && npm run test:event-effects && npm run test:audit-split && npm run test:budget && npm run test:debt && npm run test:debt-repudiation && npm run test:patronage && npm run test:facilities && npm run test:growth && npm run test:southern && npm run test:demining && npm run test:auction && npm run test:endings",
+    "test:engine": "npm run test:events && npm run test:event-effects && npm run test:audit-split && npm run test:budget && npm run test:debt && npm run test:debt-repudiation && npm run test:patronage && npm run test:facilities && npm run test:growth && npm run test:southern && npm run test:demining && npm run test:auction && npm run test:endings && npm run test:ui-store",
     "test:events": "tsx scripts/verify-events-engine.ts",
     "test:event-effects": "tsx scripts/test-event-effects.ts",
     "test:auction": "tsx scripts/test-dollar-auction.ts",
@@ -30,6 +30,7 @@
     "test:southern": "tsx scripts/test-southern-theater.ts",
     "test:demining": "tsx scripts/test-demining-and-power.ts",
     "test:endings": "tsx scripts/test-all-endings-comprehensive.ts",
+    "test:ui-store": "tsx scripts/test-ui-store-regressions.ts",
     "test:simulation": "tsx scripts/test-simulation.ts",
     "test:ui": "tsx scripts/check-console-errors.ts && tsx scripts/test-browser-interaction.ts && tsx scripts/test-event-political-credit.ts && tsx scripts/test-localstorage-restart.ts && tsx scripts/test-layout-visibility.ts && tsx scripts/test-ux-refinements.ts && tsx scripts/test-hover-legend.ts && tsx scripts/test-hover-translation.ts && tsx scripts/verify-map-interaction.ts"
   },

@@ -251,17 +251,17 @@
 <div class="space-y-3">
   <!-- ── Political capital budget header ─────────────────────────────────── -->
   <section
-    class="border border-wheat-mid/15 bg-charcoal-deep/45 p-3 shell-round-pop phone-p:p-2 phone-l:p-2"
+    class="border border-wheat-mid/15 bg-charcoal-deep/45 p-3 shell-round-pop phone-p:p-2 phone-l:p-1.5"
     data-tour="pc-budget"
     aria-label="موازنة الرصيد السياسي"
   >
-    <div class="flex items-end justify-between gap-3">
-      <div>
-        <div class="text-[8.5px] tracking-[1.4px] text-wheat-dark phone-p:text-[8px] phone-l:text-[8px]">
+    <div class="flex items-end justify-between gap-3 phone-l:items-center">
+      <div class="phone-l:flex phone-l:items-center phone-l:gap-1.5">
+        <div class="text-[8.5px] tracking-[1.4px] text-wheat-dark phone-p:text-[8px] phone-l:whitespace-nowrap phone-l:text-[8px]">
           الرصيد السياسي المتاح
         </div>
         <div
-          class="mt-0.5 font-heading text-[26px] leading-none text-wheat-light phone-p:text-[21px] phone-l:text-[21px]"
+          class="mt-0.5 font-heading text-[26px] leading-none text-wheat-light phone-p:text-[21px] phone-l:mt-0 phone-l:text-[18px]"
         >
           {initialPC}
           <small
@@ -270,12 +270,12 @@
           >
         </div>
       </div>
-      <div class="text-end">
-        <div class="text-[8.5px] text-wheat-dark phone-p:text-[8px] phone-l:text-[8px]">
+      <div class="text-end phone-l:flex phone-l:items-center phone-l:gap-1.5">
+        <div class="text-[8.5px] text-wheat-dark phone-p:text-[8px] phone-l:whitespace-nowrap phone-l:text-[8px]">
           الرصيد بعد الحصيلة
         </div>
         <div
-          class="mt-0.5 flex items-center justify-end gap-1.5 font-heading text-[22px] leading-none phone-p:text-[18px] phone-l:text-[18px] {afterPC <
+          class="mt-0.5 flex items-center justify-end gap-1.5 font-heading text-[22px] leading-none phone-p:text-[18px] phone-l:mt-0 phone-l:text-[16px] {afterPC <
           SAFE_PC_FLOOR
             ? 'text-umber-crimson'
             : 'text-wheat-gold'}"
@@ -294,7 +294,7 @@
     </div>
 
     <div
-      class="mt-1.5 flex h-[7px] gap-0.5 overflow-hidden bg-wheat-light/10 shell-round-chip"
+      class="mt-1.5 flex h-[7px] gap-0.5 overflow-hidden bg-wheat-light/10 shell-round-chip phone-l:hidden"
       role="img"
       aria-label="المنفق {pcSpent} من {initialPC} نقطة، والمتبقي {shownAfterPC}"
     >
@@ -302,7 +302,7 @@
       <span class="block h-full bg-forest-accent/55 shell-round-chip" style="width: {freePct}%"></span>
     </div>
 
-    <div class="mt-1 flex justify-between gap-2 text-[8px] text-wheat-dark">
+    <div class="mt-1 flex justify-between gap-2 text-[8px] text-wheat-dark phone-l:hidden">
       <span>
         منفق: {pcSpent} نقطة{pcDelta < 0 ? ` · مكتسب: +${Math.abs(pcDelta)}` : ''}
       </span>
@@ -314,7 +314,7 @@
 
   <!-- ── Filters ──────────────────────────────────────────────────────────── -->
   <div
-    class="flex items-center gap-1.5 overflow-x-auto pb-1"
+    class="flex items-center gap-1.5 overflow-x-auto pb-1 phone-l:pb-0"
     role="group"
     aria-label="تصفية المراسيم"
   >

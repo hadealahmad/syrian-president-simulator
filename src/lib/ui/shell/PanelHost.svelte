@@ -10,6 +10,7 @@
   import ProvincialPanel from '../panels/ProvincialPanel.svelte';
   import StatsPanel from '../panels/StatsPanel.svelte';
   import Sheet from './Sheet.svelte';
+  import { shellLayout } from './viewport';
 
   interface PanelMeta {
     title: string;
@@ -57,6 +58,17 @@
 
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
+  // Desktop only: tell the map how much of the inline-END edge the open Sheet
+  // occupies so it can shrink beside the drawer (phones keep a modal sheet).
+  let layout = $derived($shellLayout);
+  $effect(() => {
+    const root = document.documentElement;
+    const active = open && layout === 'desktop';
+    // +12px keeps a breathing gap between the drawer edge and the map.
+    root.style.setProperty('--shell-map-end', active ? `${meta.width + 12}px` : '0px');
+    return () => root.style.setProperty('--shell-map-end', '0px');
+  });
+
   function close(): void {
     uiStore.closeActivePanel();
   }
@@ -72,6 +84,8 @@
   {subtitle}
   icon={meta.icon}
   width={meta.width}
+  defaultSnap={activeId === 'provincial' ? 1 : 2}
+  mapInteractive={activeId === 'provincial'}
   onclose={close}
   tourId={activeId === 'stats' ? 'stats-panel' : ''}
 >
