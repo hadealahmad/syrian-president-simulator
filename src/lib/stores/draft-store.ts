@@ -7,8 +7,7 @@ import {
 } from '../engine/turn-manager';
 import { gameStore } from './game-store';
 import {
-  getOligarchSettlementIncome,
-  getOligarchLiquidationIncome,
+  getOligarchTerms,
   getOligarchSettlementPCCost,
   getOligarchLiquidationPCCost,
   getOligarchNationalizePCEarned,
@@ -40,6 +39,9 @@ export interface TurnBudget {
   /** Signed: negative means the draft over-commits reserves (over-budget). */
   remainingUSD: number;
   remainingSYP: number;
+
+  /** Seigniorage the player plans to print this turn (financing, not spending). */
+  financingSYP: number;
 
   /** Largest voluntary early repayment the engine can actually pay this turn. */
   maxDebtRepaymentUSD: number;
@@ -87,8 +89,9 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     for (const [assetId, action] of Object.entries(draft.oligarchDecisions)) {
       const asset = gameState.confiscatedAssets.find((a) => a.id === assetId);
       if (!asset || asset.status !== 'PENDING') continue;
-      if (action === 'SETTLEMENT_80_20') sameTurnInflowUSD += getOligarchSettlementIncome(asset.valuationUSD);
-      else if (action === 'FOREIGN_LIQUIDATION') sameTurnInflowUSD += getOligarchLiquidationIncome(asset.valuationUSD);
+      const terms = getOligarchTerms(asset);
+      if (action === 'SETTLEMENT_80_20') sameTurnInflowUSD += terms.settlementUSD;
+      else if (action === 'FOREIGN_LIQUIDATION') sameTurnInflowUSD += terms.liquidationUSD;
     }
   }
 
@@ -264,9 +267,24 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
   // Kept signed for validation (over-budget must be detectable); only the
   // display layer clamps these to zero.
+  //
+  // Money printing is FINANCING, not spending: the engine credits it to the
+  // treasury in the same audit (`netSYPDelta = captured + printed - expended`),
+  // so it reduces the projected SYP shortfall shown in the envelope. It never
+  // enters `committedSYP` (that would double-count it as an outlay) and it
+  // cannot relax the PC/USD over-budget guard.
+  //
+  // Affordability is different: Phase 0/1 resolve project, demining, power and
+  // patronage commitments against the OPENING treasury (`canAffordDirectiveCost`)
+  // before the audit ever credits the print. `usdNeededToCoverSYP` must keep
+  // mirroring that gate, or the UI would promise a project the commit rejects;
+  // hence it reads `unfundedSYP`, not `remainingSYP`.
+  const financingSYP = Math.max(0, draft.moneyPrintingSYP ?? 0);
+
   const remainingPC = Math.min(200, initialPC - committedPC);
   const remainingUSD = initialUSD - committedUSD;
-  const remainingSYP = initialSYP - committedSYP;
+  const remainingSYP = initialSYP + financingSYP - committedSYP;
+  const unfundedSYP = initialSYP - committedSYP;
 
   const parallelRate = Math.max(
     1,
@@ -275,8 +293,9 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
 
   const usdNeededToCoverSYP = (costSYP: number): number => {
     // Mirrors canAffordDirectiveCost: only the new cost needs FX backing,
-    // not the accumulated overdraft.
-    const sypShortfall = Math.max(0, costSYP - Math.max(0, remainingSYP));
+    // not the accumulated overdraft — and not the planned print, which lands
+    // after the commitment gate.
+    const sypShortfall = Math.max(0, costSYP - Math.max(0, unfundedSYP));
     return sypShortfall / parallelRate;
   };
 
@@ -299,6 +318,7 @@ export function calculateTurnBudget(gameState: GameState, draft: TurnDirectives)
     remainingPC,
     remainingUSD,
     remainingSYP,
+    financingSYP,
     maxDebtRepaymentUSD,
     grantAvailableUSD,
     usdNeededToCoverSYP,
@@ -338,6 +358,7 @@ export function normalizeStoredDraft(parsed: Partial<TurnDirectives>): TurnDirec
   normalized.dollarAuctionUSD = 0;
   normalized.deminingPriorityId = null;
   normalized.powerBoostGovId = null;
+  normalized.moneyPrintingSYP = 0;
   return normalized;
 }
 
@@ -428,6 +449,9 @@ function createDraftStore() {
         dollarAuctionUSD: 0,
         deminingPriorityId: null,
         powerBoostGovId: null,
+        // Seigniorage is sized against THIS turn's deficit and paid for by this
+        // turn's inflation/FX move; never silently re-issued next turn.
+        moneyPrintingSYP: 0,
         // Retain continuous states (MARTIAL_LAW) and per-turn decisions the
         // player can re-issue (border sweep, cabinet hearing); strip one-time
         // decree intents that are now enacted law.

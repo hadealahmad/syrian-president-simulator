@@ -1,7 +1,7 @@
 <script lang="ts">
   import { get } from 'svelte/store';
   import { gameStore } from '../stores/game-store';
-  import { draftStore, budgetStore, previewRangesStore } from '../stores/draft-store';
+  import { draftStore, budgetStore, previewRangesStore, projectedTurnStore } from '../stores/draft-store';
   import { uiStore } from '../stores/ui-store';
   import GameIcon from './GameIcon.svelte';
   import TurnResultsView from './TurnResultsView.svelte';
@@ -9,8 +9,7 @@
   import { countPendingDraftActions } from './shell/pending-actions';
   import { shellLayout } from './shell/viewport';
   import {
-    getOligarchSettlementIncome,
-    getOligarchLiquidationIncome,
+    getOligarchTerms,
     getOligarchSettlementPCCost,
     getOligarchLiquidationPCCost,
     getOligarchNationalizePCEarned,
@@ -145,7 +144,8 @@
       ($draftStore.signedLoanIds?.length ?? 0) > 0 ||
       ($draftStore.executedMortgageIds?.length ?? 0) > 0 ||
       ($draftStore.signedFacilityIds?.length ?? 0) > 0 ||
-      ($draftStore.extraDebtRepaymentUSD ?? 0) > 0
+      ($draftStore.extraDebtRepaymentUSD ?? 0) > 0 ||
+      ($draftStore.moneyPrintingSYP ?? 0) > 0
   );
   let hasProvinceGroup = $derived(
     $draftStore.golanBorderStance !== 'RESTRAINT' ||
@@ -181,6 +181,7 @@
     ($draftStore.executedMortgageIds && $draftStore.executedMortgageIds.length > 0) ||
     ($draftStore.signedFacilityIds && $draftStore.signedFacilityIds.length > 0) ||
     ($draftStore.extraDebtRepaymentUSD ?? 0) > 0 ||
+    ($draftStore.moneyPrintingSYP ?? 0) > 0 ||
     $draftStore.golanBorderStance !== 'RESTRAINT' ||
     $draftStore.expatriateBrainGainIncentive ||
     $draftStore.populistGrant ||
@@ -200,6 +201,15 @@
   );
   let sypUsed = $derived(
     clampPct(($budgetStore.committedSYP / Math.max(1, $budgetStore.initialSYP)) * 100)
+  );
+
+  let printingM2GrowthPct = $derived(
+    $gameStore.macro.m2MoneySupplySYP > 0
+      ? Number((($draftStore.moneyPrintingSYP / $gameStore.macro.m2MoneySupplySYP) * 100).toFixed(1))
+      : 0
+  );
+  let printingRateDelta = $derived(
+    $projectedTurnStore.parallelRateSYP.projected - $projectedTurnStore.parallelRateSYP.current
   );
 
   function handleConfirmEndTurn(): void {
@@ -742,6 +752,19 @@
                     onCancel: () => draftStore.setField('extraDebtRepaymentUSD', 0),
                   })}
                 {/if}
+                {#if ($draftStore.moneyPrintingSYP ?? 0) > 0}
+                  {@render actionCard({
+                    title: 'إصدار نقدي (تمويل بالعجز)',
+                    detail:
+                      'تمويل داخلي بالطباعة: يغطي عجز الخزينة هذا الدور مقابل توسيع الكتلة النقدية وضغط على سعر الصرف الموازي والأجر الحقيقي.',
+                    chips: [
+                      { text: `+${formatBillionSYP($draftStore.moneyPrintingSYP)}B SP`, tone: 'gain' },
+                      { text: `M2 +${printingM2GrowthPct.toFixed(1)}%`, tone: 'cost' },
+                      { text: `صرف موازٍ +${Math.round(printingRateDelta).toLocaleString('en-US')} ل.س/$`, tone: 'cost' },
+                    ],
+                    onCancel: () => draftStore.setField('moneyPrintingSYP', 0),
+                  })}
+                {/if}
               </div>
             </section>
           {/if}
@@ -809,8 +832,9 @@
                 {#each Object.entries($draftStore.oligarchDecisions || {}) as [assetId, action]}
                   {@const asset = $gameStore.confiscatedAssets.find((a) => a.id === assetId)}
                   {#if asset && asset.status === 'PENDING'}
-                    {@const settlementIncomeUSD = getOligarchSettlementIncome(asset.valuationUSD)}
-                    {@const liquidationIncomeUSD = getOligarchLiquidationIncome(asset.valuationUSD)}
+                    {@const terms = getOligarchTerms(asset)}
+                    {@const settlementIncomeUSD = terms.settlementUSD}
+                    {@const liquidationIncomeUSD = terms.liquidationUSD}
                     {@const settlementPCCost = getOligarchSettlementPCCost(asset.valuationUSD)}
                     {@const liquidationPCCost = getOligarchLiquidationPCCost(asset.valuationUSD)}
                     {@const nationalizePCEarned = getOligarchNationalizePCEarned(asset.valuationUSD)}
@@ -820,13 +844,16 @@
                         action === 'SETTLEMENT_80_20'
                           ? [
                               { text: `+$${formatMillionUSD(settlementIncomeUSD)}M`, tone: 'gain' as const },
+                              ...(terms.settlementSYP > 0
+                                ? [{ text: `+${formatBillionSYP(terms.settlementSYP)}B SP`, tone: 'gain' as const }]
+                                : []),
                               { text: `-${settlementPCCost} رصيد سياسي`, tone: 'political' as const },
                               { text: 'استرداد أصول كاش بنسبة 80% وتثبيت الثقة السيادية', tone: 'muted' as const },
                             ]
                           : action === 'NATIONALIZE_SOE'
                             ? [
                                 { text: `+${nationalizePCEarned} رصيد سياسي`, tone: 'political' as const },
-                                { text: `+${(asset.soeVenueSYPPerTurn / 1_000_000_000).toFixed(2)}B SP/دور`, tone: 'gain' as const },
+                                { text: `+${formatBillionSYP(terms.nationalizedSYPPerTurn)}B SP/دور`, tone: 'gain' as const },
                                 { text: 'ملكية عامة للدولة وتوفير 8000 وظيفة إنتاجية', tone: 'muted' as const },
                               ]
                             : [

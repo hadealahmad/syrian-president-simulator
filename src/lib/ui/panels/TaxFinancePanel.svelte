@@ -97,6 +97,48 @@
     Math.min(25, Math.round((auctionM / 10) * 1.5))
   );
 
+  // ── Money printing (deficit financing) ────────────────────────────────
+  // The lever is a per-turn directive: `moneyPrintingSYP` is credited by the
+  // audit as financing (never as revenue or spending), expands M2 and feeds
+  // `calculateParallelRate`. The slider ceiling is sized from the projected
+  // deficit BEFORE printing, so moving the slider cannot move its own max.
+  let printingSYP = $derived($draftStore.moneyPrintingSYP);
+  let projectedDeficitSYP = $derived($projectedTurnStore.deficitSYP);
+  let coverDeficitSYP = $derived(
+    projectedDeficitSYP > 0
+      ? Math.ceil(projectedDeficitSYP / 1_000_000_000) * 1_000_000_000
+      : 0
+  );
+  let printingMaxSYP = $derived(
+    Math.max(
+      50_000_000_000,
+      Math.ceil((projectedDeficitSYP * 1.5) / 5_000_000_000) * 5_000_000_000
+    )
+  );
+  let printingM2GrowthPct = $derived(
+    $gameStore.macro.m2MoneySupplySYP > 0
+      ? Number(((printingSYP / $gameStore.macro.m2MoneySupplySYP) * 100).toFixed(1))
+      : 0
+  );
+  let printingRateDelta = $derived(
+    projected.parallelRateSYP.projected - projected.parallelRateSYP.current
+  );
+  let printingCoversTreasury = $derived(projected.treasurySYP.projected >= 0);
+
+  $effect(() => {
+    if ($draftStore.moneyPrintingSYP > printingMaxSYP) {
+      draftStore.setField('moneyPrintingSYP', printingMaxSYP);
+    }
+  });
+
+  function formatPrintingBillion(value: number): string {
+    return `${(value / 1_000_000_000).toFixed(1)}B ل.س`;
+  }
+
+  function formatRate(value: number): string {
+    return Math.round(value).toLocaleString('en-US');
+  }
+
   // Growth-valve readout: CapEx bands accrue productive capacity, which
   // scales domestic revenues (~0.4% ≈ +0.35B/turn per capacity point).
   let capacityGain = $derived(
@@ -424,6 +466,95 @@
     {@render sectionHeader('cash', 'النقد والصرف', 'banknote')}
     {#if openSections.cash}
       <div class="space-y-2 border-t border-charcoal-mid/50 p-2">
+        <!-- Money printing / deficit financing -->
+        <article class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass('moneyPrintingSYP')}">
+          <div class="flex items-start gap-1.5">
+            <button type="button" onclick={() => toggleExplainer('printing')} aria-label="إظهار الشرح" aria-expanded={openExplainers.printing ?? false} class="-ms-2 flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold">
+              <GameIcon name="help" cls="h-4 w-4" />
+            </button>
+            <div class="min-w-0 flex-1 pt-2">
+              <div class="font-heading text-[11.5px] font-bold leading-tight text-wheat-gold">طباعة النقود (التمويل بالعجز)</div>
+            </div>
+            <span class="mt-1 shrink-0 border border-wheat-gold/30 bg-wheat-gold/10 px-2 py-0.5 font-heading text-[12px] font-bold text-wheat-gold" dir="ltr">{formatPrintingBillion(printingSYP)}</span>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1">
+            {#if printingSYP > 0}
+              <EffectChip
+                text={printingCoversTreasury ? 'الخزينة مغطاة بعد الطباعة' : `لا يغطي العجز كاملاً (${formatBillion(projected.treasurySYP.projected)}B)`}
+                tone={printingCoversTreasury ? 'good' : 'bad'}
+              />
+              <EffectChip text={`ضغط تضخمي: M2 +${printingM2GrowthPct.toFixed(1)}%`} tone="bad" />
+              <EffectChip
+                text={`صرف موازٍ ${printingRateDelta >= 0 ? '+' : '−'}${formatRate(Math.abs(printingRateDelta))} ل.س/$`}
+                tone="bad"
+              />
+            {:else}
+              <EffectChip text="دون طباعة — العجز يبقى مفتوحاً على الخزينة" tone="neutral" />
+              <EffectChip text="لا تضخم إضافي من السكّ" tone="good" />
+            {/if}
+          </div>
+
+          <BigSlider
+            value={printingSYP}
+            min={0}
+            max={printingMaxSYP}
+            step={1_000_000_000}
+            default={0}
+            label="طباعة النقود"
+            format={formatPrintingBillion}
+            minLabel="0"
+            maxLabel={`${Math.round(printingMaxSYP / 1_000_000_000)}B`}
+            onchange={(value) => draftStore.setField('moneyPrintingSYP', value)}
+          />
+
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              disabled={coverDeficitSYP === 0}
+              onclick={() => draftStore.setField('moneyPrintingSYP', coverDeficitSYP)}
+              class="flex min-h-11 flex-1 items-center justify-center gap-1.5 border px-2.5 py-1.5 text-[10px] font-bold transition-colors {coverDeficitSYP === 0
+                ? 'cursor-not-allowed border-charcoal-mid bg-charcoal-surface text-wheat-dark opacity-60'
+                : 'cursor-pointer border-wheat-gold/60 bg-wheat-gold/10 text-wheat-gold hover:bg-wheat-gold/20'}"
+              aria-label="طباعة مبلغ يغطي العجز المتوقع"
+            >
+              <GameIcon name="money-stack" cls="h-3.5 w-3.5 shrink-0" />
+              <span>تغطية العجز المتوقع</span>
+            </button>
+            <span class="border border-charcoal-mid bg-charcoal-surface px-2 py-1 text-[9.5px] text-wheat-dark">
+              العجز قبل الطباعة:
+              <b dir="ltr" class="font-mono text-[10px] text-umber-crimson">{formatBillion(projectedDeficitSYP)}B</b>
+              ل.س
+            </span>
+          </div>
+
+          <!-- Live rehearsal projections: same derived stores as the top bar -->
+          <div class="space-y-1 border-y border-charcoal-mid/50 py-1.5 text-[10px] text-wheat-dark">
+            <div class="flex items-center justify-between gap-2">
+              <span>الخزينة بعد الدور</span>
+              <span class="flex items-baseline gap-1 font-mono">
+                <b dir="ltr" class="text-[11px] font-bold {projected.treasurySYP.projected < 0 ? 'text-umber-crimson' : 'text-wheat-gold'}">{formatBillion(projected.treasurySYP.projected)}B SP</b>
+                <span dir="ltr" class="text-[8.5px] {projected.treasurySYP.delta > 0 ? 'text-forest-accent' : projected.treasurySYP.delta < 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">({signedBillion(projected.treasurySYP.delta)}B)</span>
+              </span>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span>نمو الكتلة النقدية M2</span>
+              <b dir="ltr" class="font-mono text-[10.5px] {printingM2GrowthPct > 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">{printingM2GrowthPct > 0 ? '+' : ''}{printingM2GrowthPct.toFixed(1)}%</b>
+            </div>
+            <div class="flex items-center justify-between gap-2">
+              <span>الصرف الموازي المتوقع</span>
+              <span class="flex items-baseline gap-1 font-mono">
+                <b dir="ltr" class="text-[10.5px] font-bold {printingRateDelta > 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">{formatRate(projected.parallelRateSYP.projected)} ل.س/$</b>
+                <span dir="ltr" class="text-[8.5px] {printingRateDelta > 0 ? 'text-umber-crimson' : 'text-wheat-mid'}">({printingRateDelta > 0 ? '+' : ''}{formatRate(printingRateDelta)})</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="py-1 text-[10.5px] leading-relaxed text-wheat-dark {openExplainers.printing ? '' : 'hidden'}">
+            الطباعة تغطي العجز نقداً الآن، لكنها توسّع الكتلة النقدية فتضعف الليرة في السوق الموازية وترفع الأسعار وتآكل الأجر الحقيقي. كل ليرة مطبوعة اليوم ضريبة تضخمية على الأجور غداً.
+          </div>
+        </article>
+
         <!-- Central Bank Dollar Auction -->
         <article class="space-y-2 border border-charcoal-mid/70 bg-forest-mid/25 p-3 transition-all duration-300 {cardClass('dollarAuctionUSD')}">
           <div class="flex items-start gap-1.5">

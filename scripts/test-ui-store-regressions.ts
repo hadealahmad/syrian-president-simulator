@@ -170,6 +170,7 @@ console.log('=== One-shot directives cleared, periodic decisions kept ===');
   draftStore.setField('deminingPriorityId', 'homs');
   draftStore.setField('powerBoostGovId', 'damascus');
   draftStore.setField('extraDebtRepaymentUSD', 50_000_000);
+  draftStore.setField('moneyPrintingSYP', 12_000_000_000);
   draftStore.setField('populistGrant', true);
   draftStore.setField('importSurge', true);
   draftStore.setField('wageBumpPercent', 50); // continuous policy
@@ -185,6 +186,7 @@ console.log('=== One-shot directives cleared, periodic decisions kept ===');
   check('demining priority cleared after commit', after.deminingPriorityId === null);
   check('power boost cleared after commit', after.powerBoostGovId === null);
   check('early repayment cleared after commit', after.extraDebtRepaymentUSD === 0);
+  check('money printing cleared after commit', after.moneyPrintingSYP === 0);
   check('one-shot grant cleared after commit', after.populistGrant === false);
   check('one-shot import surge cleared after commit', after.importSurge === false);
   check('continuous wage policy preserved', after.wageBumpPercent === 50);
@@ -203,6 +205,7 @@ console.log('=== One-shot directives cleared, periodic decisions kept ===');
     deminingPriorityId: 'homs',
     powerBoostGovId: 'aleppo',
     extraDebtRepaymentUSD: 50_000_000,
+    moneyPrintingSYP: 12_000_000_000,
     populistGrant: true,
     importSurge: true,
     terminatedLoanIds: ['loan_imf_wb'],
@@ -220,9 +223,43 @@ console.log('=== One-shot directives cleared, periodic decisions kept ===');
       reloaded.deminingPriorityId === null &&
       reloaded.powerBoostGovId === null &&
       reloaded.extraDebtRepaymentUSD === 0 &&
+      reloaded.moneyPrintingSYP === 0 &&
       reloaded.populistGrant === false &&
       reloaded.importSurge === false &&
       reloaded.terminatedLoanIds.length === 0
+  );
+}
+
+// ── PRINTING: seigniorage is financing, never spending or revenue ──────────
+console.log('=== Money printing is financing, not spending ===');
+{
+  const state = createInitialGameState(18);
+  state.macro.treasurySYP = 10_000_000_000;
+  const draft = freshDraft();
+  draft.gridCapExUSD = 0;
+  const noPrint = calculateTurnBudget(state, draft);
+  draft.moneyPrintingSYP = 30_000_000_000;
+  const withPrint = calculateTurnBudget(state, draft);
+
+  check(
+    'printing never enters committed spending',
+    withPrint.committedSYP === noPrint.committedSYP,
+    `${withPrint.committedSYP}`
+  );
+  check(
+    'printing counts as financing in the SYP envelope',
+    withPrint.financingSYP === 30_000_000_000 &&
+      withPrint.remainingSYP - noPrint.remainingSYP === 30_000_000_000,
+    `${withPrint.remainingSYP - noPrint.remainingSYP}`
+  );
+  check(
+    'printing cannot relax the PC/USD over-budget guard',
+    withPrint.remainingPC === noPrint.remainingPC && withPrint.remainingUSD === noPrint.remainingUSD
+  );
+  check(
+    'printing does not fake affordability of new commitments',
+    withPrint.usdNeededToCoverSYP(50_000_000_000) ===
+      noPrint.usdNeededToCoverSYP(50_000_000_000)
   );
 }
 

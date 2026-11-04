@@ -15,8 +15,7 @@
     pcShortageText,
   } from './shared';
   import {
-    getOligarchSettlementIncome,
-    getOligarchLiquidationIncome,
+    getOligarchTerms,
     getOligarchSettlementPCCost,
     getOligarchLiquidationPCCost,
     getOligarchNationalizePCEarned,
@@ -62,8 +61,9 @@
 
   {#each orderedAssets as asset (asset.id)}
     {@const decision = $draftStore.oligarchDecisions[asset.id] || asset.status}
-    {@const settlementIncomeUSD = getOligarchSettlementIncome(asset.valuationUSD)}
-    {@const liquidationIncomeUSD = getOligarchLiquidationIncome(asset.valuationUSD)}
+    {@const terms = getOligarchTerms(asset)}
+    {@const settlementIncomeUSD = terms.settlementUSD}
+    {@const liquidationIncomeUSD = terms.liquidationUSD}
     {@const settlementPCCost = getOligarchSettlementPCCost(asset.valuationUSD)}
     {@const liquidationPCCost = getOligarchLiquidationPCCost(asset.valuationUSD)}
     {@const nationalizePCEarned = getOligarchNationalizePCEarned(asset.valuationUSD)}
@@ -125,6 +125,9 @@
               <span class="font-heading text-[10px] font-bold leading-tight">تسوية 80/20</span>
               <span class="flex flex-wrap items-center justify-center gap-1">
                 <EffectChip text={`+$${formatM(settlementIncomeUSD)}M`} tone="good" />
+                {#if terms.settlementSYP > 0}
+                  <EffectChip text={`+${formatBillion(terms.settlementSYP)}B SP`} tone="good" />
+                {/if}
                 <EffectChip text={`-${settlementPCCost} رصيد سياسي`} tone="bad" />
               </span>
               {#if decision !== 'SETTLEMENT_80_20' && !canAffordSettlement}
@@ -153,12 +156,12 @@
             class="flex min-h-11 flex-col items-center justify-between gap-1 border p-2 text-center transition-colors {decision === 'NATIONALIZE_SOE'
               ? 'border-wheat-gold bg-forest-surface font-bold text-wheat-gold'
               : 'cursor-pointer border-charcoal-mid bg-forest-mid text-wheat-dark hover:border-charcoal-light hover:text-wheat-light'}"
-            title="تأميم حكومي: ضم الأصل لشركات الدولة، كسب +{nationalizePCEarned} رصيد سياسي، +{formatBillion(asset.soeVenueSYPPerTurn)}B SP/دور، +8000 موظف، +5 فساد"
+            title="تأميم حكومي: ضم الأصل لشركات الدولة، كسب +{nationalizePCEarned} رصيد سياسي، +{formatBillion(terms.nationalizedSYPPerTurn)}B SP/دور، +8000 موظف، +5 فساد"
           >
             <span class="font-heading text-[10px] font-bold leading-tight">تأميم حكومي</span>
             <span class="flex flex-wrap items-center justify-center gap-1">
               <EffectChip text={`+${nationalizePCEarned} رصيد سياسي`} tone="good" />
-              <EffectChip text={`+${formatBillion(asset.soeVenueSYPPerTurn)}B/دور`} tone="good" />
+              <EffectChip text={`+${formatBillion(terms.nationalizedSYPPerTurn)}B/دور`} tone="good" />
             </span>
           </button>
 

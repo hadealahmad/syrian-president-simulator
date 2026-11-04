@@ -524,14 +524,76 @@ console.log('=== ENGINE#19: preview uses the same clamped auction as the commit 
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-console.log('=== ENGINE#23: default seigniorage path (documented DEFERRED) ===');
+console.log('=== ENGINE#23: default seigniorage path (UI lever now exists) ===');
 {
-  // The engine still lets the default treasury diverge (no UI lever exists to
-  // set moneyPrintingSYP). This assertion records the current behaviour so the
-  // deferred fix is visible if it changes: it is informational, not a failure.
+  // The engine's seigniorage lever used to be unreachable from the UI. This
+  // note keeps the macro trajectory visible; the lever itself is exercised by
+  // ENGINE#23b below and lives in TaxFinancePanel.
   let s = base(19);
   for (let i = 0; i < 10; i++) s = executeTurnLifecycle(s, getDefaultTurnDirectives());
-  console.log(`  note: 10 default turns end at treasury ${(s.macro.treasurySYP / B).toFixed(1)}B SYP (deferred: needs a UI printing lever)`);
+  console.log(`  note: 10 default turns end at treasury ${(s.macro.treasurySYP / B).toFixed(1)}B SYP`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('=== ENGINE#23b: money printing is financing, not revenue ===');
+{
+  const printSYP = 30 * B;
+  const d: TurnDirectives = { ...getDefaultTurnDirectives(), moneyPrintingSYP: printSYP };
+  const ctrl = executeTurnLifecycle(base(23), getDefaultTurnDirectives());
+  const funded = executeTurnLifecycle(base(23), d);
+
+  check(
+    'printed SYP reaches the treasury in full',
+    Math.abs(funded.macro.treasurySYP - ctrl.macro.treasurySYP - printSYP) <= M,
+    `${((funded.macro.treasurySYP - ctrl.macro.treasurySYP - printSYP) / M).toFixed(1)}M drift`
+  );
+  check(
+    'seigniorage is booked separately from captured revenue',
+    funded.lastTurnAudit!.seignioragePrintedSYP === printSYP &&
+      funded.lastTurnAudit!.grossCapturedSYP === ctrl.lastTurnAudit!.grossCapturedSYP
+  );
+  check(
+    'printing expands M2 by the printed amount',
+    funded.macro.m2MoneySupplySYP - ctrl.macro.m2MoneySupplySYP >= printSYP - 1,
+    `${((funded.macro.m2MoneySupplySYP - ctrl.macro.m2MoneySupplySYP) / B).toFixed(1)}B`
+  );
+  check(
+    'printing weakens the parallel rate versus no print',
+    funded.macro.parallelRateSYP > ctrl.macro.parallelRateSYP,
+    `${ctrl.macro.parallelRateSYP} → ${funded.macro.parallelRateSYP}`
+  );
+
+  const ctrlPre = evaluateRehearsalDirectives(base(23), getDefaultTurnDirectives());
+  const pre = evaluateRehearsalDirectives(base(23), d);
+  check('rehearsal exposes the planned print', pre.requiresPrintingSYP === printSYP);
+  check(
+    'rehearsal deficit stays pre-financing (printing does not shrink it)',
+    Math.abs(pre.deficitSYP - ctrlPre.deficitSYP) < 1,
+    `${pre.deficitSYP} vs ${ctrlPre.deficitSYP}`
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+console.log('=== ENGINE#23c: an overdraft pays 5%/turn interest ===');
+{
+  const overdrawn = base(24);
+  overdrawn.macro.treasurySYP = -100 * B;
+  const turn = executeTurnLifecycle(overdrawn, getDefaultTurnDirectives());
+  check(
+    'interest is 5% of the negative opening balance',
+    turn.lastTurnAudit!.overdraftInterestSYP === 5 * B,
+    `${(turn.lastTurnAudit!.overdraftInterestSYP / B).toFixed(2)}B`
+  );
+  const noOverdraft = base(24);
+  noOverdraft.macro.treasurySYP = 0;
+  const solvent = executeTurnLifecycle(noOverdraft, getDefaultTurnDirectives());
+  check(
+    'the interest is charged to the treasury',
+    Math.abs(
+      turn.lastTurnAudit!.expendedSYP - solvent.lastTurnAudit!.expendedSYP - 5 * B
+    ) <= M,
+    `${((turn.lastTurnAudit!.expendedSYP - solvent.lastTurnAudit!.expendedSYP - 5 * B) / M).toFixed(1)}M drift`
+  );
 }
 
 console.log(

@@ -346,7 +346,7 @@ export function isProvincialActionRelated(selectedStat: string | null, actionKey
 export const PANEL_OPTION_KEYS: Record<string, string[]> = {
   emergency: ['loans', 'mortgages', 'loanTermination', 'importSurge'],
   decrees: ['populistGrant'],
-  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain', 'charityFund'],
+  tax: ['wageBumpPercent', 'remittanceCaptureSpread', 'gridCapExUSD', 'dollarAuctionUSD', 'moneyPrintingSYP', 'corporateTaxRate', 'telecomExciseRate', 'nassibTransitFeeUSD', 'taxOverview', 'brainGain', 'charityFund'],
   assets: ['oligarchs'],
   policies: ['foodSubsidyLevel', 'workforceStrategy', 'wheatProcurement', 'dieselSmuggling'],
   stats: [],
@@ -408,6 +408,11 @@ export function isOptionRelated(selectedStat: string | null, optionKey: string):
       return ['dailyPowerHours', 'reservesUSD', 'taxCompliancePct', 'unrestIndex', 'civicTrust'].includes(selectedStat);
     case 'dollarAuctionUSD':
       return ['reservesUSD', 'parallelRate', 'treasurySYP', 'm2MoneySupplySYP'].includes(selectedStat);
+    case 'moneyPrintingSYP':
+      // Seigniorage moves the treasury, the money stock, the parallel rate and
+      // the real wage. There is no CPI stat id in the top ribbon; M2 growth is
+      // the engine-side inflation channel the card exposes.
+      return ['treasurySYP', 'parallelRate', 'm2MoneySupplySYP', 'civilServiceWageUSD'].includes(selectedStat);
     case 'corporateTaxRate':
       return ['taxCompliancePct', 'treasurySYP', 'm2MoneySupplySYP'].includes(selectedStat);
     case 'telecomExciseRate':

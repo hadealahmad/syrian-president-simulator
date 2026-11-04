@@ -27,6 +27,7 @@ export function countPendingDraftActions(draft: TurnDirectives): number {
   add(draft.nassibTransitFeeUSD !== def.nassibTransitFeeUSD);
   add(draft.gridCapExUSD !== def.gridCapExUSD);
   add((draft.dollarAuctionUSD ?? 0) > 0);
+  add((draft.moneyPrintingSYP ?? 0) > 0);
   add(draft.deminingPriorityId !== null);
   add(draft.powerBoostGovId !== null);
   add(!!draft.expatriateBrainGainIncentive);
