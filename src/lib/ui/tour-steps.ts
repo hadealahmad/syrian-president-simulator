@@ -69,18 +69,19 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'fx-rate',
-    selector: '[data-tour="fx-rate"]',
+    selector: '[aria-label="مؤشرات أخرى"]',
     icon: 'trade',
     badge: 'الفصل 02 · الاستقرار النقدي',
     title: 'السوق الموازي ومزاد التدخل',
     body:
       '<p class="lead">سعر الصرف والتضخم يعكسان القدرة الشرائية والأجر الحقيقي.</p>' +
-      '<ul><li>فعّل <b>مزاد التدخل الدولاري</b> لضخ العملة الصعبة وكبح تدهور الصرف وامتصاص فائض السيولة.</li></ul>',
+      '<ul><li>افتح <b>مؤشرات أخرى</b> من الشريط العلوي لمتابعة سعر السوق الموازي وبقية الأرقام.</li>' +
+      '<li>فعّل <b>مزاد التدخل الدولاري</b> لضخ العملة الصعبة وكبح تدهور الصرف وامتصاص فائض السيولة.</li></ul>',
     side: 'bottom',
   },
   {
     id: 'unrest',
-    selector: '[data-tour="unrest"]',
+    selector: '[data-tour="treasury"]',
     icon: 'flame',
     badge: 'الفصل 02 · النبض الشعبي',
     title: 'الثقة والفساد والاحتقان',
@@ -128,7 +129,7 @@ export const TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'assets',
-    selector: '[data-panel-btn="assets"]',
+    selector: '[data-tour="hub"]',
     icon: 'open-treasure-chest',
     badge: 'الفصل 04 · الأصول والسياسات',
     title: 'الأصول المصادرة والسياسات',
@@ -168,6 +169,17 @@ export const TOUR_STEPS: TourStep[] = [
     body:
       '<ul><li>المؤشرات الكاملة للدولة: الموازنة، الطاقة، المحافظات، والمقارنات الدورية.</li>' +
       '<li>زر الإحصائيات في المنصة يفتحها ويغلقها في أي وقت.</li></ul>',
+    side: 'bottom',
+  },
+  {
+    id: 'settings',
+    selector: '[data-tour="settings-gear"]',
+    icon: 'gear',
+    badge: 'الفصل 05 · القائمة',
+    title: 'الإعدادات ودليل البروتوكول',
+    body:
+      '<ul><li>زر الترس في الشريط العلوي يفتح قائمة الإعدادات الكاملة: اللعبة الجديدة، والمظهر، ومؤثر شاشة CRT، وعن اللعبة.</li>' +
+      '<li>منها تشغّل <b>أسهم النزوح</b> على الخريطة، وتعيد تشغيل هذا الدليل في أي وقت.</li></ul>',
     side: 'bottom',
   },
   {

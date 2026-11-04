@@ -113,19 +113,19 @@
     <svg class="absolute inset-0 h-full w-full" onmousedown={stopGuideTour} aria-hidden="true">
       <path
         d={`M 0,0 H ${vpW} V ${vpH} H 0 Z ${cutout}`}
-        fill="rgba(7, 18, 16, 0.78)"
+        fill="rgb(from var(--color-charcoal-deep) r g b / 0.82)"
         fill-rule="evenodd"
       />
       {#if line}
-        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="#f2cf77" stroke-width="2" />
+        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="var(--color-wheat-gold)" stroke-width="2" />
         <rect
           x={line.x2 - 5}
           y={line.y2 - 5}
           width="10"
           height="10"
           transform={`rotate(45 ${line.x2} ${line.y2})`}
-          fill="#f2cf77"
-          stroke="#0a1b18"
+          fill="var(--color-wheat-gold)"
+          stroke="var(--color-charcoal-deep)"
           stroke-width="2"
         />
       {/if}
@@ -135,10 +135,10 @@
       <!-- Viewfinder corner brackets -->
       {@const c = target}
       <div class="pointer-events-none absolute" style="left:{c.x}px;top:{c.y}px;width:{c.w}px;height:{c.h}px;">
-        <span class="tb-corner" style="top:-2px;right:-2px;border-top:3px solid #f2cf77;border-right:3px solid #f2cf77;"></span>
-        <span class="tb-corner" style="top:-2px;left:-2px;border-top:3px solid #f2cf77;border-left:3px solid #f2cf77;"></span>
-        <span class="tb-corner" style="bottom:-2px;right:-2px;border-bottom:3px solid #f2cf77;border-right:3px solid #f2cf77;"></span>
-        <span class="tb-corner" style="bottom:-2px;left:-2px;border-bottom:3px solid #f2cf77;border-left:3px solid #f2cf77;"></span>
+        <span class="tb-corner" style="top:-2px;right:-2px;border-top:3px solid var(--color-wheat-gold);border-right:3px solid var(--color-wheat-gold);"></span>
+        <span class="tb-corner" style="top:-2px;left:-2px;border-top:3px solid var(--color-wheat-gold);border-left:3px solid var(--color-wheat-gold);"></span>
+        <span class="tb-corner" style="bottom:-2px;right:-2px;border-bottom:3px solid var(--color-wheat-gold);border-right:3px solid var(--color-wheat-gold);"></span>
+        <span class="tb-corner" style="bottom:-2px;left:-2px;border-bottom:3px solid var(--color-wheat-gold);border-left:3px solid var(--color-wheat-gold);"></span>
         <span class="absolute inset-0 border border-wheat-gold/40 shadow-[0_0_35px_rgba(242,207,119,0.35)]"></span>
       </div>
     {/if}
@@ -146,53 +146,56 @@
     <!-- Card -->
     <div
       bind:this={popEl}
-      class="absolute w-[348px] max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] modal-card scroll-area overflow-y-auto bg-forest-deep border-2 border-wheat-mid/80 shadow-[0_20px_60px_rgba(0,0,0,0.85)] text-wheat-light"
-      style="left:{pop.x}px;top:{pop.y}px;"
+      class="absolute w-[348px] max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] scroll-area overflow-y-auto border border-wheat-mid/25 text-wheat-light shadow-[0_20px_60px_rgba(0,0,0,0.85)] shell-round-pop"
+      style="left:{pop.x}px;top:{pop.y}px;background: var(--shell-surface);"
     >
-      <div class="px-5 pt-3.5">
+      <div class="px-4 pt-3">
         <div class="flex items-center justify-between gap-2">
-          <span class="px-1.5 py-0.5 bg-wheat-gold/20 text-wheat-gold text-[9px] font-bold border border-wheat-gold/40">
+          <span class="border border-wheat-gold/40 bg-wheat-gold/15 px-1.5 py-0.5 text-[9px] font-bold text-wheat-gold shell-round-chip">
             {step.badge}
           </span>
           <button
+            type="button"
             onclick={stopGuideTour}
-            class="px-2 py-0.5 text-[11px] text-wheat-dark hover:text-wheat-gold hover:bg-forest-mid transition-colors cursor-pointer font-heading"
+            class="flex min-h-11 items-center px-2 text-[10.5px] text-wheat-dark transition-colors hover:text-wheat-gold phone-p:min-h-11"
             aria-label="تخطي الجولة"
           >
             تخطي ✕
           </button>
         </div>
-        <div class="flex items-center gap-2.5 pt-2">
-          <GameIcon name={step.icon} cls="w-8 h-8 shrink-0" />
-          <h3 class="text-[17px] font-bold font-heading leading-snug">{step.title}</h3>
+        <div class="flex items-center gap-2.5 pt-1">
+          <GameIcon name={step.icon} cls="w-7 h-7 shrink-0 text-wheat-gold/85" />
+          <h3 class="font-heading text-[16px] font-bold leading-snug text-wheat-light">{step.title}</h3>
         </div>
-        <div class="h-[3px] w-14 bg-wheat-gold/80 mt-2"></div>
+        <div class="mt-2 h-[2px] w-14 bg-wheat-gold/80"></div>
       </div>
 
-      <div class="tour-body px-5 py-3 text-[12.5px] leading-[2] text-wheat-light/90">
+      <div class="tour-body px-4 py-2.5 text-[12px] leading-[1.95] text-wheat-light/90">
         {@html step.body}
       </div>
 
-      <div class="px-5 pb-3.5 pt-1 bg-charcoal-deep border-t border-charcoal-mid sticky bottom-0">
-        <div class="flex items-center gap-2 py-2">
-          <div class="relative flex-1 h-1 bg-charcoal-mid" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
+      <div class="sticky bottom-0 border-t border-wheat-mid/10 bg-charcoal-deep/90 px-4 pb-3 pt-1">
+        <div class="flex items-center gap-2 py-1.5">
+          <div class="relative h-1 flex-1 bg-charcoal-mid" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
             <div class="absolute inset-y-0 right-0 bg-wheat-gold transition-all" style="width: {((idx + 1) / TOUR_STEPS.length) * 100}%"></div>
           </div>
-          <span class="text-[11px] text-wheat-dark font-mono shrink-0"><bdi>{idx + 1} / {TOUR_STEPS.length}</bdi></span>
+          <span class="shrink-0 font-mono text-[10px] text-wheat-dark"><bdi>{idx + 1} / {TOUR_STEPS.length}</bdi></span>
         </div>
         <div class="flex items-center justify-between gap-2">
           <button
+            type="button"
             onclick={tourPrev}
             disabled={isFirst}
-            class="px-3.5 py-1.5 border border-charcoal-mid text-xs font-heading font-bold transition-all {isFirst
-              ? 'opacity-30 cursor-not-allowed text-wheat-dark'
-              : 'text-wheat-mid hover:text-wheat-light hover:border-wheat-mid cursor-pointer'}"
+            class="flex min-h-9 items-center border border-charcoal-mid px-3.5 text-[11px] font-bold transition-all phone-p:min-h-11 phone-l:min-h-11 shell-round-item {isFirst
+              ? 'cursor-not-allowed text-wheat-dark opacity-30'
+              : 'text-wheat-mid hover:border-wheat-mid hover:text-wheat-light'}"
           >
             السابق
           </button>
           <button
+            type="button"
             onclick={tourNext}
-            class="px-4 py-1.5 bg-wheat-gold hover:bg-wheat-light text-forest-deep text-xs font-heading font-bold transition-all shadow-md cursor-pointer"
+            class="flex min-h-9 items-center border border-wheat-gold bg-wheat-gold px-4 text-[11px] font-bold text-forest-deep shadow-md transition-all hover:bg-wheat-light phone-p:min-h-11 phone-l:min-h-11 shell-round-item"
           >
             {isLast ? 'بدء الحكم' : 'التالي'}
           </button>
@@ -211,7 +214,7 @@
   }
   .tour-body :global(b),
   .tour-body :global(strong) {
-    color: #f2cf77;
+    color: var(--color-wheat-gold);
   }
   /* Numeric/mixed tokens stay LTR-isolated so comparisons never scramble */
   .tour-body :global(bdi) {
@@ -219,7 +222,7 @@
     font-family: 'Thmanyah Sans', system-ui, sans-serif;
   }
   .tour-body :global(.lead) {
-    color: rgba(242, 234, 211, 0.95);
+    color: rgb(from var(--color-wheat-light) r g b / 0.95);
   }
   /* Takeaway lists: square gold markers match the zero-radius UI language */
   .tour-body :global(ul) {
@@ -230,7 +233,7 @@
   .tour-body :global(li) {
     position: relative;
     padding-right: 17px;
-    color: rgba(242, 234, 211, 0.82);
+    color: rgb(from var(--color-wheat-light) r g b / 0.82);
   }
   .tour-body :global(li::before) {
     content: "";
@@ -239,11 +242,11 @@
     top: 13px;
     width: 7px;
     height: 7px;
-    background: #f2cf77;
+    background: var(--color-wheat-gold);
     opacity: 0.85;
   }
   /* RRI legend tones */
-  .tour-body :global(li[data-tone="good"]::before) { background: #4ec7b4; }
-  .tour-body :global(li[data-tone="warn"]::before) { background: #fbbf24; }
-  .tour-body :global(li[data-tone="bad"]::before) { background: #f87171; }
+  .tour-body :global(li[data-tone="good"]::before) { background: var(--color-forest-accent); }
+  .tour-body :global(li[data-tone="warn"]::before) { background: var(--color-status-warn); }
+  .tour-body :global(li[data-tone="bad"]::before) { background: var(--color-umber-crimson); }
 </style>

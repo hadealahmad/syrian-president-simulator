@@ -16,43 +16,57 @@
 
 {#if $gameStore.isGameOver && failState}
   <div
-    class="pointer-events-auto fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4 select-none scroll-area scroll-umber overflow-y-auto font-arabic"
+    class="pointer-events-auto fixed inset-0 z-[80] flex select-none items-center justify-center bg-black/45 p-4 backdrop-blur-sm scroll-area scroll-umber overflow-y-auto font-arabic"
   >
     <div
       use:focusTrap
       role="dialog"
       aria-modal="true"
       aria-label="نهاية المحاكاة — انهيار سيادي"
-      class="m-auto w-full max-w-[620px] bg-forest-deep/95 border-2 border-umber-crimson shadow-2xl p-8 space-y-6 text-center rounded-none text-wheat-light"
+      class="relative m-auto w-full max-w-[620px] overflow-hidden border border-umber-border/70 bg-forest-deep text-center text-wheat-light shadow-2xl shell-round-pop"
+      style="background: radial-gradient(640px 220px at 100% 0%, rgb(from var(--color-status-danger) r g b / 0.16), transparent 72%), linear-gradient(165deg, var(--color-forest-mid), var(--color-forest-deep) 62%, var(--color-charcoal-deep));"
     >
-      <div class="w-14 h-14 bg-umber-deep border-2 border-umber-crimson flex items-center justify-center mx-auto text-wheat-light text-2xl font-bold rounded-none font-heading">
-        !
-      </div>
+      <span
+        class="pointer-events-none absolute inset-x-0 top-0 h-[3px]"
+        style="background: linear-gradient(90deg, transparent, var(--color-status-danger), var(--color-wheat-gold), var(--color-status-danger), transparent);"
+        aria-hidden="true"
+      ></span>
 
-      <div class="space-y-2">
-        <span class="text-xs text-wheat-dark font-bold tracking-widest uppercase font-heading">
-          نهاية المحاكاة — انهيار سيادي
-        </span>
-        <h2 class="text-xl font-bold text-wheat-light font-heading">
-          {failState.titleAr}
-        </h2>
-        <span class="text-xs text-wheat-mid font-mono font-heading">
-          سقطت الدولة في الدور {playedTurn} ({$gameStore.calendarYear})
-        </span>
-      </div>
-
-      <p class="text-xs text-wheat-light leading-relaxed bg-charcoal-deep p-4 border border-charcoal-mid text-right font-arabic rounded-none">
-        {failState.narrativeAr}
-      </p>
-
-      <div class="pt-4">
-        <button
-          data-autofocus
-          onclick={handleRestart}
-          class="px-8 py-3 bg-umber-crimson hover:bg-umber-mid text-wheat-light font-bold text-xs border border-umber-crimson transition-colors active:translate-y-0.5 cursor-pointer rounded-none font-heading"
+      <div class="space-y-3 px-6 pb-6 pt-7">
+        <div
+          class="mx-auto flex h-14 w-14 items-center justify-center border-2 border-umber-crimson bg-umber-deep font-heading text-2xl font-bold text-wheat-light"
+          style="border-radius: 50% !important;"
+          aria-hidden="true"
         >
-          إعادة المحاولة من البداية
-        </button>
+          !
+        </div>
+
+        <div class="space-y-1.5">
+          <span class="block text-[8.5px] font-bold uppercase tracking-[2.4px] text-umber-crimson font-heading">
+            نهاية المحاكاة — انهيار سيادي
+          </span>
+          <h2 class="font-heading text-[22px] font-bold leading-snug text-wheat-light">
+            {failState.titleAr}
+          </h2>
+          <span class="block font-mono text-[10.5px] text-wheat-dark">
+            سقطت الدولة في الدور {playedTurn} ({$gameStore.calendarYear})
+          </span>
+        </div>
+
+        <p class="border border-wheat-mid/12 bg-charcoal-deep/70 p-4 text-start text-[11px] leading-relaxed text-wheat-light/90 shell-round-item">
+          {failState.narrativeAr}
+        </p>
+
+        <div class="flex flex-col items-stretch gap-2 pt-2 sm:flex-row sm:justify-center">
+          <button
+            data-autofocus
+            type="button"
+            onclick={handleRestart}
+            class="min-h-11 border border-umber-crimson bg-umber-crimson px-7 py-2.5 text-[11.5px] font-bold text-wheat-light transition-colors hover:bg-umber-mid active:translate-y-0.5 shell-round-item"
+          >
+            إعادة المحاولة من البداية
+          </button>
+        </div>
       </div>
     </div>
   </div>

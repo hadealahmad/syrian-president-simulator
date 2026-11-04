@@ -46,6 +46,10 @@ function markSeen(): void {
 export function startGuideTour(): void {
   uiStore.closeCommandPanel();
   uiStore.toggleStatsSidebar(false);
+  // The tour owns the screen: the settings curtain and the phone alert tray
+  // would otherwise sit underneath a spotlight that points past them.
+  uiStore.setSettingsOpen(false);
+  uiStore.setAlertsOpen(false);
   index.set(0);
   active.set(true);
 }

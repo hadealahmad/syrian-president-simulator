@@ -7,14 +7,23 @@
   import { theme } from '../stores/theme-store';
   import { pwaStore } from '../stores/pwa-store';
   import { THEMES, THEME_IDS, type ThemeId } from '../themes';
-  import { startGuideTour, stopGuideTour, hasSeenTour } from './guide-tour';
+  import { startGuideTour, hasSeenTour } from './guide-tour';
   import { focusTrap } from './actions/focus-trap';
   import GameIcon from './GameIcon.svelte';
   import ToggleSwitch from './ToggleSwitch.svelte';
   import { PROJECT_LINKS } from '../project-links';
   import { SYRIA_2D_GOVERNORATES } from '../spatial3d/syria-2d-paths';
 
-  let isLeftOpen = $derived($uiStore.isProvincialDrawerOpen);
+  /**
+   * Full-screen settings curtain (Concept D). The three floating controls that
+   * used to sit over the map are retired: the top-bar gear opens this menu,
+   * and the guide tour, migration-arrow toggle, theme, CRT effect, about page,
+   * new game/continue and restart all live here.
+   *
+   * The first child stays an empty, hidden element on purpose: the shell's
+   * legacy `.shell-deck-host > div:first-child` rules must not reach the
+   * curtain's own buttons (they would force 44px sizes on the title menu).
+   */
   let menuView = $state<'main' | 'themes' | 'restart'>('main');
   let iosInstallHintOpen = $state(false);
   let canInstallApp = $derived(!$pwaStore.isInstalled && ($pwaStore.canInstall || $pwaStore.isIos));
@@ -78,19 +87,23 @@
     };
   }
 
+  // Every fresh open starts at the main menu (the gear can open it from any
+  // sheet, and a previous session's restart/theme view must not linger).
+  let wasSettingsOpen = false;
+  $effect(() => {
+    if ($uiStore.isSettingsOpen && !wasSettingsOpen) {
+      menuView = 'main';
+      iosInstallHintOpen = false;
+      uiStore.setRestartModal(false);
+    }
+    wasSettingsOpen = $uiStore.isSettingsOpen;
+  });
+
   function closeSettings(): void {
     menuView = 'main';
     iosInstallHintOpen = false;
     uiStore.setRestartModal(false);
     uiStore.markGameStarted();
-  }
-
-  function openSettings(): void {
-    stopGuideTour();
-    menuView = 'main';
-    iosInstallHintOpen = false;
-    uiStore.setRestartModal(false);
-    uiStore.setSettingsOpen(true);
   }
 
   function onKey(e: KeyboardEvent): void {
@@ -101,6 +114,11 @@
         closeSettings();
       }
     }
+  }
+
+  function startTourFromMenu(): void {
+    closeSettings();
+    startGuideTour();
   }
 
   function confirmNewGame(): void {
@@ -148,52 +166,9 @@
 
 <svelte:window onkeydown={onKey} />
 
-<!-- System Controls: guide + settings - top left under the top bar -->
-<div
-  class="pointer-events-auto fixed top-[88px] z-30 flex items-center gap-2 transition-all duration-300 ease-in-out select-none font-arabic {isLeftOpen ? 'lg:left-[396px] left-3' : 'left-3'}"
->
-  <!-- Presidential Guide Tour (icon only, stays outside the settings menu) -->
-  <button
-    data-tour="guide-btn"
-    onclick={() => startGuideTour()}
-    class="max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none"
-    title="دليل البروتوكول الرئاسي وإرشادات إدارة الدولة وطريقة اللعب"
-    aria-label="دليل البروتوكول الرئاسي"
-  >
-    <GameIcon name="help" cls="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0 text-wheat-gold" />
-  </button>
-
-  <!-- Settings -->
-  <button
-    onclick={openSettings}
-    aria-haspopup="dialog"
-    aria-expanded={$uiStore.isSettingsOpen}
-    aria-label="الإعدادات"
-    title="الإعدادات — لعبة جديدة، تحديث، المظهر"
-    class="relative max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid text-wheat-mid hover:text-wheat-gold border border-charcoal-mid hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none group"
-  >
-    {#if $versionStore.hasUpdate}
-      <span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-    {/if}
-    <GameIcon name="gear" cls="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0 text-wheat-dark group-hover:text-wheat-gold transition-colors" />
-  </button>
-
-  <!-- Migration arrows overlay toggle -->
-  <button
-    onclick={() => uiStore.setMigrationArrows(!$uiStore.showMigrationArrows)}
-    aria-pressed={$uiStore.showMigrationArrows}
-    aria-label="تبديل أسهم النزوح"
-    title="تبديل أسهم النزوح"
-    class="max-md:h-9 max-md:w-9 h-7 w-7 flex items-center justify-center bg-forest-deep/90 hover:bg-forest-mid border hover:border-wheat-mid/60 shadow-lg cursor-pointer gloss-hover transition-all active:scale-95 rounded-none {$uiStore.showMigrationArrows ? 'border-wheat-mid/60 text-wheat-gold' : 'border-charcoal-mid text-wheat-dark hover:text-wheat-gold'}"
-  >
-    <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden="true" class="max-md:w-4.5 max-md:h-4.5 w-4 h-4 shrink-0">
-      <circle cx="4.5" cy="4" r="2.3" fill="currentColor" />
-      <path d="M0.8 13.4c0-3.1 1.7-5 3.7-5s3.7 1.9 3.7 5" fill="currentColor" />
-      <path d="M7.8 9.6 L12.4 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-      <path d="M9.7 5 H12.4 V7.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
-    </svg>
-  </button>
-</div>
+<!-- Hidden placeholder: keeps the legacy deck CSS selectors away from the
+     curtain (see the comment in the script block). -->
+<div class="hidden" aria-hidden="true"></div>
 
 {#if $uiStore.isSettingsOpen}
   <div
@@ -203,15 +178,16 @@
     aria-modal="true"
     aria-label="الإعدادات"
     dir="rtl"
-    class="pointer-events-auto fixed inset-0 z-[150] bg-charcoal-deep text-wheat-light select-none font-arabic overflow-hidden"
+    class="pointer-events-auto fixed inset-0 z-[150] overflow-hidden bg-charcoal-deep text-wheat-light select-none font-arabic"
+    style="visibility: visible;"
   >
     <!-- Fullscreen background: animated idle map anchored toward the left -->
     <div
-      class="pointer-events-none absolute inset-0 flex items-center justify-center md:justify-end md:pl-14 lg:pl-24 overflow-hidden"
+      class="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden md:justify-end md:pl-14 lg:pl-24"
       aria-hidden="true"
     >
       <svg
-        class="w-[88vw] md:w-[64vw] max-w-[780px] max-h-[82vh] opacity-30 md:opacity-100 idle-map-float"
+        class="idle-map-float max-h-[82vh] w-[88vw] max-w-[780px] opacity-30 md:w-[64vw] md:opacity-100"
         viewBox="0 0 1000 880"
       >
         <!-- Map drop shadow -->
@@ -279,34 +255,49 @@
       aria-hidden="true"
     ></div>
 
+    {#if $uiStore.hasStartedGame}
+      <button
+        type="button"
+        onclick={closeSettings}
+        aria-label="إغلاق القائمة"
+        title="إغلاق القائمة"
+        class="absolute top-3 end-3 z-20 flex h-11 w-11 items-center justify-center border border-wheat-mid/20 bg-forest-deep/70 text-wheat-mid transition-colors hover:border-wheat-gold/60 hover:text-wheat-gold shell-round-item"
+      >
+        <GameIcon name="cross-mark" cls="h-4 w-4 shrink-0" />
+      </button>
+    {/if}
+
     <!-- Right-aligned frameless classic game menu text -->
     <aside
-      class="relative z-10 h-full w-full md:w-[460px] flex flex-col justify-between px-10 sm:px-14 md:px-16 py-10 sm:py-12 scroll-area overflow-y-auto"
+      class="scroll-area relative z-10 flex h-full w-full flex-col justify-between overflow-y-auto px-8 py-8 sm:px-12 sm:py-10 md:w-[470px] md:px-16 md:py-12"
     >
       {#if menuView === 'main'}
         <div class="text-right">
-          <h1 class="text-3xl sm:text-4xl font-bold text-wheat-light font-heading tracking-tight">
+          <span class="text-[8.5px] tracking-[2.4px] text-forest-accent/80">القائمة الرئاسية</span>
+          <h1 class="mt-1 font-heading text-3xl font-bold tracking-tight text-wheat-light sm:text-4xl">
             رئيس الجمهورية
           </h1>
         </div>
 
-        <nav class="my-auto py-8 flex flex-col items-start gap-4 text-right" aria-label="الإعدادات">
+        <nav class="my-auto flex flex-col items-start gap-1 py-6 text-right" aria-label="الإعدادات">
           {#if $uiStore.hasStartedGame}
             <button
+              type="button"
               onclick={closeSettings}
               data-autofocus
-              class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+              class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
             >
               <span class="h-5 w-1 bg-wheat-gold transition-all duration-200 group-hover:h-7"></span>
-              <span class="text-2xl sm:text-3xl font-bold text-wheat-gold group-hover:text-wheat-light font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+              <span class="font-heading text-2xl font-bold text-wheat-gold transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-light sm:text-3xl">
                 متابعة اللعبة
               </span>
             </button>
           {/if}
 
           <button
+            type="button"
             onclick={startNewGame}
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
           >
             <span
               class="w-1 transition-all duration-200 {!$uiStore.hasStartedGame
@@ -314,7 +305,7 @@
                 : 'h-0 bg-wheat-gold/0 group-hover:h-6 group-hover:bg-wheat-gold'}"
             ></span>
             <span
-              class="text-2xl sm:text-3xl font-bold font-heading transition-all duration-200 group-hover:-translate-x-1.5 {!$uiStore.hasStartedGame
+              class="font-heading text-2xl font-bold transition-all duration-200 group-hover:-translate-x-1.5 sm:text-3xl {!$uiStore.hasStartedGame
                 ? 'text-wheat-gold group-hover:text-wheat-light'
                 : 'text-wheat-mid group-hover:text-wheat-gold'}"
             >
@@ -323,38 +314,64 @@
           </button>
 
           <button
-            onclick={() => (menuView = 'themes')}
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            type="button"
+            onclick={startTourFromMenu}
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
+            aria-label="دليل البروتوكول الرئاسي وإرشادات طريقة اللعب"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="flex items-center gap-2 font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
+              دليل البروتوكول الرئاسي
+              <GameIcon name="help" cls="h-4 w-4 shrink-0 text-wheat-gold/70" />
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onclick={() => (menuView = 'themes')}
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
+          >
+            <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
+            <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
               المظهر
             </span>
           </button>
 
+          <div class="flex min-h-11 items-center gap-3 py-1.5 text-right">
+            <span class="h-0 w-1 bg-wheat-gold/0"></span>
+            <span class="font-heading text-xl font-bold text-wheat-mid sm:text-2xl">أسهم النزوح</span>
+            <ToggleSwitch
+              checked={$uiStore.showMigrationArrows}
+              label="تبديل أسهم النزوح على الخريطة"
+              onchange={(v) => uiStore.setMigrationArrows(v)}
+            />
+          </div>
+
           {#if canInstallApp}
             <button
+              type="button"
               onclick={installApp}
-              class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+              class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
             >
               <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-              <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+              <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
                 تثبيت اللعبة كتطبيق
               </span>
             </button>
           {/if}
           {#if iosInstallHintOpen}
-            <p class="pr-4 text-xs text-wheat-dark leading-relaxed text-right">
+            <p class="pe-4 text-[11px] leading-relaxed text-wheat-dark" dir="rtl">
               اضغط زر المشاركة في متصفح سفاري، ثم اختر «إضافة إلى الشاشة الرئيسية».
             </p>
           {/if}
 
           <button
+            type="button"
             onclick={openAbout}
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1.5 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
               عن اللعبة
             </span>
           </button>
@@ -363,10 +380,10 @@
             href="https://www.youtube.com/channel/UCQkqyo2DYRee_1qlHZ1M6Dg/join"
             target="_blank"
             rel="noreferrer"
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 py-1.5 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
               ادعمني مالياً
             </span>
           </a>
@@ -375,10 +392,10 @@
             href={PROJECT_LINKS.repo}
             target="_blank"
             rel="noreferrer"
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 py-1.5 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
               الشيفرة على GitHub
             </span>
           </a>
@@ -391,28 +408,29 @@
             rel="noreferrer"
             aria-label="حساب المطوّر على GitHub"
             title="حساب المطوّر على GitHub"
-            class="text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer"
+            class="flex h-11 w-11 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
           >
-            <GameIcon name="brand-github" cls="w-4 h-4 shrink-0" />
+            <GameIcon name="brand-github" cls="h-4 w-4 shrink-0" />
           </a>
           <a
             href="https://x.com/hadealahmad"
             target="_blank"
             rel="noreferrer"
             aria-label="Twitter: @hadealahmad"
-            class="text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer"
+            class="flex h-11 w-11 items-center justify-center text-wheat-dark transition-colors hover:text-wheat-gold"
           >
-            <GameIcon name="brand-x" cls="w-4 h-4 shrink-0" />
+            <GameIcon name="brand-x" cls="h-4 w-4 shrink-0" />
           </a>
           <button
+            type="button"
             onclick={updateGame}
             aria-label="تحديث اللعبة — فرض إعادة التحميل"
             title="تحديث اللعبة — فرض إعادة التحميل"
-            class="cursor-pointer font-mono text-[11px] transition-colors bg-transparent border-0 {$versionStore.isChecking ? 'animate-pulse text-wheat-gold' : 'text-wheat-dark hover:text-wheat-gold'}"
+            class="min-h-11 cursor-pointer border-0 bg-transparent font-mono text-[11px] transition-colors {$versionStore.isChecking ? 'animate-pulse text-wheat-gold' : 'text-wheat-dark hover:text-wheat-gold'}"
           >
             <span dir="ltr">{$versionStore.currentVersion}</span>
             {#if $versionStore.hasUpdate}
-              <span class="px-1.5 py-px bg-amber-400 text-forest-deep text-[9px] font-bold">
+              <span class="bg-amber-400 px-1.5 py-px text-[9px] font-bold text-forest-deep">
                 جديد{$versionStore.latestVersion ? `: ${$versionStore.latestVersion}` : ''}
               </span>
             {/if}
@@ -420,18 +438,20 @@
         </div>
       {:else if menuView === 'themes'}
         <div class="text-right">
-          <h1 class="text-3xl sm:text-4xl font-bold text-wheat-light font-heading tracking-tight">
+          <span class="text-[8.5px] tracking-[2.4px] text-forest-accent/80">تفضيلات العرض</span>
+          <h1 class="mt-1 font-heading text-3xl font-bold tracking-tight text-wheat-light sm:text-4xl">
             المظهر
           </h1>
         </div>
 
-        <div class="my-auto py-8 flex flex-col items-start gap-5 text-right">
+        <div class="my-auto flex flex-col items-start gap-2 py-8 text-right">
           {#each THEME_IDS as id (id)}
             <button
+              type="button"
               role="menuitemradio"
               aria-checked={id === $theme}
               onclick={() => pickTheme(id)}
-              class="group flex items-center gap-4 py-1 text-right cursor-pointer bg-transparent border-0"
+              class="group flex min-h-11 cursor-pointer items-center gap-4 border-0 bg-transparent py-1 text-right"
             >
               <span
                 class="w-1 transition-all duration-200 {id === $theme
@@ -439,25 +459,22 @@
                   : 'h-0 bg-wheat-gold/0 group-hover:h-6 group-hover:bg-wheat-gold'}"
               ></span>
               <span
-                class="text-xl sm:text-2xl font-bold font-heading transition-all duration-200 group-hover:-translate-x-1.5 {id === $theme
+                class="font-heading text-xl font-bold transition-all duration-200 group-hover:-translate-x-1.5 sm:text-2xl {id === $theme
                   ? 'text-wheat-gold'
                   : 'text-wheat-mid group-hover:text-wheat-gold'}"
               >
                 {THEMES[id].labelAr}
               </span>
-              <span class="flex items-center gap-1 mr-2" aria-hidden="true">
+              <span class="me-2 flex items-center gap-1" aria-hidden="true">
                 {#each THEMES[id].swatches as hex (hex)}
-                  <span
-                    class="w-3 h-3 shrink-0 border border-charcoal-light"
-                    style="background-color:{hex}"
-                  ></span>
+                  <span class="h-3 w-3 shrink-0 border border-charcoal-light" style="background-color:{hex}"></span>
                 {/each}
               </span>
             </button>
           {/each}
 
-          <div class="flex items-center gap-5 py-1 pr-4">
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid font-heading">مؤثر شاشة CRT</span>
+          <div class="flex min-h-11 items-center gap-5 py-1 pe-4">
+            <span class="font-heading text-xl font-bold text-wheat-mid sm:text-2xl">مؤثر شاشة CRT</span>
             <ToggleSwitch
               checked={$uiStore.crtTube}
               label="تبديل مؤثر شاشة CRT"
@@ -466,12 +483,13 @@
           </div>
 
           <button
+            type="button"
             onclick={() => (menuView = 'main')}
             aria-label="رجوع إلى الإعدادات"
-            class="group mt-4 flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group mt-3 flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-lg sm:text-xl font-bold text-wheat-dark group-hover:text-wheat-light font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-lg font-bold text-wheat-dark transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-light sm:text-xl">
               رجوع
             </span>
           </button>
@@ -480,23 +498,24 @@
         <div></div>
       {:else if menuView === 'restart'}
         <div class="text-right">
-          <h1 class="text-3xl sm:text-4xl font-bold text-wheat-light font-heading tracking-tight">
+          <span class="text-[8.5px] tracking-[2.4px] text-umber-crimson/80">إجراء لا رجعة فيه</span>
+          <h1 class="mt-1 font-heading text-3xl font-bold tracking-tight text-wheat-light sm:text-4xl">
             تأكيد إعادة التشغيل
           </h1>
         </div>
 
-        <div class="my-auto py-8 flex flex-col items-start gap-5 text-right">
-          <p class="pr-4 text-base sm:text-lg text-wheat-mid leading-relaxed">
+        <div class="my-auto flex flex-col items-start gap-3 py-8 text-right">
+          <p class="pe-4 font-heading text-base leading-relaxed text-wheat-mid sm:text-lg">
             ستفقد كلّ التقدم الذي أجريته في اللعبة.
           </p>
 
           <button
             type="button"
             onclick={confirmNewGame}
-            class="group mt-2 flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group mt-2 flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1 text-right"
           >
             <span class="h-6 w-1 bg-umber-crimson transition-all duration-200 group-hover:h-7"></span>
-            <span class="text-2xl sm:text-3xl font-bold text-umber-crimson group-hover:text-wheat-light font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-2xl font-bold text-umber-crimson transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-light sm:text-3xl">
               تأكيد إعادة البدء
             </span>
           </button>
@@ -504,10 +523,10 @@
           <button
             type="button"
             onclick={closeSettings}
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-xl sm:text-2xl font-bold text-wheat-mid group-hover:text-wheat-gold font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-xl font-bold text-wheat-mid transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-gold sm:text-2xl">
               إلغاء ومتابعة اللعبة
             </span>
           </button>
@@ -515,10 +534,10 @@
           <button
             type="button"
             onclick={() => (menuView = 'main')}
-            class="group flex items-center gap-3 py-1 text-right cursor-pointer bg-transparent border-0"
+            class="group flex min-h-11 cursor-pointer items-center gap-3 border-0 bg-transparent py-1 text-right"
           >
             <span class="h-0 w-1 bg-wheat-gold/0 transition-all duration-200 group-hover:h-6 group-hover:bg-wheat-gold"></span>
-            <span class="text-lg sm:text-xl font-bold text-wheat-dark group-hover:text-wheat-light font-heading transition-all duration-200 group-hover:-translate-x-1.5">
+            <span class="font-heading text-lg font-bold text-wheat-dark transition-all duration-200 group-hover:-translate-x-1.5 group-hover:text-wheat-light sm:text-xl">
               عودة إلى الإعدادات
             </span>
           </button>

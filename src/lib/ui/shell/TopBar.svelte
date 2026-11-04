@@ -2,8 +2,10 @@
   import { gameStore } from '../../stores/game-store';
   import { projectedTurnStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
+  import { versionStore } from '../../stores/version-store';
   import GameIcon from '../GameIcon.svelte';
   import { STAT_NAMES_AR } from '../panels/shared';
+  import { openSettingsMenu } from '../flow/settings-menu';
   import { buildPrimaryStats, buildSecondaryStats, type TopStat } from './topbar-stats';
 
   let p = $derived($projectedTurnStore);
@@ -91,6 +93,30 @@
       {seasonText} · {$gameStore.calendarYear}
     </span>
   </div>
+
+  <!-- Settings / menu gear: the single system entry point (guide, migration
+       arrows, theme, CRT, about, new game) replaces the old floating trio. -->
+  <button
+    type="button"
+    data-tour="settings-gear"
+    onclick={() => openSettingsMenu()}
+    aria-haspopup="dialog"
+    aria-expanded={$uiStore.isSettingsOpen}
+    aria-label="الإعدادات والقائمة"
+    title="الإعدادات — لعبة جديدة، المظهر، الدليل، المزيد"
+    class="group relative flex h-full w-11 shrink-0 items-center justify-center border border-transparent text-wheat-dark transition-colors hover:border-forest-accent/20 hover:bg-forest-accent/5 hover:text-wheat-gold focus-visible:border-wheat-gold"
+  >
+    {#if $versionStore.hasUpdate}
+      <span
+        class="absolute top-2 end-2 h-1.5 w-1.5 animate-ping bg-amber-400 shell-round-chip"
+        aria-hidden="true"
+      ></span>
+    {/if}
+    <GameIcon
+      name="gear"
+      cls="h-4 w-4 shrink-0 text-wheat-dark transition-colors group-hover:text-wheat-gold"
+    />
+  </button>
 
   <!-- Primary stats -->
   <div class="stats-bar flex min-w-0 flex-1 items-stretch justify-between phone-p:justify-around phone-l:justify-between">
