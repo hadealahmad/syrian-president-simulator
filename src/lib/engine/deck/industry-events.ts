@@ -420,7 +420,7 @@ export const INDUSTRY_EVENTS: EventCard[] = [
       {
         id: 'opt_terminal_concession_lease',
         labelAr: 'منح عقد تشغيل الرصيف لشركة مشغلة خاصة مقابل تطويره مجاناً',
-        descriptionAr: 'خصخصة تشغيل محطة الحاويات مدة 10 سنوات مقابل استثمار أجنبي فوري بقيمة $60M.',
+        descriptionAr: 'خصخصة تشغيل محطة الحاويات مدة 10 سنوات مقابل استثمار أجنبي فوري بقيمة $30M.',
         costUSD: -30_000_000,
         costSYP: 0,
         costPC: 16,

@@ -1,29 +1,134 @@
 import type { GameState, EventCard, EventOption } from './types';
 import { ALL_EVENTS, MASTER_EVENTS, SOUTHERN_EVENTS } from './deck';
 import { PRNG } from './prng';
-import { canAffordDirectiveCost } from './currency';
+import { adjustOfficialPeg, calculateParallelRate, canAffordDirectiveCost } from './currency';
+import { getUnrestTier } from './spatial';
+
+/**
+ * Cards that `drawEventsForTurn` schedules itself — the fixed-turn scripted
+ * cards and the quest spoiler (which gets its own priority roll). They must
+ * never be reachable through the uniform random lottery: a quest card drawn
+ * early can be resolved before its scripted turn, and the scripted branch then
+ * skips it because it is already resolved, losing its outcome forever.
+ */
+const SCRIPTED_EVENT_IDS = new Set([
+  'event_01_grain_corridor',
+  'event_02_tanker_interdiction',
+  'event_05_bab_el_mandeb',
+  'event_s01_lajat_siege',
+  'event_d02_golan_incursion',
+  'event_suwayda_accord_spoiler',
+]);
+
+/**
+ * Authored non-currency gates. `EventOption` only carries a human-readable
+ * `requirementsDescriptionAr`, so without a predicate the gates that name an
+ * index or a ministry are decorative. Keyed by option id because the option
+ * has no machine-readable requirement field.
+ */
+const OPTION_REQUIREMENTS: Record<
+  string,
+  { isMet: (state: GameState) => boolean; describeAr: (state: GameState) => string }
+> = {
+  opt_swap: {
+    isMet: (state) => (state.macro.sovereignLeverage ?? 0) >= 30,
+    describeAr: (state) =>
+      `مؤشر السيادة والاستقلال يجب أن يكون 30 أو أكثر بينما الحالي ${Math.round(state.macro.sovereignLeverage ?? 0)}`,
+  },
+  opt_decree_54: {
+    isMet: (state) => (state.ministries?.finance?.competence ?? 0) >= 45,
+    describeAr: (state) =>
+      `كفاءة وزارة المالية يجب أن تكون 45 أو أكثر بينما الحالية ${Math.round(state.ministries?.finance?.competence ?? 0)}`,
+  },
+  opt_freight_overland: {
+    isMet: (state) => (state.ministries?.economy?.competence ?? 0) >= 40,
+    describeAr: (state) =>
+      `كفاءة وزارة الاقتصاد يجب أن تكون 40 أو أكثر بينما الحالية ${Math.round(state.ministries?.economy?.competence ?? 0)}`,
+  },
+};
+
+export interface EventOptionAffordability {
+  ok: boolean;
+  reasonAr?: string;
+}
+
+function formatBillionSYPAr(value: number): string {
+  return (value / 1_000_000_000).toFixed(2);
+}
+
+function formatMillionUSDAr(value: number): string {
+  return (value / 1_000_000).toFixed(1);
+}
+
+/**
+ * The single source of truth for "can this event option be chosen".
+ *
+ * Checks the same three legs as `resolveEventOption` — political capital, the
+ * USD cost, and the SYP cost with its FX cover — plus the authored
+ * non-currency gates, and returns an Arabic reason when the option is blocked.
+ * The event modal renders this verdict, so an option the engine will reject can
+ * never be shown as selectable (which used to leave the player with no way to
+ * close the card).
+ */
+export function canAffordEventOption(state: GameState, option: EventOption): EventOptionAffordability {
+  const { macro } = state;
+
+  const requirement = OPTION_REQUIREMENTS[option.id];
+  if (requirement && !requirement.isMet(state)) {
+    return { ok: false, reasonAr: requirement.describeAr(state) };
+  }
+
+  if (option.costPC > 0 && macro.politicalCapital < option.costPC) {
+    return {
+      ok: false,
+      reasonAr: `عجز في الرصيد السياسي: يتطلب ${option.costPC} نقطة رصيد سياسي بينما المتاح لديك فقط ${Math.floor(macro.politicalCapital)} نقطة`,
+    };
+  }
+
+  if (option.costUSD > 0 && macro.reservesUSD < option.costUSD) {
+    return {
+      ok: false,
+      reasonAr: `نقص في احتياطي النقد الأجنبي: يتطلب $${formatMillionUSDAr(option.costUSD)}M بينما المتاح $${formatMillionUSDAr(macro.reservesUSD)}M`,
+    };
+  }
+
+  if (option.costSYP > 0) {
+    const usableTreasury = Math.max(0, macro.treasurySYP);
+    if (usableTreasury < option.costSYP) {
+      const shortfall = option.costSYP - usableTreasury;
+      const usdNeeded = shortfall / Math.max(1, macro.parallelRateSYP);
+      const usableReserves = macro.reservesUSD - Math.max(0, option.costUSD);
+      if (usableReserves < usdNeeded) {
+        return {
+          ok: false,
+          reasonAr: `عجز في سيولة الخزينة: يتطلب ${formatBillionSYPAr(option.costSYP)}B SP بينما المتاح ${formatBillionSYPAr(usableTreasury)}B SP، وفارق ${formatBillionSYPAr(shortfall)}B SP يحتاج إلى $${formatMillionUSDAr(usdNeeded)}M من الاحتياطي الأجنبي بينما المتاح $${formatMillionUSDAr(macro.reservesUSD)}M`,
+        };
+      }
+    }
+  }
+
+  // Final authority: the exact dual-currency test the engine has always used.
+  if (
+    !canAffordDirectiveCost(
+      macro.reservesUSD,
+      macro.treasurySYP,
+      option.costUSD,
+      option.costSYP,
+      macro.parallelRateSYP
+    )
+  ) {
+    return { ok: false, reasonAr: 'لا تكفي الموارد السيادية لتغطية كلفة هذا الخيار' };
+  }
+
+  return { ok: true };
+}
 
 /**
  * Validates whether the player meets requirements to select an option.
- *
- * Gates on political capital and on the DUAL-currency cost of the option:
- * `canAffordDirectiveCost` covers both the USD leg and the SYP leg, the latter
- * payable from the treasury or from FX reserves covering the shortfall at the
- * parallel rate. costSYP was previously never checked, so options such as
- * `opt_subsidize_feed` (35B SYP) were selectable against an empty treasury —
- * while the event modal's alert card promised a SYP-liquidity check.
+ * Boolean wrapper around `canAffordEventOption`, kept for existing callers.
  */
 export function validateOptionAvailability(state: GameState, option: EventOption): boolean {
-  if (option.costPC > 0 && state.macro.politicalCapital < option.costPC) {
-    return false;
-  }
-  return canAffordDirectiveCost(
-    state.macro.reservesUSD,
-    state.macro.treasurySYP,
-    option.costUSD,
-    option.costSYP,
-    state.macro.parallelRateSYP
-  );
+  return canAffordEventOption(state, option).ok;
 }
 
 /**
@@ -54,6 +159,7 @@ export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
   if (drawnRaw.length === 0) {
     const pool = ALL_EVENTS.filter(
       (e) =>
+        !SCRIPTED_EVENT_IDS.has(e.id) &&
         !state.flags[`event_resolved_${e.id}`] &&
         !drawnRaw.some((d) => d.id === e.id) &&
         (!e.triggerCondition || e.triggerCondition(state))
@@ -64,8 +170,8 @@ export function drawEventsForTurn(state: GameState, prng: PRNG): EventCard[] {
     }
   }
 
-  // Quest spoiler priority: the Suwayda accord-setback must reliably fire
-  // inside its narrow mid-quest window, which the uniform lottery would
+  // Quest spoiler priority: the Suwayda accord setback must reliably fire
+  // while the signed accord is still fragile, which the uniform lottery would
   // usually miss. 50%/turn while eligible, alongside any drawn event.
   const spoiler = ALL_EVENTS.find((e) => e.id === 'event_suwayda_accord_spoiler');
   if (
@@ -107,6 +213,14 @@ export function resolveEventOption(
   const card = ALL_EVENTS.find((e) => e.id === eventId);
   if (!card) return;
 
+  // A crisis that already took the unresolved-crisis penalty cannot later be
+  // resolved for its benefits. Retire any stale copy still sitting in
+  // activeEvents (old saves predating the penalty fix) so it cannot soft-lock.
+  if (state.flags[`event_failed_${eventId}`]) {
+    state.activeEvents = state.activeEvents.filter((e) => e.id !== eventId);
+    return;
+  }
+
   const option = card.options.find((o) => o.id === optionId);
   if (!option) return;
 
@@ -129,9 +243,20 @@ export function resolveEventOption(
   // Apply political capital
   state.macro.politicalCapital = Math.max(0, Math.min(200, state.macro.politicalCapital - option.costPC));
 
-  // Domestic SYP financing: deduct or credit treasury balance
+  // Domestic SYP financing: the treasury pays what it can, and the shortfall
+  // is converted at the parallel rate and debited from FX reserves — exactly
+  // the cover `canAffordDirectiveCost` required before allowing the choice.
+  // Previously the whole cost was pushed onto the treasury (which went
+  // negative) and the reserves that justified affordability were never charged.
   if (option.costSYP > 0) {
-    state.macro.treasurySYP -= option.costSYP;
+    const usableTreasury = Math.max(0, state.macro.treasurySYP);
+    const fromTreasury = Math.min(option.costSYP, usableTreasury);
+    const sypShortfall = option.costSYP - fromTreasury;
+    state.macro.treasurySYP -= fromTreasury;
+    if (sypShortfall > 0) {
+      const usdFromReserves = sypShortfall / Math.max(1, state.macro.parallelRateSYP);
+      state.macro.reservesUSD = Math.max(0, state.macro.reservesUSD - usdFromReserves);
+    }
   } else if (option.costSYP < 0) {
     state.macro.treasurySYP += -option.costSYP;
   }
@@ -162,6 +287,10 @@ export function resolveEventOption(
 
       if (eff.prri !== undefined) {
         gov.prri = Math.max(0, Math.min(100, gov.prri + eff.prri));
+        // Keep the tier in sync immediately: game-store runs checkFailStates()
+        // right after this call and counts REVOLT tiers, so a stale tier makes
+        // the fail check disagree with the PRRI the engine just wrote.
+        gov.tier = getUnrestTier(gov.prri);
       }
       if (eff.dailyBlackoutHours !== undefined) {
         gov.dailyBlackoutHours = Math.max(0, Math.min(24, gov.dailyBlackoutHours + eff.dailyBlackoutHours));
@@ -207,6 +336,60 @@ export function resolveEventOption(
     }
   }
 
+  // Exchange-rate options: move the official peg toward the parallel rate.
+  // `adjustOfficialPeg()` was exported but never called, so these options only
+  // changed unrelated stats and left the gap that triggered the event intact.
+  if (optionId === 'opt_align_rate' || optionId === 'opt_managed_float') {
+    const peg = adjustOfficialPeg(state.macro, state.macro.parallelRateSYP);
+    state.macro.officialRateSYP = peg.officialRateSYP;
+    if (peg.civicTrustDelta !== 0) {
+      state.macro.civicTrust = Math.max(0, Math.min(100, state.macro.civicTrust + peg.civicTrustDelta));
+    }
+  }
+
+  // Sovereign-debt options: apply the debt / leverage / mortgage effects their
+  // descriptions promise. Previously these were pure stat modifiers.
+  if (optionId === 'opt_swap') {
+    state.macro.sovereignDebtUSD += 290_000_000;
+    state.macro.sovereignLeverage = Math.max(0, (state.macro.sovereignLeverage ?? 0) - 15);
+  }
+  if (optionId === 'opt_token_payment') {
+    state.macro.sovereignDebtUSD = Math.max(0, state.macro.sovereignDebtUSD - 90_000_000);
+  }
+  if (optionId === 'opt_asset_mortgage') {
+    // The concession replaces a cash repayment: pledge the phosphate mines
+    // (the asset named by the option's own Homs governorate effect) and
+    // extinguish debt worth the concession's own valuation. The recurring
+    // revenue loss is already applied by the mortgage ledger in revenues.ts.
+    const mortgage =
+      state.sovereignMortgages?.find((m) => m.id === 'mortgage_khneifis_phosphate' && !m.isMortgaged) ??
+      state.sovereignMortgages?.find((m) => !m.isMortgaged);
+    if (mortgage) {
+      mortgage.isMortgaged = true;
+      state.macro.sovereignDebtUSD = Math.max(0, state.macro.sovereignDebtUSD - mortgage.immediateCashUSD);
+    }
+  }
+
+  // Emergency banknote issue: the printed amount enters the money supply, so
+  // the inflation cost the option promises actually exists. Its treasury credit
+  // is the negative costSYP handled above.
+  if (optionId === 'opt_emergency_print' && option.costSYP < 0) {
+    const printedSYP = -option.costSYP;
+    state.macro.m2MoneySupplySYP += printedSYP;
+    // Apply the same money-printing term the turn engine uses (m2Delta / post-
+    // print M2), so the option's promised inflation cost actually reaches the
+    // parallel rate instead of only inflating the stock.
+    state.macro.parallelRateSYP = calculateParallelRate(
+      state.macro.parallelRateSYP,
+      state.macro.m2MoneySupplySYP,
+      printedSYP,
+      0,
+      state.macro.reservesUSD,
+      0,
+      0
+    );
+  }
+
   // Handle specific historic flags
   if (optionId === 'opt_historic_accord') {
     state.flags['Flag_Southern_Accord_Progress'] = 100;
@@ -216,6 +399,7 @@ export function resolveEventOption(
       state.governorates['as_suwayda'].suwaydaSecessionProb = 0;
       state.governorates['as_suwayda'].tribalRageIndex = 0;
       state.governorates['as_suwayda'].prri = 15;
+      state.governorates['as_suwayda'].tier = getUnrestTier(15);
     }
   }
 
@@ -224,7 +408,7 @@ export function resolveEventOption(
       state.governorates['as_suwayda'].suwaydaSecessionProb = 95;
       state.governorates['as_suwayda'].suwaydaIntegrationIndex = 0;
       state.governorates['as_suwayda'].prri = 85;
-      state.governorates['as_suwayda'].tier = 'REVOLT';
+      state.governorates['as_suwayda'].tier = getUnrestTier(85);
     }
   }
 
@@ -238,6 +422,15 @@ export function resolveEventOption(
  * or execute ANY of the options to deal with an active crisis.
  */
 export function applyUnresolvedCrisisPenalty(state: GameState, eventId: string): void {
+  // Idempotent: an event can only be punished once. Without this guard a
+  // repeated click on the penalty button stacked the full penalty and could
+  // drive the state into CRISIS_DEFAULT_COLLAPSE. Still retire the card so a
+  // stale save that kept a resolved event active can always be closed.
+  if (state.flags[`event_failed_${eventId}`] || state.flags[`event_resolved_${eventId}`]) {
+    state.activeEvents = state.activeEvents.filter((e) => e.id !== eventId);
+    return;
+  }
+
   // 1. Severe loss of Civic Trust (-25 points)
   state.macro.civicTrust = Math.max(0, state.macro.civicTrust - 25);
 
@@ -247,12 +440,17 @@ export function applyUnresolvedCrisisPenalty(state: GameState, eventId: string):
   // 3. Spreading provincial unrest (+25 national RRI)
   state.macro.nationalRRI = Math.min(100, state.macro.nationalRRI + 25);
 
-  // 4. Increase unrest across all key governorates
+  // 4. Increase unrest across all key governorates, keeping the tier in sync
+  // for the immediate fail-state check that game-store runs next.
   for (const gov of Object.values(state.governorates)) {
     gov.prri = Math.min(100, gov.prri + 15);
+    gov.tier = getUnrestTier(gov.prri);
   }
 
-  // Mark event as resolved through sovereign failure
+  // Mark event as resolved through sovereign failure and remove the card, the
+  // same way resolveEventOption does — otherwise it stays activeEvents[0] and
+  // the player can never get past it.
   state.flags[`event_failed_${eventId}`] = 1;
   state.flags[`event_resolved_${eventId}`] = 1;
+  state.activeEvents = state.activeEvents.filter((e) => e.id !== eventId);
 }

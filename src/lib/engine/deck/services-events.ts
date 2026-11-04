@@ -1,4 +1,5 @@
 import type { EventCard } from '../types';
+import { calculateRealWageUSD } from '../currency';
 
 export const SERVICES_EVENTS: EventCard[] = [
   {
@@ -8,7 +9,9 @@ export const SERVICES_EVENTS: EventCard[] = [
     sourceAr: 'نقابة أطباء سورية / مشفى المواساة الجامعي',
     descriptionAr: 'قدم أكثر من 900 طبيب اختصاصي وممرض استقالاتهم بحثاً عن فرص عمل في الخليج وأوروبا، هرباً من تآكل الأجور والتضخم، مما يهدد بإغلاق أقسام العناية المشددة والعمليات الجراحية بالمشافي الحكومية.',
     targetGovernorateId: 'damascus',
-    triggerCondition: (state) => state.macro.civilServiceWageSYP < 25_000 || state.macro.annualInflationPct > 20,
+    triggerCondition: (state) =>
+      calculateRealWageUSD(state.macro.civilServiceWageSYP, state.macro.parallelRateSYP) < 25 ||
+      state.macro.annualInflationPct > 20,
     options: [
       {
         id: 'opt_doctor_special_wage_hike',
@@ -71,7 +74,8 @@ export const SERVICES_EVENTS: EventCard[] = [
     sourceAr: 'مديرية تربية حلب / نقابة المعلمين',
     descriptionAr: 'أغلقت عشرات المدارس الابتدائية والإعدادية أبوابها في السفيرة ودير حافر ومنبج بعد إضراب المعلمين عن الحضور، مؤكدين أن رواتبهم الشهرية لا تغطي حتى أجور المواصلات إلى بلدات التدريس.',
     targetGovernorateId: 'aleppo',
-    triggerCondition: (state) => state.macro.civilServiceWageSYP < 28_000,
+    triggerCondition: (state) =>
+      calculateRealWageUSD(state.macro.civilServiceWageSYP, state.macro.parallelRateSYP) < 25,
     options: [
       {
         id: 'opt_teachers_transport_stipend',
