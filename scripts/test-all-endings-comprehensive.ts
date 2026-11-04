@@ -31,6 +31,17 @@ function resolveAffordableEvents(
   }
 }
 
+/**
+ * Cheapest affordable option by the engine's own dual-currency cost, so an
+ * auto-play route never drains the FX reserves with a huge SYP-only option
+ * (`opt_land_smuggle`, 28B SYP) just because the reserves happen to cover it.
+ */
+function pickCheapestEventOption(options: any[]) {
+  return [...options].sort(
+    (a, b) => a.costUSD + a.costSYP / 162 - (b.costUSD + b.costSYP / 162)
+  )[0];
+}
+
 // ============================================================================
 // 1. FAIL STATE: SOVEREIGN_INSOLVENCY
 // ============================================================================
@@ -128,7 +139,9 @@ function resolveAffordableEvents(
 {
   let state = createInitialGameState(404);
   for (let t = 1; t <= 10; t++) {
-    resolveAffordableEvents(state);
+    // Fiscal-conservative crisis handling: the collapse must come from the
+    // BLOCKADE policy, not from an avoidable 28B-SYP event bill.
+    resolveAffordableEvents(state, (_ev, opts) => pickCheapestEventOption(opts));
     const dir = getDefaultTurnDirectives();
     dir.southernPolicy = 'BLOCKADE';
     dir.foodSubsidyLevel = 'STANDARD';
@@ -185,24 +198,29 @@ function resolveAffordableEvents(
   let state = createInitialGameState(606);
   for (let t = 1; t <= 40; t++) {
     resolveAffordableEvents(state, (_ev, opts) => {
-      // Pick option that reduces corruption or boosts trust
-      return opts.find((o) => o.effectCorruption < 0) || opts[0];
+      // Prefer the cheapest integrity-positive option. Taking the first one
+      // regardless of price left the run at $1M reserves before the Baniyas
+      // fire ($110M) and the following turn ended in SOVEREIGN_INSOLVENCY.
+      const anticorruption = opts.filter((o) => o.effectCorruption < 0);
+      return anticorruption.length > 0
+        ? pickCheapestEventOption(anticorruption)
+        : opts[0];
     });
     const dir = getDefaultTurnDirectives();
     dir.wageBumpPercent = 6;
-    dir.gridCapExUSD = 35_000_000;
+    dir.gridCapExUSD = 25_000_000;
     dir.southernPolicy = 'HISTORIC_ACCORD';
     dir.activePoliticalActions = ['CABINET_HEARING', 'SMUGGLING_BORDER_SWEEP'];
-    
+
     // Periodically execute strategic projects to boost reconstruction.
-    // Cadence is every 3rd turn, cheapest-first: at a 2-turn cadence the
-    // combined project USD cost outruns the treasury and the run ends in
-    // SOVEREIGN_INSOLVENCY before the century gate is ever reached. This is a
-    // strategy-validity constraint, not a game-balance regression.
+    // Cheapest-first, every 2nd turn: the lower $25M grid CapEx (below the
+    // $35M baseline) keeps enough FX headroom for this cadence. With the
+    // corrected event stream, the earlier 3-turn cadence only reaches 64.4%
+    // average reconstruction, below the ending's 65% gate.
     const unexecuted = Object.values(state.governorates)
       .filter((g) => g.strategicProject && !g.strategicProject.isExecuted)
       .sort((a, b) => a.strategicProject!.costUSD - b.strategicProject!.costUSD);
-    if (t % 3 === 0 && unexecuted.length > 0) {
+    if (t % 2 === 0 && unexecuted.length > 0) {
       dir.provincialProjects = [unexecuted[0].strategicProject!.id];
     }
     const lowest = Object.values(state.governorates).sort((a, b) => a.reconstructionScore - b.reconstructionScore)[0];
@@ -375,11 +393,15 @@ function resolveAffordableEvents(
 {
   let state = createInitialGameState(1111);
   for (let t = 1; t <= 40; t++) {
-    resolveAffordableEvents(state);
+    // Cheapest affordable crisis response plus generous bread subsidies: this
+    // absorbs the +26 national RRI of the free `opt_curtail` tanker option,
+    // which is the legal replacement for the uncharged 28B-SYP land route.
+    resolveAffordableEvents(state, (_ev, opts) => pickCheapestEventOption(opts));
     const dir = getDefaultTurnDirectives();
     dir.wageBumpPercent = 5;
     dir.gridCapExUSD = 25_000_000;
     dir.southernPolicy = 'HISTORIC_ACCORD';
+    dir.foodSubsidyLevel = 'GENEROUS';
     dir.activePoliticalActions = ['CABINET_HEARING'];
     state = executeTurnLifecycle(state, dir);
     if (state.isGameOver) break;

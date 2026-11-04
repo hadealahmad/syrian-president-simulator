@@ -1,7 +1,21 @@
-import type { GameState, TurnDirectives, RevenueAudit } from './types';
-import { IRAN_OIL_COUPON_USD, GROWTH_TUNING } from './constants';
-import { computeFacilityTurn, getFacilityDef } from './facilities';
-import { computeAuctionAbsorbedSYP } from './currency';
+import type {
+  GameState,
+  TurnDirectives,
+  RevenueAudit,
+  TurnExecutionPlan,
+  OligarchExecution,
+  ProvincialExecution,
+  PatronageExecution,
+} from './types';
+import { IRAN_OIL_COUPON_USD, GROWTH_TUNING, BASELINE_CIVIL_SERVICE_HEADCOUNT } from './constants';
+import { computeFacilityTurn, getFacilityDef, facilityBreached } from './facilities';
+import { computeAuctionAbsorbedSYP, canAffordDirectiveCost } from './currency';
+import {
+  getOligarchTerms,
+  getOligarchSettlementPCCost,
+  getOligarchLiquidationPCCost,
+  getOligarchNationalizePCEarned,
+} from './oligarch-helpers';
 
 // Patronage economics: cash/FX spent to buy political capital.
 export const POPULIST_GRANT_COST_SYP = 7_500_000_000;
@@ -38,14 +52,207 @@ export function allocateLoanTermination(
 }
 
 /**
+ * Resolves which oligarch decisions Phase 1 will actually settle, replaying its
+ * PC gates in the same order. Pure: the commit applies this plan, the rehearsal
+ * preview audits it, and the audit books its cash — one decision, one charge.
+ */
+export function resolveOligarchExecution(
+  state: GameState,
+  directives: TurnDirectives
+): OligarchExecution[] {
+  const executed: OligarchExecution[] = [];
+  let pc = state.macro.politicalCapital;
+  for (const [assetId, action] of Object.entries(directives.oligarchDecisions ?? {})) {
+    const asset = state.confiscatedAssets?.find((a) => a.id === assetId);
+    if (!asset || asset.status !== 'PENDING') continue;
+    const terms = getOligarchTerms(asset);
+    if (action === 'SETTLEMENT_80_20') {
+      const costPC = getOligarchSettlementPCCost(asset.valuationUSD);
+      if (pc < costPC) continue;
+      pc -= costPC;
+      executed.push({
+        assetId,
+        action,
+        costPC,
+        earnedPC: 0,
+        settlementUSD: terms.settlementUSD,
+        settlementSYP: terms.settlementSYP,
+        liquidationUSD: 0,
+      });
+    } else if (action === 'FOREIGN_LIQUIDATION') {
+      const costPC = getOligarchLiquidationPCCost(asset.valuationUSD);
+      if (pc < costPC) continue;
+      pc -= costPC;
+      executed.push({
+        assetId,
+        action,
+        costPC,
+        earnedPC: 0,
+        settlementUSD: 0,
+        settlementSYP: 0,
+        liquidationUSD: terms.liquidationUSD,
+      });
+    } else if (action === 'NATIONALIZE_SOE') {
+      const earnedPC = getOligarchNationalizePCEarned(asset.valuationUSD);
+      pc = Math.min(200, pc + earnedPC);
+      executed.push({
+        assetId,
+        action,
+        costPC: 0,
+        earnedPC,
+        settlementUSD: 0,
+        settlementSYP: 0,
+        liquidationUSD: 0,
+      });
+    }
+  }
+  return executed;
+}
+
+/**
+ * Resolves which provincial projects / demining / power-boost will execute,
+ * replaying Phase 4's PC and dual-currency gates. Eligibility is read from the
+ * state handed in, so the caller must pass the pre-Phase-4 state: the audit
+ * then bills exactly what ran instead of every listed directive (and matches
+ * the pre-action mine-saturation / blackout thresholds).
+ */
+export function resolveProvincialExecution(
+  state: GameState,
+  directives: TurnDirectives
+): ProvincialExecution {
+  const plan: ProvincialExecution = {
+    projectIds: [],
+    projectCostUSD: 0,
+    projectCostSYP: 0,
+    projectPoliticalCapital: 0,
+    demining: false,
+    powerBoost: false,
+  };
+
+  let pc = state.macro.politicalCapital;
+  let grantBucket = state.macro.grantBucketUSD ?? 0;
+  const seen = new Set<string>();
+  for (const projId of directives.provincialProjects ?? []) {
+    for (const gov of Object.values(state.governorates)) {
+      const proj = gov.strategicProject;
+      if (!proj || proj.id !== projId || proj.isExecuted || seen.has(proj.id)) continue;
+      const effectiveReserves = state.macro.reservesUSD + grantBucket;
+      if (
+        pc < proj.costPoliticalCapital ||
+        !canAffordDirectiveCost(
+          effectiveReserves,
+          state.macro.treasurySYP,
+          proj.costUSD,
+          proj.costSYP,
+          state.macro.parallelRateSYP
+        )
+      ) {
+        continue;
+      }
+      pc -= proj.costPoliticalCapital;
+      grantBucket = Math.max(0, grantBucket - Math.min(grantBucket, proj.costUSD));
+      seen.add(proj.id);
+      plan.projectIds.push(proj.id);
+      plan.projectCostUSD += proj.costUSD;
+      plan.projectCostSYP += proj.costSYP;
+      plan.projectPoliticalCapital += proj.costPoliticalCapital;
+    }
+  }
+
+  const deminingGov = directives.deminingPriorityId
+    ? state.governorates[directives.deminingPriorityId]
+    : undefined;
+  plan.demining = Boolean(
+    deminingGov &&
+      deminingGov.mineSaturationPct > 8 &&
+      canAffordDirectiveCost(
+        state.macro.reservesUSD,
+        state.macro.treasurySYP,
+        20_000_000,
+        8_000_000_000,
+        state.macro.parallelRateSYP
+      )
+  );
+
+  const boostGov = directives.powerBoostGovId
+    ? state.governorates[directives.powerBoostGovId]
+    : undefined;
+  plan.powerBoost = Boolean(
+    boostGov &&
+      boostGov.dailyBlackoutHours > 2 &&
+      canAffordDirectiveCost(
+        state.macro.reservesUSD,
+        state.macro.treasurySYP,
+        10_000_000,
+        3_000_000_000,
+        state.macro.parallelRateSYP
+      )
+  );
+
+  return plan;
+}
+
+/**
+ * Resolves which patronage / brain-gain actions are affordable, so the audit
+ * charges exactly the ones the turn will apply (an unaffordable grant used to
+ * be charged without ever granting its political capital).
+ */
+export function resolvePatronageExecution(
+  state: GameState,
+  directives: TurnDirectives
+): PatronageExecution {
+  const reserves = state.macro.reservesUSD;
+  const treasury = state.macro.treasurySYP;
+  const rate = state.macro.parallelRateSYP;
+  return {
+    populistGrant: Boolean(
+      directives.populistGrant &&
+        canAffordDirectiveCost(reserves, treasury, 0, POPULIST_GRANT_COST_SYP, rate)
+    ),
+    charityFund: Boolean(
+      directives.charityFundActive &&
+        canAffordDirectiveCost(reserves, treasury, 0, CHARITY_FUND_COST_SYP, rate)
+    ),
+    importSurge: Boolean(directives.importSurge && reserves >= IMPORT_SURGE_COST_USD),
+    brainGain: Boolean(
+      directives.expatriateBrainGainIncentive &&
+        canAffordDirectiveCost(reserves, treasury, 20_000_000, 3_500_000_000, rate)
+    ),
+  };
+}
+
+/**
+ * The single auction clamp used by both paths: the state can never sell more
+ * hard currency than it holds when the auction is priced.
+ */
+export function resolveEffectiveAuctionUSD(
+  directives: TurnDirectives,
+  reservesUSD: number
+): number {
+  const requested = Math.max(0, directives.dollarAuctionUSD || 0);
+  return Math.min(requested, Math.max(0, reservesUSD));
+}
+
+/**
  * Executes the Comprehensive Semiannual Revenue & Expenditure Audit
  * implementing the multi-currency macroeconomic engine from Syria Post-War Simulation Design.
  */
 export function auditSemiannualBudget(
   state: GameState,
-  directives: TurnDirectives
+  directives: TurnDirectives,
+  plan?: TurnExecutionPlan
 ): RevenueAudit {
   const { macro, governorates, ministries } = state;
+
+  // What the turn actually executed. The commit passes the plan resolved from
+  // the pre-mutation state; the rehearsal preview resolves it from its clone.
+  // Defaulting here keeps direct callers (tests, tools) working on an
+  // un-mutated state.
+  const execution: TurnExecutionPlan = plan ?? {
+    oligarch: resolveOligarchExecution(state, directives),
+    provincial: resolveProvincialExecution(state, directives),
+    patronage: resolvePatronageExecution(state, directives),
+  };
 
   // Compute average ministerial competence
   const ministryList = Object.values(ministries);
@@ -80,34 +287,36 @@ export function auditSemiannualBudget(
   // 2. HARD CURRENCY INFLOWS (USD)
   // ---------------------------------------------------------
   // Baseline natural resources
-  let phosphateUSD = 67_500_000;
+  const phosphateUSD = 67_500_000;
   const oilGrossUSD = 140_000_000;
   const tribalShare = oilGrossUSD * 0.30; // 30% tribal share
   const oilCapturedUSD = oilGrossUSD - tribalShare;
   const airspaceUSD = 22_000_000;
 
-  // Check if Khneifis phosphate was mortgaged
-  const hasMortgagedPhosphate =
-    directives.executedMortgageIds?.includes('mortgage_khneifis_phosphate') ||
-    state.sovereignMortgages?.some(m => m.id === 'mortgage_khneifis_phosphate' && m.isMortgaged);
-  if (hasMortgagedPhosphate) {
-    phosphateUSD = 15_000_000; // Concession holder claims bulk of export revenue
-  }
-
   // Nassib border customs with player tariff knob ($200 - $800/truck, baseline $450)
   const truckVolume = 75_000; // Semiannual freight volume
   const nassibFee = directives.nassibTransitFeeUSD || 450;
-  const daraaNRC = (governorates['daraa']?.nassibRevenueCapturePct ?? 32) / 100;
+  // A project executed this turn raises the capture rate in Phase 4 before the
+  // committed audit runs, so add its authored boost when it is still in the
+  // plan and un-executed on the audited state (i.e. the rehearsal preview).
+  const daraaProject = governorates['daraa']?.strategicProject;
+  const plannedDaraaCaptureBoost =
+    daraaProject &&
+    !daraaProject.isExecuted &&
+    execution.provincial.projectIds.includes(daraaProject.id)
+      ? (daraaProject.revenueCaptureBoost ?? 0)
+      : 0;
+  const daraaNRC = Math.min(
+    1,
+    ((governorates['daraa']?.nassibRevenueCapturePct ?? 32) + plannedDaraaCaptureBoost) / 100
+  );
   const nassibUSD = Math.round(truckVolume * (nassibFee / 1_000_000) * 1_000_000 * daraaNRC * complianceRate * 0.85);
 
-  // Maritime ports with Tartus mortgage check
-  let portUSD = 24_000_000;
-  const hasMortgagedTartus =
-    directives.executedMortgageIds?.includes('mortgage_tartus_port') ||
-    state.sovereignMortgages?.some(m => m.id === 'mortgage_tartus_port' && m.isMortgaged);
-  if (hasMortgagedTartus) {
-    portUSD = 6_000_000; // Private consortium retains terminal revenues
-  }
+  // Maritime ports. The revenue a mortgage concession forfeits is booked once,
+  // below, as `mortgageDrainUSD` (the authored `turnRevenueLossUSD`, which the
+  // emergency panel also shows). Reducing these lines as well charged the same
+  // forfeiture twice.
+  const portUSD = 24_000_000;
 
   // Remittance Skimming & Dual Exchange Rate Mechanism
   //
@@ -137,23 +346,30 @@ export function auditSemiannualBudget(
   let oligarchCashInflowSYP = 0;
   let recurringSOEProfitSYP = 31_000_000_000; // Base SOE dividends
 
-  if (directives.oligarchDecisions && state.confiscatedAssets) {
-    for (const asset of state.confiscatedAssets) {
-      const decision = directives.oligarchDecisions[asset.id];
-      if (decision && asset.status === 'PENDING') {
-        if (decision === 'SETTLEMENT_80_20') {
-          oligarchCashInflowUSD += asset.settlementYieldUSD;
-          oligarchCashInflowSYP += asset.settlementYieldSYP;
-        } else if (decision === 'FOREIGN_LIQUIDATION') {
-          oligarchCashInflowUSD += asset.liquidationYieldUSD;
-        } else if (decision === 'NATIONALIZE_SOE') {
-          recurringSOEProfitSYP += asset.soeVenueSYPPerTurn;
-        }
-      }
+  // One-off settlement / fire-sale cash, from what Phase 1 actually executed.
+  for (const entry of execution.oligarch) {
+    oligarchCashInflowUSD += entry.settlementUSD + entry.liquidationUSD;
+    oligarchCashInflowSYP += entry.settlementSYP;
+  }
+
+  // Recurring state-enterprise profit. Read from status, not from the directive
+  // list: Phase 1 flips the asset to NATIONALIZED before this audit runs on the
+  // committed turn, so a PENDING-only test would book the yield on the preview
+  // and never on the real turn. Includes this turn's nationalisations (whose
+  // status flip also happened before the commit audit).
+  const nationalizedNow = new Set(
+    execution.oligarch.filter((e) => e.action === 'NATIONALIZE_SOE').map((e) => e.assetId)
+  );
+  for (const asset of state.confiscatedAssets ?? []) {
+    if (asset.status === 'NATIONALIZED' || nationalizedNow.has(asset.id)) {
+      recurringSOEProfitSYP += getOligarchTerms(asset).nationalizedSYPPerTurn;
     }
   }
 
-  // Decree 16 Property Restitution vs Monetization
+  // Decree 16 Property Restitution vs Monetization. This is the ONLY credit
+  // for MONETIZE_AS_STATE_LAND: Phase 1 applies the political cost (trust and
+  // PRRI) but no longer touches the treasury, so the policy pays its single
+  // explicit per-turn yield here — receipted, and identical in preview/commit.
   if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
     oligarchCashInflowUSD += 120_000_000;
     oligarchCashInflowSYP += 8_000_000_000;
@@ -242,20 +458,32 @@ export function auditSemiannualBudget(
     fuelImportUSD = Math.max(70_000_000, fuelImportUSD - 25_000_000);
   }
 
-  // Grid CapEx adjusted for ministry procurement competence
-  const competenceWaste = avgMinistryCompetence < 40 ? 0.25 : 0.05;
+  // Grid CapEx is paid in USD; it is not part of the SYP expenditure base.
   // Coalesced: a malformed draft (missing/NaN gridCapExUSD) previously produced
   // NaN capacity, NaN investment spend and — via the operating/investment split
   // at the end of this function — NaN operating spend. Matches the `?? 0` guard
   // the growth-valve capacity code already used.
   const gridCapExUSD = Number.isFinite(directives.gridCapExUSD) ? directives.gridCapExUSD : 0;
-  const effectiveGridCapExUSD = gridCapExUSD * (1 - competenceWaste);
-  macro.gridCapacityMW += Math.round((effectiveGridCapExUSD / 1_000_000) * 12);
+
+  // NOTE: the audit never touches grid capacity. Phase 4 owns that mutation
+  // (MW gain, cap, and the power-hour conversion); adding the audit's own
+  // procurement figure here double-counted the same CapEx every turn and could
+  // push the grid past its 6000 MW ceiling.
 
   // Sovereign debt service: flat legacy coupon on the recognized $6.1B stock
-  // (kept flat to preserve turn-1 balance) + semiannual interest on each signed
-  // loan at its own rate. Service on a loan starts the turn AFTER signing.
+  // + semiannual interest on each signed loan at its own rate. Service on a
+  // loan starts the turn AFTER signing.
+  //
+  // The legacy coupon is scaled by the share of the original $6.1B Paris/Russia
+  // stock still recognised, so repudiating that debt stops the coupon instead
+  // of leaving the state servicing debt it has formally voided. Signed loans
+  // raise the stock above $6.1B but must not raise the legacy coupon, hence the
+  // cap at 1.
+  const LEGACY_DEBT_STOCK_USD = 6_100_000_000;
   const LEGACY_DEBT_COUPON_USD = 45_000_000;
+  const recognisedStockUSD = Math.max(0, state.macro.sovereignDebtUSD ?? LEGACY_DEBT_STOCK_USD);
+  const legacyStockShare = Math.min(1, recognisedStockUSD / LEGACY_DEBT_STOCK_USD);
+  const legacyCouponUSD = Math.round(LEGACY_DEBT_COUPON_USD * legacyStockShare);
   let signedLoanServiceUSD = 0;
   if (state.foreignLoans) {
     for (const loan of state.foreignLoans) {
@@ -265,30 +493,52 @@ export function auditSemiannualBudget(
       }
     }
   }
-  const debtServiceUSD = LEGACY_DEBT_COUPON_USD + signedLoanServiceUSD;
+  const debtServiceUSD = legacyCouponUSD + signedLoanServiceUSD;
 
   // Iranian oil-credit coupon: flat $25M/turn while the side ledger carries a
   // balance (voided permanently by formal repudiation, reschedulable once
   // via the Tehran facility to a lower overridden coupon). The directive
   // check keeps the rehearsal preview identical to the committed turn,
   // where applyFacilityTurn persists the same override before this audit.
+  // It must also honour the facility's PC gate: a drafted reschedule that
+  // Phase 5 will refuse must not discount the coupon here.
   let iranOilCouponUSD =
     (macro.iranOilDebtUSD ?? 0) > 0
       ? (macro.iranCouponOverrideUSD ?? IRAN_OIL_COUPON_USD)
       : 0;
-  if (
-    (macro.iranOilDebtUSD ?? 0) > 0 &&
-    (directives.signedFacilityIds ?? []).includes('facility_iran_reschedule')
-  ) {
-    const rescheduleCoupon = getFacilityDef('facility_iran_reschedule')?.onSign?.iranCouponUSD;
+  const rescheduleDef = getFacilityDef('facility_iran_reschedule');
+  const rescheduleState = state.facilities?.find((f) => f.id === 'facility_iran_reschedule');
+  const rescheduleWillSign =
+    rescheduleState?.status === 'ACTIVE' ||
+    rescheduleState?.status === 'COMPLETED' ||
+    Boolean(
+      rescheduleDef &&
+        (directives.signedFacilityIds ?? []).includes('facility_iran_reschedule') &&
+        (rescheduleState === undefined || rescheduleState.status === 'AVAILABLE') &&
+        !facilityBreached(state, directives, 'facility_iran_reschedule') &&
+        state.macro.politicalCapital >= rescheduleDef.politicalCapitalCost
+    );
+  if ((macro.iranOilDebtUSD ?? 0) > 0 && rescheduleDef && rescheduleWillSign) {
+    const rescheduleCoupon = rescheduleDef.onSign?.iranCouponUSD;
     if (rescheduleCoupon !== undefined) iranOilCouponUSD = rescheduleCoupon;
   }
 
-  // FX revenue forfeited to active sovereign mortgage concessions.
+  // FX revenue forfeited to active sovereign mortgage concessions. This is the
+  // single charge for a mortgaged asset: `turnRevenueLossUSD` is the authored
+  // per-turn forfeiture (and the figure the emergency panel advertises). The
+  // phosphate/port revenue lines are deliberately NOT reduced as well.
+  //
+  // A mortgage signed this turn is mortgaged by Phase 2 before the committed
+  // audit runs but is still PENDING on the rehearsal clone, so the directive
+  // list has to count here too — otherwise the preview omitted the drain while
+  // the commit charged it.
+  const mortgagesSignedThisTurn = new Set(directives.executedMortgageIds ?? []);
   let mortgageDrainUSD = 0;
   if (state.sovereignMortgages) {
     for (const mort of state.sovereignMortgages) {
-      if (mort.isMortgaged) mortgageDrainUSD += mort.turnRevenueLossUSD;
+      if (mort.isMortgaged || mortgagesSignedThisTurn.has(mort.id)) {
+        mortgageDrainUSD += mort.turnRevenueLossUSD;
+      }
     }
   }
 
@@ -311,43 +561,25 @@ export function auditSemiannualBudget(
     Math.min(directives.extraDebtRepaymentUSD ?? 0, reservesAfterTermination, totalRemainingPrincipalUSD)
   );
 
-  // Demining priority expenditure (strictly when target governorate mine saturation > 8%)
-  const isDeminingActive = Boolean(
-    directives.deminingPriorityId &&
-    governorates[directives.deminingPriorityId] &&
-    governorates[directives.deminingPriorityId].mineSaturationPct > 8
-  );
-  const emergencyDeminingUSD = isDeminingActive ? 20_000_000 : 0;
-  const deminingSYP = isDeminingActive ? 8_000_000_000 : 0;
+  // Demining priority expenditure: billed only when Phase 4 actually cleared
+  // the target. Eligibility is resolved from the pre-Phase-4 state, so a target
+  // sitting at 9-16% (reduced below the 8% threshold by the action itself) is
+  // still charged instead of becoming free.
+  const emergencyDeminingUSD = execution.provincial.demining ? 20_000_000 : 0;
+  const deminingSYP = execution.provincial.demining ? 8_000_000_000 : 0;
 
-  // Power supply boost expenditure for a single targeted governorate
-  const isPowerBoostActive = Boolean(
-    directives.powerBoostGovId &&
-    governorates[directives.powerBoostGovId] &&
-    governorates[directives.powerBoostGovId].dailyBlackoutHours > 2
-  );
-  const powerBoostUSD = isPowerBoostActive ? 10_000_000 : 0;
-  const powerBoostSYP = isPowerBoostActive ? 3_000_000_000 : 0;
+  // Power supply boost expenditure: same rule, one targeted governorate.
+  const powerBoostUSD = execution.provincial.powerBoost ? 10_000_000 : 0;
+  const powerBoostSYP = execution.provincial.powerBoost ? 3_000_000_000 : 0;
 
-  // Provincial Strategic Projects. Charges EVERY directive-listed project:
-  // execution runs before this audit and flips isExecuted, so filtering on
-  // !isExecuted would make executed projects free and bill only blocked ones.
-  // (The UI never lets an executed project be re-listed, so no double-billing.)
-  let provincialProjectsCostUSD = 0;
-  let provincialProjectsCostSYP = 0;
-  if (directives.provincialProjects && directives.provincialProjects.length > 0) {
-    for (const projId of directives.provincialProjects) {
-      for (const gov of Object.values(governorates)) {
-        if (gov.strategicProject && gov.strategicProject.id === projId) {
-          provincialProjectsCostUSD += gov.strategicProject.costUSD;
-          provincialProjectsCostSYP += gov.strategicProject.costSYP;
-        }
-      }
-    }
-  }
+  // Provincial Strategic Projects: billed from what Phase 4 executed. A project
+  // rejected for lack of political capital or funding is neither applied nor
+  // charged.
+  const provincialProjectsCostUSD = execution.provincial.projectCostUSD;
+  const provincialProjectsCostSYP = execution.provincial.projectCostSYP;
 
   // Emergency food/fuel import surge: populist market-flooding paid in hard currency
-  const importSurgeUSD = directives.importSurge ? IMPORT_SURGE_COST_USD : 0;
+  const importSurgeUSD = execution.patronage.importSurge ? IMPORT_SURGE_COST_USD : 0;
 
   // UNDOF liaison mission (Quneitra dossier): $8M/turn observer presence
   const liaisonMissionUSD = directives.golanBorderStance === 'UN_LIAISON' ? 8_000_000 : 0;
@@ -408,10 +640,14 @@ export function auditSemiannualBudget(
   );
 
   // Executed strategic projects pay recurring SYP revenue from this turn on.
+  // A project in the execution plan counts too: the committed audit runs after
+  // Phase 4 flips `isExecuted`, while the preview audits it un-mutated. Without
+  // this the preview charged the project cost but omitted its first yield.
+  const projectsExecutingThisTurn = new Set(execution.provincial.projectIds);
   let projectRevenueSYP = 0;
   for (const gov of Object.values(governorates)) {
     const proj = gov.strategicProject;
-    if (proj && proj.isExecuted) {
+    if (proj && (proj.isExecuted || projectsExecutingThisTurn.has(proj.id))) {
       projectRevenueSYP += proj.recurringRevenueSYPPerTurn ?? 0;
     }
   }
@@ -428,12 +664,16 @@ export function auditSemiannualBudget(
   // ---------------------------------------------------------
   // 5. DOMESTIC CURRENCY EXPENDITURES (SYP)
   // ---------------------------------------------------------
-  // Public Workforce Headcount & Payroll Strategy
-  let activeHeadcount = macro.civilServiceHeadcount ?? 1_400_000;
+  // Public Workforce Headcount & Payroll Strategy.
+  // The multiplier applies to the CURRENT headcount, not to a hard-coded 1.4M
+  // baseline: nationalisation bonuses (+8 000) and previous ABSORB/PRUNE turns
+  // used to be wiped the moment either strategy was re-selected, making PRUNE
+  // non-cumulative (always 1.05M).
+  let activeHeadcount = macro.civilServiceHeadcount ?? BASELINE_CIVIL_SERVICE_HEADCOUNT;
   if (directives.workforceStrategy === 'ABSORB_MILITIAS') {
-    activeHeadcount = Math.round(1_400_000 * 1.20); // Absorbed into state payroll
+    activeHeadcount = Math.round(activeHeadcount * 1.20); // Absorbed into state payroll
   } else if (directives.workforceStrategy === 'PRUNE_CIVIL_SERVICE') {
-    activeHeadcount = Math.round(1_400_000 * 0.75); // 25% ghost workers pruned
+    activeHeadcount = Math.round(activeHeadcount * 0.75); // 25% ghost workers pruned
   }
   macro.civilServiceHeadcount = activeHeadcount;
 
@@ -455,11 +695,11 @@ export function auditSemiannualBudget(
   }
 
   // Expatriate Brain Gain Contracts
-  const brainGainCostSYP = directives.expatriateBrainGainIncentive ? 3_500_000_000 : 0;
+  const brainGainCostSYP = execution.patronage.brainGain ? 3_500_000_000 : 0;
 
   // Populist patronage: one-shot grant + recurring charity fund, both SYP-funded
-  const populistGrantSYP = directives.populistGrant ? POPULIST_GRANT_COST_SYP : 0;
-  const charityFundSYP = directives.charityFundActive ? CHARITY_FUND_COST_SYP : 0;
+  const populistGrantSYP = execution.patronage.populistGrant ? POPULIST_GRANT_COST_SYP : 0;
+  const charityFundSYP = execution.patronage.charityFund ? CHARITY_FUND_COST_SYP : 0;
 
   const golanDrainSYP = directives.golanBorderStance === 'DEPLOY_ARMOR' ? 9_000_000_000 : 0;
 
@@ -483,16 +723,16 @@ export function auditSemiannualBudget(
     charityFundSYP +
     provincialProjectsCostSYP;
 
-  // Honest-deficit split: investment builds future revenue (projects,
-  // demining, power, CapEx at SYP-equivalent, domestic wheat procurement);
-  // everything else is consumed this turn. The two sum to expendedSYP exactly.
-  const gridCapExSYPEquiv = Math.round(gridCapExUSD * Math.max(1, macro.parallelRateSYP));
+  // Honest-deficit split: investment builds future revenue (projects, demining,
+  // power, domestic wheat procurement); everything else is consumed this turn.
+  // Both sides stay in SYP — Grid CapEx is paid in USD and is not part of
+  // `expendedSYP`, so converting it to SYP and subtracting it here understated
+  // operating spend by the CapEx equivalent. The two sum to `expendedSYP` exactly.
   const investmentExpendedSYP =
     deminingSYP +
     powerBoostSYP +
     wheatDomesticProcurementSYP +
-    provincialProjectsCostSYP +
-    gridCapExSYPEquiv;
+    provincialProjectsCostSYP;
   const operatingExpendedSYP = expendedSYP - investmentExpendedSYP;
 
   // Seigniorage & Domestic Fiscal Balance (SYP)
@@ -568,4 +808,49 @@ export function auditSemiannualBudget(
     facilityLinesAr: facilityTurn.linesAr,
     interestBurdenPct,
   };
+}
+
+/**
+ * Restates a COMMITTED receipt so `netUSDDelta` is the real change in reserves
+ * for the turn (closing − opening), and recomputes the runways from it.
+ *
+ * The audit only ever sees the flows it books itself, so cash credited before it
+ * runs — loan disbursements, mortgage injections, oligarch settlements — was
+ * missing from the receipt while it was present in the balance. The rehearsal
+ * preview audits an un-mutated clone where those flows ARE booked, so restating
+ * the committed receipt also brings the two paths into agreement.
+ *
+ * Called after every reserve mutation of the turn has landed; it only reports.
+ */
+export function restateAuditReservesDelta(
+  audit: RevenueAudit,
+  openingReservesUSD: number,
+  closingReservesUSD: number
+): void {
+  const delta = closingReservesUSD - openingReservesUSD;
+  audit.netUSDDelta = delta;
+
+  const reservesAfterTurnUSD = Math.max(0, closingReservesUSD);
+  let runwayTurnsEstimate = 99;
+  let runwayMonths = 99;
+  if (delta < 0) {
+    const drainPerTurn = Math.abs(delta);
+    if (drainPerTurn > 0) {
+      runwayTurnsEstimate = Math.max(
+        0,
+        Math.min(99, Math.floor(reservesAfterTurnUSD / drainPerTurn))
+      );
+      runwayMonths = Math.max(
+        0.1,
+        Math.min(99, Number(((reservesAfterTurnUSD / drainPerTurn) * 6).toFixed(1)))
+      );
+    } else {
+      runwayTurnsEstimate = 0;
+      runwayMonths = 0.1;
+    }
+  }
+
+  audit.runwayTurnsEstimate = runwayTurnsEstimate;
+  audit.runwayMonths = runwayMonths;
+  audit.runwayAlertTier = runwayMonths <= 3.0 ? 'CRITICAL' : runwayMonths <= 6.0 ? 'WARNING' : 'STABLE';
 }

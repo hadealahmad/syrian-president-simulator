@@ -447,7 +447,7 @@ export const SOVEREIGNTY_EVENTS: EventCard[] = [
         effectRRI: -8,
         effectCorruption: -4,
         effectCompetence: 12,
-        customEffectAr: 'رفع الروح المعنوية وهيبة الدولة السيادية أمام الرأي العام (+14 ثقة، +16 رصيد سياسي)',
+        customEffectAr: 'رفع الروح المعنوية وهيبة الدولة السيادية أمام الرأي العام (+14 ثقة، -16 رصيد سياسي)',
         governorateEffects: [
           { governorateId: 'rif_dimashq', securityEfficacy: 14, prri: -8, customSummaryAr: 'تأمين محيط مطار دمشق وريفها الجنوبي (+14 أمن)' },
           { governorateId: 'damascus', securityEfficacy: 8, customSummaryAr: 'تعزيز أمن العاصمة' }
@@ -495,7 +495,14 @@ export const SOVEREIGNTY_EVENTS: EventCard[] = [
     sourceAr: 'اللجنة الأمنية للجنوب / مرجعيات جبل العرب',
     descriptionAr: 'مع اقتراب الوفاق التاريخي من الاكتمال، نفذت خلية متشددة من رافضي المصالحة كميناً مسلحاً استهدف موكب مشايخ الوفاق على طريق شهبا، في محاولة مكشوفة لنسف المصالحة وإعادة المحافظة إلى مربع العصيان. الشارع الدرزي ينتظر رد الدولة: حماية الوفاق أم دفنه.',
     targetGovernorateId: 'as_suwayda',
-    triggerCondition: (state) => (state.governorates['as_suwayda']?.suwaydaIntegrationIndex ?? 0) >= 40 && (state.governorates['as_suwayda']?.suwaydaSecessionProb ?? 99) < 60,
+    // The spoiler targets the sheikhs of the signed accord: it must require the
+    // accord flag (and the paid restitution), not only the integration index,
+    // which an unrelated Suwayda power project can raise on its own.
+    triggerCondition: (state) =>
+      (state.flags['Flag_Southern_Accord_Progress'] ?? 0) >= 100 &&
+      (state.flags['Flag_Bedouin_Restitution_Paid'] ?? 0) >= 1 &&
+      (state.governorates['as_suwayda']?.suwaydaIntegrationIndex ?? 0) >= 40 &&
+      (state.governorates['as_suwayda']?.suwaydaSecessionProb ?? 99) < 60,
     options: [
       {
         id: 'opt_spoiler_joint_tribunal',

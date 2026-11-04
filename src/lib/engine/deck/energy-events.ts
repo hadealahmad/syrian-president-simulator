@@ -381,7 +381,7 @@ export const ENERGY_EVENTS: EventCard[] = [
     sourceAr: 'شركة الفرات للنفط / مجلس محافظة دير الزور',
     descriptionAr: 'أدى تصدع واهتراء أنبوب الضخ بين حقل التيم والمحطة T2 إلى انفجار تسربت منه آلاف أطنان النفط الخام، مهدداً بغمر القنوات المائية والأراضي الزراعية بالسموم النفطية.',
     targetGovernorateId: 'deir_ez_zor',
-    triggerCondition: (state) => (state.governorates['deir_ez_zor']?.reconstructionScore ?? 50) < 65,
+    triggerCondition: (state) => (state.governorates['deir_ez_zor']?.reconstructionScore ?? 0.5) < 0.65,
     options: [
       {
         id: 'opt_pipeline_comprehensive_fix',

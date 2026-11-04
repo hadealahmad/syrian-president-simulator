@@ -1,6 +1,7 @@
 <script lang="ts">
   import { gameStore } from '../stores/game-store';
   import { uiStore } from '../stores/ui-store';
+  import { canAffordEventOption } from '../engine/events';
   import GameIcon from './GameIcon.svelte';
   import { focusTrap } from './actions/focus-trap';
   import { shellLayout } from './shell/viewport';
@@ -82,28 +83,18 @@
     }
   });
 
-  // Dynamically evaluate whether each option is affordable with the current
-  // political credit and reserves. Unchanged from the retired event card.
+  // Dynamically evaluate whether each option can be chosen. `canAffordEventOption`
+  // is the engine's own gate, so the card can never offer an option that
+  // resolveEventOption() would silently reject (the old PC+USD check ignored the
+  // SYP leg and its FX cover, which soft-locked the modal).
   let evaluatedOptions = $derived(
     currentEvent
       ? currentEvent.options.map((opt) => {
-          const hasSufficientPC = opt.costPC <= 0 || $gameStore.macro.politicalCapital >= opt.costPC;
-          const hasSufficientUSD = opt.costUSD <= 0 || $gameStore.macro.reservesUSD >= opt.costUSD;
-          const canChoose = hasSufficientPC && hasSufficientUSD;
-
-          let deficitReason: string | null = null;
-          if (!hasSufficientPC && !hasSufficientUSD) {
-            deficitReason = `عجز في الرصيد السياسي (يتطلب ${opt.costPC} نقطة والمتاح ${$gameStore.macro.politicalCapital} نقطة) ونقص في النقد الأجنبي`;
-          } else if (!hasSufficientPC) {
-            deficitReason = `عجز في الرصيد السياسي: يتطلب ${opt.costPC} نقطة رصيد سياسي بينما المتاح لديك فقط ${$gameStore.macro.politicalCapital} نقطة`;
-          } else if (!hasSufficientUSD) {
-            deficitReason = `نقص في احتياطي النقد الأجنبي: يتطلب $${(opt.costUSD / 1_000_000).toFixed(1)}M بينما المتاح $${($gameStore.macro.reservesUSD / 1_000_000).toFixed(1)}M`;
-          }
-
+          const verdict = canAffordEventOption($gameStore, opt);
           return {
             ...opt,
-            canChoose,
-            deficitReason,
+            canChoose: verdict.ok,
+            deficitReason: verdict.ok ? null : verdict.reasonAr ?? null,
           };
         })
       : []

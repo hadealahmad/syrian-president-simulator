@@ -441,7 +441,7 @@ export const MONETARY_EVENTS: EventCard[] = [
     sourceAr: 'صندوق النقد العربي / رئاسة مجلس الوزراء',
     descriptionAr: 'اتسعت الهوة بين سعر الصرف الرسمي المثبت لدى المركزي وسعر السوق الموازي بنسبة قاربت 35%، ما يشل الصادرات ويحرم الخزينة من العملة الأجنبية ويشجع على المضاربات العكسية.',
     targetGovernorateId: 'damascus',
-    triggerCondition: (state) => Math.abs(state.macro.parallelRateSYP - state.macro.officialRateSYP) > 2_500,
+    triggerCondition: (state) => state.macro.parallelRateSYP / Math.max(1, state.macro.officialRateSYP) > 1.35,
     options: [
       {
         id: 'opt_managed_float',
