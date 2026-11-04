@@ -13,6 +13,11 @@ import {
   IMPORT_SURGE_COST_USD,
   LOAN_TERMINATION_PC_EARNED,
   LOAN_TERMINATION_LEVERAGE_EARNED,
+  resolveOligarchExecution,
+  resolveProvincialExecution,
+  resolveEffectiveAuctionUSD,
+  restateAuditReservesDelta,
+  resolvePatronageExecution,
 } from './revenues';
 import {
   calculateParallelRate,
@@ -39,13 +44,6 @@ import {
 } from './constants';
 import { cloneGameState } from './state-clone';
 import { applyFacilityTurn } from './facilities';
-import {
-  getOligarchSettlementIncome,
-  getOligarchLiquidationIncome,
-  getOligarchSettlementPCCost,
-  getOligarchLiquidationPCCost,
-  getOligarchNationalizePCEarned,
-} from './oligarch-helpers';
 
 export function getDefaultTurnDirectives(): TurnDirectives {
   return {
@@ -123,14 +121,74 @@ export function hasDraftSelections(directives: TurnDirectives): boolean {
     (directives.executedMortgageIds && directives.executedMortgageIds.length > 0) ||
     Object.keys(directives.oligarchDecisions || {}).length > 0 ||
     directives.southernPolicy !== def.southernPolicy ||
-    directives.golanBorderStance !== def.golanBorderStance
+    directives.golanBorderStance !== def.golanBorderStance ||
+    directives.moneyPrintingSYP !== def.moneyPrintingSYP ||
+    directives.officialRateAdjustment !== def.officialRateAdjustment ||
+    directives.antiSpeculationRaids !== def.antiSpeculationRaids
   );
+}
+
+/**
+ * The reserve balance the audit will see on the committed turn: opening
+ * reserves plus the Phase 1-2 cash the turn manager credits before Phase 5
+ * (oligarch settlements/fire-sales, signed loans, mortgage injections).
+ *
+ * Needed so the rehearsal preview clamps the dollar auction against the same
+ * base as the commit. Phase 0 decree PC movements are not modelled; they only
+ * change the outcome when an oversized auction is paired with decree spending,
+ * and the preview resolves its execution plan from the same opening PC anyway.
+ *
+ * Oligarch cash is deliberately NOT added: Phase 1 no longer credits it, so on
+ * the committed turn it reaches reserves through the audit (i.e. after the
+ * auction is priced), exactly like the preview.
+ */
+function projectedPreAuditReservesUSD(state: GameState, directives: TurnDirectives): number {
+  let reserves = state.macro.reservesUSD;
+  let pc = state.macro.politicalCapital;
+
+  for (const entry of resolveOligarchExecution(state, directives)) {
+    pc = Math.min(200, Math.max(0, pc - entry.costPC + entry.earnedPC));
+  }
+
+  for (const loanId of directives.signedLoanIds ?? []) {
+    const loan = state.foreignLoans?.find((l) => l.id === loanId);
+    if (!loan || loan.isSigned) continue;
+    if (
+      state.flags?.Debt_Repudiated_Paris === 1 &&
+      (loanId === 'loan_imf_wb' || loanId === 'loan_gulf_swf')
+    ) {
+      continue;
+    }
+    if (pc < loan.politicalCapitalCost) continue;
+    pc -= loan.politicalCapitalCost;
+    reserves += loan.disbursementUSD;
+  }
+
+  for (const mortgageId of directives.executedMortgageIds ?? []) {
+    const mort = state.sovereignMortgages?.find((m) => m.id === mortgageId);
+    if (mort && !mort.isMortgaged) reserves += mort.immediateCashUSD;
+  }
+
+  return reserves;
 }
 
 export function evaluateRehearsalDirectives(
   state: GameState,
   directives: TurnDirectives
 ): PredictivePreviewRanges {
+  // Clamp the auction once, against the same reserve base the commit will see,
+  // and use the clamped directives everywhere below. Previously the FX formula
+  // clamped while the audit did not, so the preview's deficit/netUSDDelta/runway
+  // subtracted an auction larger than the state's reserves.
+  const affordableAuctionUSD = resolveEffectiveAuctionUSD(
+    directives,
+    projectedPreAuditReservesUSD(state, directives)
+  );
+  const effectiveDirectives =
+    affordableAuctionUSD === Math.max(0, directives.dollarAuctionUSD || 0)
+      ? directives
+      : { ...directives, dollarAuctionUSD: affordableAuctionUSD };
+
   // The audit is a *reporting* pass that also settles a few derived macro
   // values (tax compliance, grid capacity, civil-service headcount) onto the
   // state it is handed. The rehearsal feeds it a throwaway clone so that merely
@@ -138,7 +196,16 @@ export function evaluateRehearsalDirectives(
   // draft-rehearsal contract in plan/11 §3 ("sliders mutate an isolated draft
   // buffer"). The commit path is unaffected: it audits the post-Phase-0..4
   // clone inside simulateTurnTransitions.
-  const audit = auditSemiannualBudget(cloneGameState(state), directives);
+  //
+  // The plan is resolved from the same (un-mutated) clone with the same shared
+  // resolvers the commit uses, so an unaffordable project, demining run or
+  // oligarch settlement is not billed in the preview either.
+  const plan = {
+    oligarch: resolveOligarchExecution(state, effectiveDirectives),
+    provincial: resolveProvincialExecution(state, effectiveDirectives),
+    patronage: resolvePatronageExecution(state, effectiveDirectives),
+  };
+  const audit = auditSemiannualBudget(cloneGameState(state), effectiveDirectives, plan);
 
   const deficitSYP = Math.max(0, audit.expendedSYP - audit.grossCapturedSYP);
   const netUSDDelta = audit.netUSDDelta;
@@ -160,8 +227,8 @@ export function evaluateRehearsalDirectives(
     fxDrainUSD,
     Math.max(0, state.macro.reservesUSD + netUSDDelta),
     2.5,
-    // Same clamp the commit path applies: an auction can never exceed reserves.
-    Math.min(Math.max(0, directives.dollarAuctionUSD || 0), Math.max(0, state.macro.reservesUSD))
+    // Same clamped auction the audit above was given.
+    affordableAuctionUSD
   );
 
   const fxRateMin = Math.round(estParallelRate * 0.96);
@@ -213,8 +280,27 @@ export function simulateTurnTransitions(
   directives: TurnDirectives
 ): GameState {
   const next: GameState = cloneGameState(currentState);
+  // Receipt bookkeeping: the audit can only report the flows it books itself,
+  // so the true reserve change is measured against the opening balance at the
+  // very end of the turn (see restateAuditReservesDelta).
+  const openingReservesUSD = currentState.macro.reservesUSD;
   // Strategic projects executed this turn (feeds the growth-valve capacity gain).
   let projectsExecutedThisTurn = 0;
+
+  // Direct-to-national shocks (event options, the national half of martial law)
+  // write macro.nationalRRI without touching PRRI. Phase 6 derives nationalRRI
+  // as the governorate mean, which used to erase them before the turn's own
+  // fail check. Capture the divergence up front (incoming index minus incoming
+  // mean) and fold it into every governorate's PRRI just before the recompute:
+  // it then survives the recompute exactly once, and because the stored index
+  // is a pure mean again, it cannot re-apply itself next turn.
+  // Snapshotted before Phase 0 mutates anything.
+  const governoratePrri = Object.values(next.governorates);
+  const incomingPrriMean =
+    governoratePrri.length > 0
+      ? governoratePrri.reduce((sum, g) => sum + g.prri, 0) / governoratePrri.length
+      : 0;
+  const nationalRRIShock = next.macro.nationalRRI - incomingPrriMean;
 
   // =========================================================================
   // PHASE 0: SPECIAL DECREES & POLITICAL ACTIONS
@@ -422,41 +508,34 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 1: OLIGARCH ASSET DECISIONS & PROPERTY RESTITUTION
   // =========================================================================
-  if (directives.oligarchDecisions) {
-    for (const [assetId, action] of Object.entries(directives.oligarchDecisions)) {
-      const asset = next.confiscatedAssets.find((a) => a.id === assetId);
-      if (asset && asset.status === 'PENDING') {
-        if (action === 'SETTLEMENT_80_20') {
-          const costPC = getOligarchSettlementPCCost(asset.valuationUSD);
-          if (next.macro.politicalCapital >= costPC) {
-            asset.status = 'SETTLED';
-            const cashUSD = getOligarchSettlementIncome(asset.valuationUSD);
-            next.macro.reservesUSD += cashUSD;
-            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - costPC);
-            next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
-          }
-        } else if (action === 'NATIONALIZE_SOE') {
-          asset.status = 'NATIONALIZED';
-          const earnedPC = getOligarchNationalizePCEarned(asset.valuationUSD);
-          next.macro.civilServiceHeadcount = (next.macro.civilServiceHeadcount ?? BASELINE_CIVIL_SERVICE_HEADCOUNT) + 8000;
-          next.macro.systemicCorruption = Math.min(100, next.macro.systemicCorruption + 5);
-          next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + earnedPC);
-        } else if (action === 'FOREIGN_LIQUIDATION') {
-          const costPC = getOligarchLiquidationPCCost(asset.valuationUSD);
-          if (next.macro.politicalCapital >= costPC) {
-            asset.status = 'LIQUIDATED';
-            const cashUSD = getOligarchLiquidationIncome(asset.valuationUSD);
-            next.macro.reservesUSD += cashUSD;
-            next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 4);
-            next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - costPC);
-          }
-        }
-      }
+  // Resolve once, from the pre-Phase-1 state, then apply exactly that plan.
+  // Cash is NOT credited here: the audit books the settlement / fire-sale
+  // amounts from the same plan (single path, receipted, preview-identical).
+  const oligarchPlan = resolveOligarchExecution(next, directives);
+  for (const entry of oligarchPlan) {
+    const asset = next.confiscatedAssets.find((a) => a.id === entry.assetId);
+    if (!asset) continue;
+    if (entry.action === 'SETTLEMENT_80_20') {
+      asset.status = 'SETTLED';
+      next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - entry.costPC);
+      next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 2);
+    } else if (entry.action === 'NATIONALIZE_SOE') {
+      asset.status = 'NATIONALIZED';
+      next.macro.civilServiceHeadcount =
+        (next.macro.civilServiceHeadcount ?? BASELINE_CIVIL_SERVICE_HEADCOUNT) + 8000;
+      next.macro.systemicCorruption = Math.min(100, next.macro.systemicCorruption + 5);
+      next.macro.politicalCapital = Math.min(200, next.macro.politicalCapital + entry.earnedPC);
+    } else if (entry.action === 'FOREIGN_LIQUIDATION') {
+      asset.status = 'LIQUIDATED';
+      next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 4);
+      next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - entry.costPC);
     }
   }
 
   if (directives.propertyRestitution === 'MONETIZE_AS_STATE_LAND') {
-    next.macro.treasurySYP += 12_000_000_000;
+    // The yield itself is booked once by the audit (8B SYP + $120M per turn);
+    // only the political cost of the policy is applied here. Crediting 12B SYP
+    // here on top of the audit's 8B double-paid the same decree forever.
     next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 8);
     Object.values(next.governorates).forEach((g) => {
       g.prri = Math.min(100, g.prri + 5);
@@ -503,8 +582,10 @@ export function simulateTurnTransitions(
   }
 
   // Expatriate Brain-Gain Initiative
+  let brainGainApplied = false;
   if (directives.expatriateBrainGainIncentive) {
     if (canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 3_500_000_000, next.macro.parallelRateSYP)) {
+      brainGainApplied = true;
       Object.values(next.ministries).forEach((m) => {
         m.competence = Math.min(100, m.competence + 8);
       });
@@ -529,24 +610,33 @@ export function simulateTurnTransitions(
     ? directives
     : { ...directives, southernPolicy: southPolicy };
   updateSouthernFront(next.governorates, southDirectives);
+  // Tiers forced by the southern policy. Phase 6 recomputes every tier from
+  // PRRI, which used to discard the accord's calm guarantee (Suwayda 90 -> 70
+  // is still RIOT) and the blockade's revolt order. Re-applied after that
+  // recompute so the policy actually binds.
+  const forcedTiers: Record<string, 'CALM' | 'REVOLT'> = {};
   if (southPolicy === 'HISTORIC_ACCORD') {
     if (next.governorates['as_suwayda']) {
       next.governorates['as_suwayda'].prri = Math.max(0, next.governorates['as_suwayda'].prri - 20);
       next.governorates['as_suwayda'].tier = 'CALM';
+      forcedTiers['as_suwayda'] = 'CALM';
     }
     if (next.governorates['daraa']) {
       next.governorates['daraa'].prri = Math.max(0, next.governorates['daraa'].prri - 15);
       next.governorates['daraa'].tier = 'CALM';
+      forcedTiers['daraa'] = 'CALM';
     }
     next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 6);
   } else if (southPolicy === 'BLOCKADE') {
     if (next.governorates['as_suwayda']) {
       next.governorates['as_suwayda'].prri = Math.min(100, next.governorates['as_suwayda'].prri + 30);
       next.governorates['as_suwayda'].tier = 'REVOLT';
+      forcedTiers['as_suwayda'] = 'REVOLT';
     }
     if (next.governorates['daraa']) {
       next.governorates['daraa'].prri = Math.min(100, next.governorates['daraa'].prri + 20);
       next.governorates['daraa'].tier = 'REVOLT';
+      forcedTiers['daraa'] = 'REVOLT';
     }
     next.macro.civicTrust = Math.max(0, next.macro.civicTrust - 10);
   }
@@ -565,75 +655,94 @@ export function simulateTurnTransitions(
   // =========================================================================
   // PHASE 4: PROVINCIAL STRATEGIC PROJECTS, DEMINING & POWER BOOST
   // =========================================================================
+  // Resolve what will actually execute, from the pre-Phase-4 state, and hand
+  // the same plan to Phase 4 and to the audit. An action rejected here (no PC,
+  // not affordable, below the action threshold) is neither applied nor billed.
+  const provincialPlan = resolveProvincialExecution(next, directives);
   // Grant-bucket cover: ring-fenced Gulf dollars pay project USD costs first.
-  // Refunded to reserves after the audit (which books the full cost).
+  // Refunded to reserves before the reserve clamp (the audit books the full cost).
   let grantCoverUSD = 0;
-  for (const projId of directives.provincialProjects || []) {
+  for (const projId of provincialPlan.projectIds) {
     for (const gov of Object.values(next.governorates)) {
       if (gov.strategicProject && gov.strategicProject.id === projId && !gov.strategicProject.isExecuted) {
-        const grantBucket = next.macro.grantBucketUSD ?? 0;
-        const effectiveReserves = next.macro.reservesUSD + grantBucket;
-        if (
-          next.macro.politicalCapital >= gov.strategicProject.costPoliticalCapital &&
-          canAffordDirectiveCost(effectiveReserves, next.macro.treasurySYP, gov.strategicProject.costUSD, gov.strategicProject.costSYP, next.macro.parallelRateSYP)
-        ) {
-          gov.strategicProject.isExecuted = true;
-          projectsExecutedThisTurn += 1;
-          next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - gov.strategicProject.costPoliticalCapital);
-          // Ring-fenced grant dollars cover project USD costs before reserves do.
-          const bucketCover = Math.min(next.macro.grantBucketUSD ?? 0, gov.strategicProject.costUSD);
-          if (bucketCover > 0) {
-            next.macro.grantBucketUSD = (next.macro.grantBucketUSD ?? 0) - bucketCover;
-            grantCoverUSD += bucketCover;
-          }
+        gov.strategicProject.isExecuted = true;
+        projectsExecutedThisTurn += 1;
+        next.macro.politicalCapital = Math.max(0, next.macro.politicalCapital - gov.strategicProject.costPoliticalCapital);
+        // Ring-fenced grant dollars cover project USD costs before reserves do.
+        const bucketCover = Math.min(next.macro.grantBucketUSD ?? 0, gov.strategicProject.costUSD);
+        if (bucketCover > 0) {
+          next.macro.grantBucketUSD = (next.macro.grantBucketUSD ?? 0) - bucketCover;
+          grantCoverUSD += bucketCover;
+        }
 
-          const repairRatio = gov.unrepairedDamageUSD > 0
-            ? (gov.strategicProject.damageRepairedUSD / gov.unrepairedDamageUSD)
-            : (gov.strategicProject.damageRepairedUSD / 1_000_000_000);
-          gov.reconstructionScore = Math.min(1.0, gov.reconstructionScore + repairRatio);
-          gov.prri = Math.max(0, gov.prri + gov.strategicProject.prriDelta);
-          gov.dailyBlackoutHours = Math.max(2, gov.dailyBlackoutHours + gov.strategicProject.blackoutHoursDelta);
+        const repairRatio = gov.unrepairedDamageUSD > 0
+          ? (gov.strategicProject.damageRepairedUSD / gov.unrepairedDamageUSD)
+          : (gov.strategicProject.damageRepairedUSD / 1_000_000_000);
+        gov.reconstructionScore = Math.min(1.0, gov.reconstructionScore + repairRatio);
+        gov.prri = Math.max(0, gov.prri + gov.strategicProject.prriDelta);
+        gov.dailyBlackoutHours = Math.max(2, gov.dailyBlackoutHours + gov.strategicProject.blackoutHoursDelta);
 
-          if (gov.strategicProject.mineClearancePct) {
-            gov.mineSaturationPct = Math.max(0, gov.mineSaturationPct - gov.strategicProject.mineClearancePct);
-          }
-          if (gov.strategicProject.golanTensionDelta) {
-            if (gov.golanTensionIndex !== undefined) {
-              gov.golanTensionIndex = Math.max(0, Math.min(100, gov.golanTensionIndex + gov.strategicProject.golanTensionDelta));
-            }
-            if (next.governorates['daraa']?.golanTensionIndex !== undefined) {
-              next.governorates['daraa'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['daraa'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
-            }
-            if (next.governorates['quneitra']?.golanTensionIndex !== undefined) {
-              next.governorates['quneitra'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['quneitra'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
-            }
-          }
-          if (gov.strategicProject.suwaydaIntegrationBonus) {
-            if (gov.suwaydaIntegrationIndex !== undefined) {
-              gov.suwaydaIntegrationIndex = Math.min(100, gov.suwaydaIntegrationIndex + gov.strategicProject.suwaydaIntegrationBonus);
-            }
-            if (gov.suwaydaSecessionProb !== undefined) {
-              gov.suwaydaSecessionProb = Math.max(0, Math.min(100, gov.suwaydaSecessionProb - 20));
-            }
-          }
-          if (gov.strategicProject.tribalRageDelta) {
-            if (gov.tribalRageIndex !== undefined) {
-              gov.tribalRageIndex = Math.max(0, gov.tribalRageIndex + gov.strategicProject.tribalRageDelta);
-            }
-          }
+        // Authored side-effects that used to be declared but never applied.
+        if (gov.strategicProject.skilledLaborBonus) {
+          gov.skilledLaborCount = Math.max(
+            0,
+            (gov.skilledLaborCount ?? 0) + gov.strategicProject.skilledLaborBonus
+          );
+        }
+        if (gov.strategicProject.sectarianAnxietyDelta) {
+          gov.sectarianAnxiety = Math.max(
+            0,
+            Math.min(100, gov.sectarianAnxiety + gov.strategicProject.sectarianAnxietyDelta)
+          );
+        }
+        // Percentage points of border-customs capture (Daraa's nassib share).
+        if (gov.strategicProject.revenueCaptureBoost) {
+          gov.nassibRevenueCapturePct = Math.max(
+            0,
+            Math.min(100, (gov.nassibRevenueCapturePct ?? 32) + gov.strategicProject.revenueCaptureBoost)
+          );
+        }
 
-          if (gov.id === 'latakia' || gov.id === 'tartus') {
-            next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 3);
+        if (gov.strategicProject.mineClearancePct) {
+          gov.mineSaturationPct = Math.max(0, gov.mineSaturationPct - gov.strategicProject.mineClearancePct);
+        }
+        if (gov.strategicProject.golanTensionDelta) {
+          if (gov.golanTensionIndex !== undefined) {
+            gov.golanTensionIndex = Math.max(0, Math.min(100, gov.golanTensionIndex + gov.strategicProject.golanTensionDelta));
           }
+          if (next.governorates['daraa']?.golanTensionIndex !== undefined) {
+            next.governorates['daraa'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['daraa'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
+          }
+          if (next.governorates['quneitra']?.golanTensionIndex !== undefined) {
+            next.governorates['quneitra'].golanTensionIndex = Math.max(0, Math.min(100, next.governorates['quneitra'].golanTensionIndex + gov.strategicProject.golanTensionDelta));
+          }
+        }
+        if (gov.strategicProject.suwaydaIntegrationBonus) {
+          if (gov.suwaydaIntegrationIndex !== undefined) {
+            gov.suwaydaIntegrationIndex = Math.min(100, gov.suwaydaIntegrationIndex + gov.strategicProject.suwaydaIntegrationBonus);
+          }
+          if (gov.suwaydaSecessionProb !== undefined) {
+            gov.suwaydaSecessionProb = Math.max(0, Math.min(100, gov.suwaydaSecessionProb - 20));
+          }
+        }
+        if (gov.strategicProject.tribalRageDelta) {
+          if (gov.tribalRageIndex !== undefined) {
+            gov.tribalRageIndex = Math.max(0, gov.tribalRageIndex + gov.strategicProject.tribalRageDelta);
+          }
+        }
+
+        if (gov.id === 'latakia' || gov.id === 'tartus') {
+          next.macro.civicTrust = Math.min(100, next.macro.civicTrust + 3);
         }
       }
     }
   }
 
-  // Demining priority (only deployable where mine contamination is > 8% and affordable)
-  if (directives.deminingPriorityId && next.governorates[directives.deminingPriorityId]) {
+  // Demining priority: only where mine contamination exceeds 8% (checked before
+  // the action) and affordable.
+  if (provincialPlan.demining && directives.deminingPriorityId) {
     const dGov = next.governorates[directives.deminingPriorityId];
-    if (dGov.mineSaturationPct > 8 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 20_000_000, 8_000_000_000, next.macro.parallelRateSYP)) {
+    if (dGov) {
       dGov.mineSaturationPct = Math.max(0, dGov.mineSaturationPct - 8);
       dGov.prri = Math.max(0, dGov.prri - 5);
       if (next.commissions && next.commissions['demining']) {
@@ -642,10 +751,11 @@ export function simulateTurnTransitions(
     }
   }
 
-  // Power supply boost priority for a single governorate (only if blackout > 2 and affordable)
-  if (directives.powerBoostGovId && next.governorates[directives.powerBoostGovId]) {
+  // Power supply boost for a single governorate: only if blackout > 2 h
+  // (checked before the action) and affordable.
+  if (provincialPlan.powerBoost && directives.powerBoostGovId) {
     const pGov = next.governorates[directives.powerBoostGovId];
-    if (pGov.dailyBlackoutHours > 2 && canAffordDirectiveCost(next.macro.reservesUSD, next.macro.treasurySYP, 10_000_000, 3_000_000_000, next.macro.parallelRateSYP)) {
+    if (pGov) {
       pGov.dailyBlackoutHours = Math.max(2, pGov.dailyBlackoutHours - 4);
       pGov.prri = Math.max(0, pGov.prri - 6);
       pGov.reconstructionScore = Math.min(1.0, Number((pGov.reconstructionScore + 0.03).toFixed(2)));
@@ -691,7 +801,7 @@ export function simulateTurnTransitions(
   // zero and triggered instant SOVEREIGN_INSOLVENCY on the next fail check.
   // Clamp to the real balance here (the single place the auction is priced).
   const requestedAuctionUSD = Math.max(0, directives.dollarAuctionUSD || 0);
-  const affordableAuctionUSD = Math.min(requestedAuctionUSD, Math.max(0, next.macro.reservesUSD));
+  const affordableAuctionUSD = resolveEffectiveAuctionUSD(directives, next.macro.reservesUSD);
   if (affordableAuctionUSD < requestedAuctionUSD) {
     console.warn(
       `Dollar auction clamped to available reserves: requested $${requestedAuctionUSD.toLocaleString()}, ` +
@@ -701,7 +811,16 @@ export function simulateTurnTransitions(
   const effectiveDirectives =
     affordableAuctionUSD === requestedAuctionUSD ? directives : { ...directives, dollarAuctionUSD: affordableAuctionUSD };
 
-  const audit = auditSemiannualBudget(next, effectiveDirectives);
+  const audit = auditSemiannualBudget(next, effectiveDirectives, {
+    oligarch: oligarchPlan,
+    provincial: provincialPlan,
+    patronage: {
+      populistGrant: grantApplied,
+      charityFund: charityApplied,
+      importSurge: surgeApplied,
+      brainGain: brainGainApplied,
+    },
+  });
   next.lastTurnAudit = audit;
 
   // Concessional facilities AFTER the audit: the audit's own pure tranche
@@ -775,10 +894,14 @@ export function simulateTurnTransitions(
     }
   }
 
-  next.macro.reservesUSD = Math.max(0, next.macro.reservesUSD + audit.netUSDDelta);
-  // Refund the grant-covered share of project USD costs (the audit books the
-  // full cost; the ring-fenced bucket paid part of it, not reserves).
-  if (grantCoverUSD > 0) next.macro.reservesUSD += grantCoverUSD;
+  // Apply the audit's USD delta and refund the grant-covered share of project
+  // costs before the zero clamp. The refund was previously added after the
+  // clamp, so a turn that ended negative could never recover the ring-fenced
+  // dollars it had already spent.
+  next.macro.reservesUSD = Math.max(
+    0,
+    next.macro.reservesUSD + audit.netUSDDelta + grantCoverUSD
+  );
   next.macro.treasurySYP = next.macro.treasurySYP + audit.netSYPDelta;
   next.macro.m2MoneySupplySYP += audit.seignioragePrintedSYP;
 
@@ -813,6 +936,13 @@ export function simulateTurnTransitions(
     audit.auctionAbsorbedSYP = next.macro.m2MoneySupplySYP - m2AfterSterilisation;
     next.macro.m2MoneySupplySYP = m2AfterSterilisation;
   }
+
+  // Restate the receipt's USD delta to the turn's real reserve change. The FX
+  // rate above was already priced from the audit-only delta, so this only fixes
+  // reporting: it pulls in the cash credited before the audit ran (loan
+  // disbursements, mortgage injections, oligarch settlements) which the audit
+  // cannot see because those objects are already flipped by the time it runs.
+  restateAuditReservesDelta(audit, openingReservesUSD, next.macro.reservesUSD);
 
   // Remittance Policy side-effects (Plan section 7.2)
   const skimSpreadVal = directives.remittanceCaptureSpread ?? 10;
@@ -885,6 +1015,18 @@ export function simulateTurnTransitions(
   if (realWageDiff < -8) purchasingPowerDelta = +3;
   else if (realWageDiff > 12) purchasingPowerDelta = -3;
 
+  // Direct-to-national shocks (event effectRRI, the national half of martial
+  // law) write macro.nationalRRI without touching PRRI. Phase 6 derives
+  // nationalRRI as the governorate mean, which used to erase them before the
+  // turn's own fail check. Fold the shock into every governorate's PRRI once:
+  // it then survives the recompute (and the fail check), and because the stored
+  // index is a pure mean again, it cannot re-apply itself next turn.
+  if (nationalRRIShock !== 0) {
+    for (const gov of Object.values(next.governorates)) {
+      gov.prri = Math.max(5, Math.min(100, gov.prri + nationalRRIShock));
+    }
+  }
+
   for (const gov of Object.values(next.governorates)) {
     let delta = -wageRelief + foodSubsidyDelta + workforceDelta - powerRelief - patronageRelief + purchasingPowerDelta;
     if (breadbasketGovs.includes(gov.id)) {
@@ -908,7 +1050,22 @@ export function simulateTurnTransitions(
     gov.tier = getUnrestTier(gov.prri);
   }
 
+  // Southern-policy orders are authoritative over the PRRI-derived band, so
+  // spatial contagion and migration see the policy's actual tier (a blockade's
+  // revolt must spread; an accord's calm provinces must not seed unrest).
+  const applyForcedTiers = () => {
+    for (const [govId, tier] of Object.entries(forcedTiers)) {
+      if (next.governorates[govId]) next.governorates[govId].tier = tier;
+    }
+  };
+  applyForcedTiers();
+
   applySpatialContagion(next.governorates);
+
+  // Re-assert after contagion as well: a forced-CALM province can otherwise be
+  // pulled back into RIOT by a neighbour, breaking the accord's guarantee.
+  applyForcedTiers();
+
   next.lastMigrationReport = processInterProvincialMigration(next.governorates);
   // Accumulate gov-to-gov legs into the persistent ledger (runs on a discarded
   // clone during previews, so only committed turns persist history).

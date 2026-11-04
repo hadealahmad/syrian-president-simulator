@@ -47,24 +47,27 @@ console.log('\n=== TEST 3: Per-loan interest starts the following turn ===');
   check('IMF service $51.25M next turn', afterNext.lastTurnAudit!.debtServiceUSD === 51_250_000, `got ${afterNext.lastTurnAudit!.debtServiceUSD}`);
 }
 
-console.log('\n=== TEST 4: Mortgage revenue drain ===');
+console.log('\n=== TEST 4: Mortgage concession is charged once (revenue override) ===');
 {
   const s = createInitialGameState(100);
   const dir = getDefaultTurnDirectives();
-  // Tartus is now a buy-back negotiation, not a pledge: -$55M/turn, and only
-  // $150M up front (it is a concession Syria granted, so the cash is what a
-  // counterparty pays to release it early).
+  // Tartus is now a buy-back negotiation, not a pledge: -$55M/turn of terminal
+  // revenue, and only $150M up front (it is a concession Syria granted, so the
+  // cash is what a counterparty pays to release it early).
   dir.executedMortgageIds = ['mortgage_tartus_port'];
   const after = executeTurnLifecycle(s, dir);
   check('tartus drain $55M', after.lastTurnAudit!.mortgageDrainUSD === 55_000_000, `got ${after.lastTurnAudit!.mortgageDrainUSD}`);
   const plain = executeTurnLifecycle(createInitialGameState(100), getDefaultTurnDirectives());
-  const diff = plain.lastTurnAudit!.netUSDDelta - after.lastTurnAudit!.netUSDDelta;
-  // Pre-existing port concession cut ($24M->$6M = -$18M at source) PLUS the
-  // $55M/turn drain: net delta is -$73M vs plain. The $150M disbursement lands
-  // directly in reserves (turn-manager), not through the audit.
-  check('net reflects -18M port cut -55M drain', diff === 73_000_000, `got ${diff}`);
-  check('reserves +150M -73M', after.macro.reservesUSD - plain.macro.reservesUSD === 77_000_000,
-    `got ${after.macro.reservesUSD - plain.macro.reservesUSD}`);
+  // The concession cost is the $55M/turn drain exactly once. The old assertion
+  // ALSO cut the port revenue line ($24M -> $6M) on top of it, charging the
+  // same forfeited revenue twice and overstating the loss by $18M.
+  const diff = after.macro.reservesUSD - plain.macro.reservesUSD;
+  check('reserves +150M cash -55M drain', diff === 95_000_000, `got ${diff}`);
+  check(
+    'receipt reports the real reserve delta',
+    after.lastTurnAudit!.netUSDDelta - plain.lastTurnAudit!.netUSDDelta === 95_000_000,
+    `got ${after.lastTurnAudit!.netUSDDelta - plain.lastTurnAudit!.netUSDDelta}`
+  );
 }
 
 console.log('\n=== TEST 5: Early repayment, highest-rate-first ===');

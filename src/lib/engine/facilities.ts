@@ -80,16 +80,23 @@ export function computeFacilityTurn(state: GameState, directives: TurnDirectives
   let ringFencedUSD = 0;
   const linesAr: string[] = [];
 
-  // New signatures (refused outright when the condition is unmet this turn)
+  // New signatures (refused outright when the condition is unmet or the state
+  // cannot pay the political-capital price this turn).
+  let availablePC = state.macro.politicalCapital;
   for (const id of directives.signedFacilityIds ?? []) {
     const def = getFacilityDef(id);
     if (!def) continue;
     const fs = getFacilityState(state, id);
     if (fs && fs.status !== 'AVAILABLE') continue;
+    if (availablePC < def.politicalCapitalCost) {
+      linesAr.push(`${def.titleAr}: التوقيع مرفوض — رصيد سياسي غير كافٍ`);
+      continue;
+    }
     if (facilityBreached(state, directives, id)) {
       linesAr.push(`${def.titleAr}: التوقيع مرفوض — الشرط غير مستوفٍ هذا الدور`);
       continue;
     }
+    availablePC -= def.politicalCapitalCost;
     if (def.tranches.length > 0) {
       const t = def.tranches[0];
       inflowUSD += t.amountUSD;
@@ -151,12 +158,17 @@ export function applyFacilityTurn(state: GameState, directives: TurnDirectives):
   const result = computeFacilityTurn(state, directives);
 
   // Sign new facilities: pay PC + leverage, apply one-shot effects.
-  // Refused (left AVAILABLE, nothing charged) when the condition is unmet.
+  // Refused (left AVAILABLE, nothing charged) when the condition is unmet or
+  // the political capital is short — mirroring the loan branch in Phase 2. The
+  // PC gate used to live only in `canSignFacility` (called from the emergency
+  // panel), so an event that drained PC between drafting and commit signed the
+  // deal for free.
   for (const id of directives.signedFacilityIds ?? []) {
     const def = getFacilityDef(id);
     if (!def) continue;
     const fs = ensureFacilityState(state, id);
     if (fs.status !== 'AVAILABLE') continue;
+    if (state.macro.politicalCapital < def.politicalCapitalCost) continue;
     if (facilityBreached(state, directives, id)) continue;
     fs.status = def.tranches.length > 0 ? 'ACTIVE' : 'COMPLETED';
     fs.tranchesDrawn = 0;
