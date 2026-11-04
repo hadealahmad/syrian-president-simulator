@@ -252,6 +252,56 @@ export interface TurnDirectives {
   terminatedLoanIds: string[];
 }
 
+/**
+ * One oligarch decision that the turn will actually settle. Resolved once,
+ * before Phase 1 mutates anything, and replayed by Phase 1 and by the audit so
+ * an unaffordable decision is neither applied nor billed.
+ */
+export interface OligarchExecution {
+  assetId: string;
+  action: OligarchPolicyAction;
+  /** Political capital actually paid (settlement / liquidation). */
+  costPC: number;
+  /** Political capital actually earned (nationalisation). */
+  earnedPC: number;
+  /** One-off settlement cash (zero unless action === 'SETTLEMENT_80_20'). */
+  settlementUSD: number;
+  settlementSYP: number;
+  /** One-off fire-sale cash (zero unless action === 'FOREIGN_LIQUIDATION'). */
+  liquidationUSD: number;
+}
+
+/**
+ * The provincial actions the turn will actually execute. Produced by the same
+ * resolver for the preview and the commit, so the audit bills only what ran.
+ */
+export interface ProvincialExecution {
+  projectIds: string[];
+  projectCostUSD: number;
+  projectCostSYP: number;
+  projectPoliticalCapital: number;
+  demining: boolean;
+  powerBoost: boolean;
+}
+
+/**
+ * Which financing/political actions Phase 0B and Phase 2 actually cleared. A
+ * rejected action (unaffordable) is neither applied nor billed.
+ */
+export interface PatronageExecution {
+  populistGrant: boolean;
+  charityFund: boolean;
+  importSurge: boolean;
+  brainGain: boolean;
+}
+
+/** Everything the turn actually executed (audit input). */
+export interface TurnExecutionPlan {
+  oligarch: OligarchExecution[];
+  provincial: ProvincialExecution;
+  patronage: PatronageExecution;
+}
+
 export interface RevenueAudit {
   grossCapturedUSD: number;
   discretionaryCapturedUSD: number;
@@ -267,7 +317,8 @@ export interface RevenueAudit {
   debtServiceUSD: number;
   /** Flat $25M/turn Iranian oil-credit coupon (zero once formally repudiated). */
   iranOilCouponUSD: number;
-  /** FX revenue forfeited to active sovereign mortgages this turn. */
+  /** FX revenue forfeited to active sovereign mortgages this turn (the single
+      charge for a mortgaged asset's concession). */
   mortgageDrainUSD: number;
   /** Voluntary principal repaid this turn. */
   debtRepaymentPaidUSD: number;

@@ -47,6 +47,10 @@ console.log('=== TEST 3: revolt erodes capacity ===');
     g.prri = 90;
     g.tier = 'REVOLT';
   }
+  // Keep the national index consistent with the (artificially) revolting
+  // provinces: the engine now folds any national index/province mismatch into
+  // PRRI once. Leaving nationalRRI at its baseline 45 would "calm" the fixture.
+  s.macro.nationalRRI = 90;
   const d = { ...getDefaultTurnDirectives(), gridCapExUSD: 35_000_000 };
   s = simulateTurnTransitions(s, structuredClone(d));
   // 14 revolts x 2.0 erosion overwhelms +1 capex gain
