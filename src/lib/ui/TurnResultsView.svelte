@@ -1,6 +1,15 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import { gameStore } from '../stores/game-store';
-  import GameIcon from './GameIcon.svelte';
+  import { uiStore } from '../stores/ui-store';
+  import { tourActive } from './guide-tour';
+  import StatTile from './kit/StatTile.svelte';
+  import GroupDivider from './kit/GroupDivider.svelte';
+  import KbdHint from './flow/KbdHint.svelte';
+  import { hasModifierKey, isTypingTarget } from './flow/kbd';
+  import { shellLayout } from './shell/viewport';
+  import { fx } from './fx/feedback';
+  import { parseHeroDelta, formatHeroDeltaAt, prefersReducedMotion } from './flow/count-up';
   import {
     buildTurnHeadlines,
     formatBillionSYP,
@@ -8,21 +17,37 @@
     formatNumber,
   } from './flow/turn-headlines';
 
-  /** Results phase of the end-turn modal: a staged newspaper sequence
-      (one headline card per significant movement) followed by the financial
-      ledger. Rendered inside TurnReviewModal so review -> results swaps in
-      place without closing or moving the modal. */
-  let { onContinue }: { onContinue: () => void } = $props();
+  /** Results phase of the end-turn modal: full-screen turn-transition stamp (stage 0),
+      then staged headline cards one at a time with count-up hero numbers,
+      followed by the financial & service ledger. */
+  let {
+    onContinue,
+    onTransitionChange,
+  }: {
+    onContinue: () => void;
+    onTransitionChange?: (active: boolean) => void;
+  } = $props();
+
+  let layout = $derived($shellLayout);
+  let isDesktop = $derived(layout === 'desktop');
 
   let audit = $derived($gameStore.lastTurnAudit);
   let headlines = $derived(buildTurnHeadlines($gameStore));
-  let total = $derived(headlines.length + 1);
+  // Stage 0 = turn-transition stamp, stages 1..headlines.length = headlines, last = ledger
+  let total = $derived(headlines.length + 2);
   let stage = $state(0);
-  let isLedger = $derived(stage >= headlines.length);
+  let isTransition = $derived(stage === 0);
+  let headlineIndex = $derived(stage - 1);
+  let isLedger = $derived(stage >= headlines.length + 1);
   let isLast = $derived(stage >= total - 1);
-  let card = $derived(headlines[Math.min(stage, Math.max(0, headlines.length - 1))]);
+  let card = $derived(
+    !isTransition && !isLedger
+      ? (headlines[Math.max(0, Math.min(headlineIndex, headlines.length - 1))] ?? null)
+      : null
+  );
   let seasonText = $derived($gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء');
   let completedTurn = $derived(String(Math.max(0, $gameStore.turnNumber - 1)).padStart(2, '0'));
+  let nextTurnLabel = $derived(String($gameStore.turnNumber).padStart(2, '0'));
 
   let realWage = $derived(
     ($gameStore.macro.civilServiceWageSYP / $gameStore.macro.parallelRateSYP).toFixed(1)
@@ -30,13 +55,9 @@
   let provincesInRevoltCount = $derived(
     Object.values($gameStore.governorates).filter((g) => g.tier === 'REVOLT').length
   );
-  // Exact fail predicate (fail-states.ts): national RRI ≥ 80 AND ≥ 4 revolts.
-  // The old "3 / 3" indicator ignored RRI entirely and could show maximum
-  // danger with no insurrection (or miss a real one at 4 revolts).
   let insurrectionRisk = $derived(
     $gameStore.macro.nationalRRI >= 80 && provincesInRevoltCount >= 4
   );
-  // Operating share of SYP spending (old saves may lack the split fields).
   let opShare = $derived(
     audit && audit.expendedSYP > 0
       ? Math.round(((audit.operatingExpendedSYP ?? audit.expendedSYP) / audit.expendedSYP) * 100)
@@ -47,29 +68,195 @@
     Object.values($gameStore.governorates).sort((a, b) => b.prri - a.prri)
   );
 
+  let animatedDelta = $state('');
+  let lastStageFx = -1;
+  let initialStampAutoHandled = false;
+  let stampTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function cancelStampTimer(): void {
+    if (stampTimer !== null) {
+      clearTimeout(stampTimer);
+      stampTimer = null;
+    }
+  }
+
+  onDestroy(() => {
+    cancelStampTimer();
+    onTransitionChange?.(false);
+  });
+
+  $effect(() => {
+    onTransitionChange?.(isTransition);
+  });
+
+  // Auto-advance the transition stamp once after ~1.2s on initial entry (instant with reduced motion).
+  $effect(() => {
+    if (stage === 0 && !initialStampAutoHandled && audit) {
+      initialStampAutoHandled = true;
+      cancelStampTimer();
+      const delay = prefersReducedMotion() ? 0 : 1200;
+      stampTimer = setTimeout(() => {
+        stampTimer = null;
+        if (stage === 0) {
+          fx('tap');
+          stage = 1;
+        }
+      }, delay);
+    } else if (stage !== 0) {
+      cancelStampTimer();
+    }
+  });
+
+  $effect(() => {
+    const activeCard = card;
+    const currentStage = stage;
+
+    if (currentStage !== lastStageFx) {
+      if (lastStageFx !== -1 && activeCard) {
+        if (activeCard.tone === 'good') fx('good');
+        else if (activeCard.tone === 'bad') fx('bad');
+        else fx('tap');
+      }
+      lastStageFx = currentStage;
+    }
+
+    if (!activeCard) {
+      animatedDelta = '';
+      return;
+    }
+
+    const parsed = parseHeroDelta(activeCard.delta);
+    if (!parsed || prefersReducedMotion()) {
+      animatedDelta = activeCard.delta;
+      return;
+    }
+
+    let rafId = 0;
+    const duration = 520;
+    const start = performance.now();
+    animatedDelta = formatHeroDeltaAt(parsed, 0);
+
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      animatedDelta = t >= 1 ? activeCard.delta : formatHeroDeltaAt(parsed, eased);
+      if (t < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  });
+
+  // Pointer swipe support for headline & transition cards
+  let swipeStartX = 0;
+  let swipeStartY = 0;
+  let pointerTracked = false;
+
+  function onCardPointerDown(e: PointerEvent): void {
+    swipeStartX = e.clientX;
+    swipeStartY = e.clientY;
+    pointerTracked = true;
+  }
+
+  function onCardPointerUp(e: PointerEvent): void {
+    if (!pointerTracked) return;
+    pointerTracked = false;
+    const dx = e.clientX - swipeStartX;
+    const dy = e.clientY - swipeStartY;
+    if (Math.abs(dy) > 48 && Math.abs(dy) > Math.abs(dx)) return;
+    if (dx <= -42) {
+      next();
+    } else if (dx >= 42) {
+      prev();
+    } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+      const sel = window.getSelection?.()?.toString();
+      if (!sel) next();
+    }
+  }
+
   function next(): void {
-    if (!isLast) stage += 1;
+    cancelStampTimer();
+    initialStampAutoHandled = true;
+    if (isLast) return;
+    if (stage === 0 || isLedger) fx('tap');
+    stage += 1;
   }
   function prev(): void {
-    if (stage > 0) stage -= 1;
+    cancelStampTimer();
+    initialStampAutoHandled = true;
+    if (stage <= 0) return;
+    fx('tap');
+    stage -= 1;
   }
   function jump(index: number): void {
-    stage = Math.max(0, Math.min(total - 1, index));
+    cancelStampTimer();
+    initialStampAutoHandled = true;
+    const target = Math.max(0, Math.min(total - 1, index));
+    if (target === stage) return;
+    if (target === 0 || target >= headlines.length + 1) fx('tap');
+    stage = target;
   }
   function skipToLedger(): void {
+    cancelStampTimer();
+    initialStampAutoHandled = true;
+    if (isLast) return;
+    fx('tap');
     stage = total - 1;
   }
   function primaryAction(): void {
+    cancelStampTimer();
+    initialStampAutoHandled = true;
     if (!isLast) {
       next();
       return;
     }
+    fx('confirm');
     onContinue();
   }
 
+  function handleResultsKeydown(e: KeyboardEvent): void {
+    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen || $tourActive) {
+      return;
+    }
+    if (e.key !== 'Tab') {
+      e.stopPropagation();
+    }
+    if (hasModifierKey(e) || isTypingTarget(e.target)) return;
+
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      next();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      prev();
+    } else if (e.code === 'KeyS' || e.key.toLowerCase() === 's') {
+      if (!isLast) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        skipToLedger();
+      }
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag !== 'BUTTON' && tag !== 'A' && tag !== 'INPUT') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        primaryAction();
+      }
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleResultsKeydown, true);
+    return () => window.removeEventListener('keydown', handleResultsKeydown, true);
+  });
+
   function indexLabel(index: number): string {
-    if (index >= headlines.length) return 'الملخص المالي';
-    return headlines[index]?.title ?? '';
+    if (index === 0) return `إغلاق الدور ${completedTurn}`;
+    if (index >= headlines.length + 1) return 'الملخص المالي';
+    return headlines[index - 1]?.title ?? '';
   }
 
   function tierLabel(tier: string): string {
@@ -80,417 +267,716 @@
   }
 
   function tierClass(tier: string): string {
-    if (tier === 'REVOLT') return 'border-umber-border/60 bg-umber-deep/60 text-umber-crimson';
-    if (tier === 'RIOT') return 'border-umber-border/40 bg-umber-deep/35 text-umber-glow';
-    if (tier === 'TENSE') return 'border-wheat-gold/40 bg-wheat-gold/10 text-wheat-gold';
-    return 'border-forest-accent/30 bg-forest-accent/5 text-forest-accent';
+    if (tier === 'REVOLT') return 'border-[var(--c-neg)] bg-[var(--c-ev-bg)] text-[var(--c-neg)]';
+    if (tier === 'RIOT') return 'border-[var(--c-neg)] bg-[var(--c-bg)] text-[var(--c-neg)]';
+    if (tier === 'TENSE') return 'border-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-accent)]';
+    return 'border-[var(--c-pos)] bg-[var(--c-bg)] text-[var(--c-pos)]';
   }
 
-  function toneClass(tone: string): string {
-    if (tone === 'good') return 'border-forest-accent/35 bg-forest-accent/5 text-forest-accent';
-    if (tone === 'bad') return 'border-umber-border/50 bg-umber-deep/45 text-umber-crimson';
-    return 'border-wheat-mid/25 bg-charcoal-deep/50 text-wheat-mid';
+  function heroToneClass(tone: string): string {
+    if (tone === 'good') return 'text-[var(--c-pos)]';
+    if (tone === 'bad') return 'text-[var(--c-neg)]';
+    return 'text-[var(--c-text)]';
+  }
+
+  function heroSizeStyle(text: string): string {
+    if (!isDesktop) return '';
+    const len = text.length;
+    if (len >= 11) return 'font-size: var(--flow-fs-hero-long);';
+    if (len >= 8) return 'font-size: var(--flow-fs-hero-mid);';
+    return 'font-size: var(--flow-fs-hero);';
+  }
+
+  function heroSizeClass(text: string): string {
+    if (isDesktop) return '';
+    const len = text.length;
+    if (len >= 11) return 'text-[26px] sm:text-[32px] phone-l:text-[24px]';
+    if (len >= 8) return 'text-[30px] sm:text-[38px] phone-l:text-[26px]';
+    return 'text-[36px] sm:text-[42px] phone-l:text-[28px]';
   }
 </script>
 
-<div class="flex min-h-0 flex-1 flex-col">
+<div class="flex min-h-0 flex-1 flex-col bg-[var(--c-bg)] text-[var(--c-text)]">
   {#if audit}
-    <!-- Results header: title, skip, progress dots and RTL navigation. -->
-    <header class="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-wheat-mid/10 px-4 py-2.5">
-      <div class="min-w-0 w-full sm:w-auto sm:flex-1">
-        <div class="flex items-center gap-1.5 text-[8px] tracking-[1.6px] text-forest-accent/90">
-          <span class="h-px w-3.5 bg-forest-accent/60"></span>
-          نتائج الدور · {seasonText} {$gameStore.calendarYear}
-        </div>
-        <h2 class="mt-0.5 truncate font-heading text-[17px] font-semibold leading-tight text-wheat-light">
-          تقرير الإغلاق · الدور {completedTurn}
-        </h2>
-      </div>
-
-      {#if !isLast}
-        <button
-          type="button"
-          onclick={skipToLedger}
-          aria-label="تخطي إلى الملخص المالي"
-          title="تخطي إلى الملخص المالي"
-          class="flex min-h-11 w-11 shrink-0 items-center justify-center gap-1 border border-wheat-mid/20 px-2 text-[9.5px] font-bold text-wheat-dark transition-colors hover:border-wheat-mid/50 hover:text-wheat-light sm:w-auto sm:px-2.5 shell-round-item"
-        >
-          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M18 18l-6-6 6-6M11 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-          <span class="hidden sm:inline">تخطي إلى الملخص</span>
-        </button>
-      {/if}
-
-      <div class="ms-auto flex shrink-0 items-center gap-1.5">
-        <div class="flex items-center gap-1 pe-1.5" aria-hidden="true">
-          {#each Array.from({ length: total }, (_, i) => i) as i (i)}
-            <span
-              class="h-1.5 w-1.5 shell-round-chip {i === stage ? 'bg-wheat-gold' : 'bg-wheat-mid/20'}"
-            ></span>
-          {/each}
-        </div>
-        <span class="font-mono text-[9px] text-wheat-dark" dir="ltr">
-          {String(stage + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
-        </span>
-        <button
-          type="button"
-          onclick={prev}
-          disabled={stage === 0}
-          aria-label="البطاقة السابقة"
-          title="البطاقة السابقة"
-          class="flex h-11 w-11 items-center justify-center border border-wheat-mid/20 text-wheat-mid transition-colors hover:border-wheat-mid/50 hover:text-wheat-light disabled:cursor-default disabled:opacity-30 shell-round-item"
-        >
-          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-        <button
-          type="button"
-          onclick={next}
-          disabled={isLast}
-          aria-label="البطاقة التالية"
-          title="البطاقة التالية"
-          class="flex h-11 w-11 items-center justify-center border border-wheat-mid/20 text-wheat-mid transition-colors hover:border-wheat-mid/50 hover:text-wheat-light disabled:cursor-default disabled:opacity-30 shell-round-item"
-        >
-          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </button>
-      </div>
-    </header>
-
-    <div class="flex min-h-0 flex-1">
-      <!-- Sequence index (desktop / wide landscape only). -->
-      <aside
-        class="hidden w-[215px] shrink-0 flex-col gap-0.5 overflow-y-auto border-e border-wheat-mid/10 bg-charcoal-deep/25 p-2.5 phone-p:hidden phone-l:hidden sm:flex"
-        aria-label="تسلسل نتائج الدور"
+    {#if isTransition}
+      <!-- Full-screen flat transition stamp (advances on tap or after ~1.2s) -->
+      <div
+        class="stamp-enter flex min-h-0 flex-1 flex-col border-t-2 border-t-[var(--c-accent)] bg-[var(--c-bg)] pt-[env(safe-area-inset-top)]"
+        data-results-stage={stage}
       >
-        <div class="mb-1 border-b border-wheat-mid/10 px-1 pb-1.5 text-[8px] tracking-[1.6px] text-forest-accent/90">
-          تسلسل نتائج الدور
+        <div
+          role="button"
+          tabindex="0"
+          aria-label="الانتقال إلى البطاقة التالية"
+          onpointerdown={onCardPointerDown}
+          onpointerup={onCardPointerUp}
+          class="flex min-h-0 flex-1 cursor-pointer flex-col items-center justify-center px-6 py-6 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:py-3"
+        >
+          <span class="border border-[var(--c-accent)] bg-[var(--c-panel)] px-3.5 py-1 font-bold text-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[11.5px]'}">
+            تم تثبيت الدور <span class="num">{completedTurn}</span> والمصادقة
+          </span>
+
+          <div class="mt-6 font-bold text-[var(--c-muted)] phone-l:mt-2.5 {isDesktop ? 'text-[var(--flow-fs-base)]' : 'text-[13px]'}">
+            مطلع الدور
+          </div>
+          <h3 class="mt-1 font-display font-bold leading-[1.02] text-[var(--c-text)] phone-l:text-[52px] {isDesktop ? 'text-[clamp(76px,7vw,118px)]' : 'text-[clamp(64px,15vw,96px)]'}">
+            <span class="tabular-nums text-[var(--c-accent)]">{nextTurnLabel}</span>
+          </h3>
+          <p class="mt-2 font-heading font-bold text-[var(--c-text-2)] phone-l:mt-1 phone-l:text-[13px] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[15px]'}">
+            {seasonText} · <span class="num text-[var(--c-text)]">{$gameStore.calendarYear}</span>
+          </p>
+
+          <!-- Two ruled figures for treasury & reserves change -->
+          <div class="mt-7 grid w-full divide-x divide-x-reverse divide-[var(--c-line)] border border-[var(--c-line)] bg-[var(--c-panel)] text-start phone-l:mt-3 {isDesktop ? 'max-w-[580px] grid-cols-2' : 'max-w-[520px] grid-cols-2'}">
+            <div class="p-3.5 phone-l:p-2 {isDesktop ? 'px-5 py-4' : ''}">
+              <span class="block text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11px]'}">تغيّر الخزينة</span>
+              <b
+                dir="ltr"
+                class="num mt-0.5 block text-right font-bold leading-snug {audit.netSYPDelta >= 0 ? 'text-[var(--c-pos)]' : 'text-[var(--c-neg)]'} phone-l:text-[17px] {isDesktop ? 'text-[clamp(22px,1.6vw,30px)]' : 'text-[20px]'}"
+              >
+                {audit.netSYPDelta >= 0 ? '+' : '-'}{formatBillionSYP(Math.abs(audit.netSYPDelta))}B
+              </b>
+            </div>
+            <div class="p-3.5 phone-l:p-2 {isDesktop ? 'px-5 py-4' : ''}">
+              <span class="block text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11px]'}">تغيّر الاحتياطي</span>
+              <b
+                dir="ltr"
+                class="num mt-0.5 block text-right font-bold leading-snug {audit.netUSDDelta >= 0 ? 'text-[var(--c-pos)]' : 'text-[var(--c-neg)]'} phone-l:text-[17px] {isDesktop ? 'text-[clamp(22px,1.6vw,30px)]' : 'text-[20px]'}"
+              >
+                {audit.netUSDDelta >= 0 ? '+' : '-'}${formatMillionUSD(Math.abs(audit.netUSDDelta))}M
+              </b>
+            </div>
+          </div>
+
+          <span class="mt-6 text-[var(--c-muted)] phone-l:mt-2.5 {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[11.5px]'}">
+            {isDesktop ? 'اضغط في أي مكان أو Enter للمتابعة إلى نشرة النتائج' : 'اضغط في أي مكان للمتابعة إلى نشرة النتائج'}
+          </span>
         </div>
+
+        <footer class="shrink-0 border-t border-[var(--c-line)] bg-[var(--c-panel)] px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] phone-l:py-2">
+          <div class="mx-auto flex w-full items-center gap-2.5 {isDesktop ? 'max-w-[var(--flow-stage-w)] justify-end' : 'max-w-[520px] justify-between'}">
+            <button
+              type="button"
+              onclick={skipToLedger}
+              style={isDesktop ? 'min-height: var(--flow-btn-h);' : ''}
+              class="kit-btn sec min-h-11 gap-2 bg-[var(--c-bg)] px-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12.5px]'}"
+            >
+              <span>تخطي إلى الملخص</span>
+              <KbdHint keys="S" />
+            </button>
+            <button
+              type="button"
+              data-autofocus
+              onclick={primaryAction}
+              style={isDesktop ? 'min-height: var(--flow-btn-pri-h);' : ''}
+              class="btn-primary-chamfer pressable min-h-11 gap-2 px-6 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-base)]' : 'text-[14px]'}"
+            >
+              <span>التالي</span>
+              <KbdHint keys="Enter" tone="accent" />
+            </button>
+          </div>
+        </footer>
+      </div>
+    {:else}
+      <!-- Ruled header: title + k/n counter only -->
+      <header class="flow-res-head flex shrink-0 items-center justify-between gap-2 border-b border-[var(--c-line)] bg-[var(--c-panel)] px-3.5 py-2.5 phone-l:py-1.5 {isDesktop ? 'px-[var(--flow-pad-x)]' : ''}">
+        <div class="min-w-0">
+          <h2 class="truncate font-heading font-bold leading-[1.35] text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-[16px]'}">
+            نتائج الدور <span class="num">{completedTurn}</span>
+          </h2>
+          <div class="text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11px]'}">
+            {seasonText} <span class="num">{$gameStore.calendarYear}</span>
+          </div>
+        </div>
+
+        <span class="num shrink-0 border border-[var(--c-line)] bg-[var(--c-bg)] px-2.5 py-1 font-heading font-bold text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12px]'}" dir="ltr">
+          {stage + 1} / {total}
+        </span>
+      </header>
+
+      <!-- Flat segmented progress bar across the stage (done = grey, current = amber, rest = track) -->
+      <div
+        class="flow-res-prog flex shrink-0 gap-0.5 border-b border-[var(--c-line)] bg-[var(--c-strip)] px-3 py-1 phone-l:py-0.5 {isDesktop ? 'gap-1.5 px-[var(--flow-pad-x)] py-2' : 'sm:gap-1 sm:px-3.5 sm:py-2'}"
+        role="tablist"
+        aria-label="تقدم بطاقات النتائج"
+      >
         {#each Array.from({ length: total }, (_, i) => i) as i (i)}
           <button
             type="button"
             onclick={() => jump(i)}
+            aria-label={indexLabel(i)}
+            title={indexLabel(i)}
             aria-current={i === stage ? 'step' : undefined}
-            class="flex min-h-9 items-start gap-1.5 px-1.5 py-1 text-start transition-colors shell-round-item {i === stage
-              ? 'bg-wheat-gold/10 text-wheat-light'
-              : 'text-wheat-dark hover:bg-wheat-light/5 hover:text-wheat-mid'}"
+            class="pressable flex min-h-8 flex-1 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'min-h-6' : 'sm:min-h-6 phone-l:min-h-7'}"
           >
-            <span class="min-w-[16px] shrink-0 font-mono text-[9px] {i === stage ? 'text-wheat-gold' : 'text-wheat-dark/70'}">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <span class="text-[9.5px] leading-snug">{indexLabel(i)}</span>
+            <span
+              class="block h-1 w-full {i === stage
+                ? 'bg-[var(--c-accent)]'
+                : i < stage
+                  ? 'bg-[var(--c-disabled)]'
+                  : 'bg-[var(--c-track)]'}"
+            ></span>
           </button>
         {/each}
-        <div class="mt-auto border-t border-wheat-mid/10 px-1 pt-1.5 text-[8px] leading-relaxed text-wheat-dark">
-          الأرقام من تقرير الإغلاق الفعلي لهذا الدور.
+      </div>
+
+      <div class="flex min-h-0 flex-1">
+        <div
+          class="flow-res-scroll scroll-area min-h-0 flex-1 overflow-y-auto p-3 phone-l:p-2.5 {isDesktop ? 'p-[var(--flow-pad-y)_var(--flow-pad-x)]' : 'sm:p-5'}"
+          data-results-stage={stage}
+        >
+          {#if isLedger}
+            <!-- Ruled ledger summary -->
+            <div class="flex flex-col gap-3.5 pb-4 {isDesktop ? 'gap-4' : ''}">
+              <h3 class="font-heading font-bold text-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-[16px]'}">
+                الملخص المالي والخدمي
+              </h3>
+
+              <!-- Five-figure KPI tiles (always 5 in 1 row on desktop) -->
+              <div class="kpi-tiles grid gap-2 {isDesktop ? 'grid-cols-5' : 'grid-cols-2 sm:grid-cols-5'}">
+                <StatTile
+                  label="الخزينة"
+                  value="{formatBillionSYP($gameStore.macro.treasurySYP)}B"
+                  delta="{audit.netSYPDelta >= 0 ? '+' : ''}{formatBillionSYP(audit.netSYPDelta)}B"
+                  deltaTone={audit.netSYPDelta >= 0 ? 'pos' : 'neg'}
+                />
+                <StatTile
+                  label="الاحتياطي"
+                  value="${formatMillionUSD($gameStore.macro.reservesUSD)}M"
+                  delta="{audit.netUSDDelta >= 0 ? '+' : ''}${formatMillionUSD(audit.netUSDDelta)}M"
+                  deltaTone={audit.netUSDDelta >= 0 ? 'pos' : 'neg'}
+                />
+                <StatTile
+                  label="الرصيد السياسي"
+                  value={String(Math.round($gameStore.macro.politicalCapital))}
+                  unit="/200"
+                />
+                <StatTile
+                  label="الثقة الشعبية"
+                  value="{$gameStore.macro.civicTrust}%"
+                  unit="/100"
+                />
+                <StatTile
+                  label="الاحتقان"
+                  value={String($gameStore.macro.nationalRRI)}
+                  unit="/100"
+                  class={isDesktop ? '' : 'col-span-2 sm:col-span-1'}
+                />
+              </div>
+
+              <!-- FX + Treasury tables (side by side on desktop) -->
+              <div class={isDesktop ? 'grid grid-cols-2 items-start gap-4' : 'contents'}>
+                <!-- Foreign currency ruled 2-col table -->
+                <section class="space-y-1.5" aria-label="صافي النقد الأجنبي">
+                <GroupDivider label="صافي النقد الأجنبي (الدولار)" tone="accent" />
+                <table class="w-full table-fixed border-collapse text-[12.5px]">
+                  <tbody>
+                    {#if (audit.debtServiceUSD ?? 0) > 0}
+                      <tr>
+                        <td class="w-[56%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          خدمة الدين
+                        </td>
+                        <td dir="ltr" class="num w-[44%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                          ${formatMillionUSD(audit.debtServiceUSD)}M
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if (audit.iranOilCouponUSD ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          القسط النفطي الإيراني
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                          ${formatMillionUSD(audit.iranOilCouponUSD)}M
+                        </td>
+                      </tr>
+                    {:else if ($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          القسط الإيراني
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-pos)]">
+                          $0.0M <bdi dir="rtl">(مُسقط)</bdi>
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if (audit.mortgageDrainUSD ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          نزيف الرهون
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-neg)]">
+                          ${formatMillionUSD(audit.mortgageDrainUSD)}M
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if (audit.debtRepaymentPaidUSD ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          سداد أصل الدين
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-pos)]">
+                          ${formatMillionUSD(audit.debtRepaymentPaidUSD)}M
+                        </td>
+                      </tr>
+                    {/if}
+                    <tr>
+                      <td class="w-[56%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                        صافي التغيّر هذا الدور
+                      </td>
+                      <td dir="ltr" class="num w-[44%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold {audit.netUSDDelta >= 0 ? 'text-[var(--c-pos)]' : 'text-[var(--c-neg)]'}">
+                        {audit.netUSDDelta >= 0 ? '+' : '-'}${formatMillionUSD(Math.abs(audit.netUSDDelta))}M
+                      </td>
+                    </tr>
+                    <tr class="bg-[var(--c-strip)]">
+                      <td class="border border-[var(--c-line-strong)] px-3 py-2 font-bold text-[var(--c-text)]">
+                        الرصيد الختامي للاحتياطي
+                      </td>
+                      <td dir="ltr" class="num border border-[var(--c-line-strong)] px-3 py-2 text-right text-[14px] font-bold text-[var(--c-accent)]">
+                        ${formatMillionUSD($gameStore.macro.reservesUSD)}M
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+
+              <!-- Treasury ruled 2-col table -->
+              <section class="space-y-1.5" aria-label="رصيد الخزينة">
+                <GroupDivider label="رصيد الخزينة (ل.س)" tone="accent" />
+                <table class="w-full table-fixed border-collapse text-[12.5px]">
+                  <tbody>
+                    <tr>
+                      <td class="w-[56%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                        المحصّل مقابل المصروف
+                      </td>
+                      <td dir="ltr" class="num w-[44%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                        {formatBillionSYP(audit.grossCapturedSYP)}B − {formatBillionSYP(audit.expendedSYP)}B
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colspan="2" class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-2">
+                        <div class="flex items-center justify-between gap-2 text-[11.5px] text-[var(--c-muted)]">
+                          <span>
+                            تشغيلي <b dir="ltr" class="num text-[var(--c-text-2)]">{formatBillionSYP(audit.operatingExpendedSYP ?? audit.expendedSYP)}B</b>
+                            (<span class="num">{opShare}%</span>)
+                          </span>
+                          <span>
+                            استثماري <b dir="ltr" class="num text-[var(--c-pos)]">{formatBillionSYP(audit.investmentExpendedSYP ?? 0)}B</b>
+                            (<span class="num">{100 - opShare}%</span>)
+                          </span>
+                        </div>
+                        <div class="mt-1.5 flex h-1.5 w-full bg-[var(--c-track)]" aria-hidden="true">
+                          <div class="h-full bg-[var(--c-accent)]" style="width: {opShare}%"></div>
+                          <div class="h-full bg-[var(--c-pos)]" style="width: {100 - opShare}%"></div>
+                        </div>
+                      </td>
+                    </tr>
+                    {#if (audit.capacityRevenueBonusSYP ?? 0) > 0 || (audit.projectRevenueSYP ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          إيراد متكرر جديد من النمو
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-pos)]">
+                          +{formatBillionSYP((audit.capacityRevenueBonusSYP ?? 0) + (audit.projectRevenueSYP ?? 0))}B
+                        </td>
+                      </tr>
+                    {/if}
+                    <tr>
+                      <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                        المسار قبل نفاد الاحتياطي
+                      </td>
+                      <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                        ~{audit.runwayTurnsEstimate ?? 99} <bdi dir="rtl">دوراً</bdi>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                        عبء الفوائد من الإيرادات
+                      </td>
+                      <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                        {audit.interestBurdenPct ?? 0}%
+                      </td>
+                    </tr>
+                    {#if (audit.facilityInflowUSD ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          تسهيلات هذا الدور
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-pos)]">
+                          +${formatMillionUSD(audit.facilityInflowUSD)}M
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if $gameStore.macro.treasurySYP < 0}
+                      <tr>
+                        <td colspan="2" class="border border-[var(--c-neg)] bg-[var(--c-ev-bg)] px-3 py-1.5 font-bold text-[var(--c-neg)]">
+                          عجز مالي متراكم على الخزينة العامة
+                        </td>
+                      </tr>
+                    {:else if audit.seignioragePrintedSYP > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          إصدار نقدي
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-accent)]">
+                          +{formatBillionSYP(audit.seignioragePrintedSYP)}B
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if (audit.overdraftInterestSYP ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          فوائد العجز
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-neg)]">
+                          {formatBillionSYP(audit.overdraftInterestSYP)}B
+                        </td>
+                      </tr>
+                    {/if}
+                    {#if (audit.auctionAbsorbedSYP ?? 0) > 0}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          امتصاص المزاد (أُتلف)
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                          {formatBillionSYP(audit.auctionAbsorbedSYP)}B
+                        </td>
+                      </tr>
+                    {/if}
+                    <tr>
+                      <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                        الصافي هذا الدور
+                      </td>
+                      <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold {audit.netSYPDelta >= 0 ? 'text-[var(--c-pos)]' : 'text-[var(--c-neg)]'}">
+                        {audit.netSYPDelta >= 0 ? '+' : '-'}{formatBillionSYP(Math.abs(audit.netSYPDelta))}B
+                      </td>
+                    </tr>
+                    <tr class="bg-[var(--c-strip)]">
+                      <td class="border border-[var(--c-line-strong)] px-3 py-2 font-bold text-[var(--c-text)]">
+                        الرصيد الختامي للخزينة
+                      </td>
+                      <td dir="ltr" class="num border border-[var(--c-line-strong)] px-3 py-2 text-right text-[14px] font-bold {$gameStore.macro.treasurySYP < 0 ? 'text-[var(--c-neg)]' : 'text-[var(--c-accent)]'}">
+                        {formatBillionSYP($gameStore.macro.treasurySYP)}B SP
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+              </div>
+
+              <!-- Services + Fail distance tables (side by side on desktop) -->
+              <div class={isDesktop ? 'grid grid-cols-2 items-start gap-4' : 'contents'}>
+                <!-- Services & living standards ruled 2-col table -->
+                <section class="space-y-1.5" aria-label="الخدمات ومعيشة المواطنين">
+                  <GroupDivider label="الخدمات ومعيشة المواطنين" tone="accent" />
+                  <table class="w-full table-fixed border-collapse {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12.5px]'}">
+                    <tbody>
+                      <tr>
+                        <td class="w-[56%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          سعر الصرف الموازي
+                        </td>
+                        <td dir="ltr" class="num w-[44%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-accent)]">
+                          {formatNumber($gameStore.macro.parallelRateSYP)} SP
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          الأجر الحقيقي للموظف
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-pos)]">
+                          ${realWage} <bdi dir="rtl">/ شهرياً</bdi>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          التوليد الكهربائي
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold text-[var(--c-text)]">
+                          {$gameStore.macro.gridCapacityMW} MW ({$gameStore.macro.dailyPowerHours}<bdi dir="rtl"> س</bdi>)
+                        </td>
+                      </tr>
+                      <tr class="bg-[var(--c-strip)]">
+                        <td class="border border-[var(--c-line-strong)] px-3 py-2 font-bold text-[var(--c-text)]">
+                          الاحتقان الوطني العام
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line-strong)] px-3 py-2 text-right font-bold {isDesktop ? 'text-[var(--flow-fs-base)]' : 'text-[14px]'} {$gameStore.macro.nationalRRI < 40 ? 'text-[var(--c-pos)]' : $gameStore.macro.nationalRRI < 65 ? 'text-[var(--c-accent)]' : 'text-[var(--c-neg)]'}">
+                          {$gameStore.macro.nationalRRI} / 100
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+
+                <!-- Distance from catastrophic fail states -->
+                <section class="space-y-1.5" aria-label="المسافة من الانهيارات الكبرى">
+                  <GroupDivider label="المسافة من الانهيارات الكبرى" tone="accent" />
+                  <table class="w-full table-fixed border-collapse {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12.5px]'}">
+                    <tbody>
+                      <tr>
+                        <td class="w-[52%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          غطاء النقد الأجنبي
+                        </td>
+                        <td dir="ltr" class="num w-[48%] border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold {audit.runwayMonths <= 3.0 ? 'text-[var(--c-neg)]' : audit.runwayMonths <= 6.0 ? 'text-[var(--c-accent)]' : 'text-[var(--c-pos)]'}">
+                          {audit.runwayMonths} <bdi dir="rtl">شهراً {audit.runwayMonths <= 3.0 ? '[خطر]' : '[مستقر]'}</bdi>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-[var(--c-muted)]">
+                          العصيان المسلح
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-3 py-1.5 text-right font-bold {insurrectionRisk ? 'text-[var(--c-neg)]' : 'text-[var(--c-text)]'}">
+                          <span>{provincesInRevoltCount} <bdi dir="rtl">متمردة</bdi> · {$gameStore.macro.nationalRRI}/100</span>
+                          <span dir="rtl" class="block text-start text-[11px] font-normal text-[var(--c-muted)]">الانهيار: 4 متمردة واحتقان 80+</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </section>
+              </div>
+
+              <!-- Provinces ruled table -->
+              <section class="space-y-1.5" aria-label="أوضاع المحافظات بعد الدور">
+                <GroupDivider label="أوضاع المحافظات (بحسب الاحتقان)" count={sortedGovernorates.length} tone="accent" />
+                <table class="w-full border-collapse {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12px]'}">
+                  <thead>
+                    <tr>
+                      <th class="px-2.5 pb-1 text-start text-[11px] font-normal text-[var(--c-muted)]">المحافظة</th>
+                      <th class="px-2 pb-1 text-center text-[11px] font-normal text-[var(--c-muted)]">الحالة</th>
+                      <th class="w-[62px] px-2.5 pb-1 text-right text-[11px] font-normal text-[var(--c-muted)]">RRI</th>
+                      <th class="w-[62px] px-2.5 pb-1 text-right text-[11px] font-normal text-[var(--c-muted)]">التقنين</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {#each sortedGovernorates as gov (gov.id)}
+                      <tr>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-2.5 py-1.5 font-medium text-[var(--c-text-2)]">
+                          {gov.nameAr}
+                        </td>
+                        <td class="border border-[var(--c-line)] bg-[var(--c-panel)] px-2 py-1.5 text-center">
+                          <span class="inline-block border px-1.5 py-0.5 text-[11px] font-bold leading-none {tierClass(gov.tier)}">
+                            {tierLabel(gov.tier)}
+                          </span>
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-2.5 py-1.5 text-right font-bold text-[var(--c-text)]">
+                          {gov.prri}
+                        </td>
+                        <td dir="ltr" class="num border border-[var(--c-line)] bg-[var(--c-panel)] px-2.5 py-1.5 text-right font-bold text-[var(--c-muted)]">
+                          {gov.dailyBlackoutHours}<bdi dir="rtl">س</bdi>
+                        </td>
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              </section>
+            </div>
+          {:else if card}
+            {@const heroValue = animatedDelta || card.delta}
+            <!-- Single headline card: fixed-height kicker + max-3-line headline zone keeps .hero top constant across cards -->
+            {#key card.id}
+              <article
+                onpointerdown={onCardPointerDown}
+                onpointerup={onCardPointerUp}
+                class="flow-res-card headline-enter flex min-h-full cursor-pointer flex-col justify-between gap-3 border border-[var(--c-line)] bg-[var(--c-panel)] p-4 text-start phone-l:min-h-0 phone-l:gap-1.5 phone-l:p-2.5 {isDesktop ? 'p-[var(--flow-pad-y)_var(--flow-pad-x)] gap-4' : 'sm:p-5'}"
+              >
+                <div class="flow-res-card-inner space-y-3 phone-l:space-y-1.5 {isDesktop ? 'space-y-4' : ''}">
+                  <!-- Fixed-height top zone (kicker + max 3 lines serif headline) so hero never jumps vertically -->
+                  <div class="flex flex-col gap-2 phone-l:gap-1">
+                    <div class="flex items-center justify-between gap-2 font-medium text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11.5px]'}">
+                      <span>{card.kicker}</span>
+                      <span>العدد <span class="num">{completedTurn}</span></span>
+                    </div>
+
+                    <h3 class="flow-res-title line-clamp-3 max-w-[44ch] overflow-hidden font-display font-bold leading-[1.38] text-[var(--c-text)] phone-l:h-[46px] phone-l:text-[17px] {isDesktop ? 'h-[104px] text-[clamp(22px,1.75vw,30px)]' : 'h-[86px] text-[20px] sm:h-[96px] sm:text-[24px]'}">
+                      {card.title}
+                    </h3>
+                  </div>
+
+                  <!-- Hero figure ruled above and below (constant vertical top position across cards) -->
+                  <div class="flow-res-hero-band flex flex-wrap items-baseline justify-end gap-x-3 gap-y-1 border-y border-[var(--c-line)] py-3 phone-l:py-1.5 {isDesktop ? 'py-4' : ''}" dir="ltr">
+                    <b
+                      style={heroSizeStyle(heroValue)}
+                      class="num whitespace-nowrap font-bold leading-[1.12] {heroSizeClass(heroValue)} {heroToneClass(card.tone)}"
+                    >
+                      {heroValue}
+                    </b>
+                    {#if card.note}
+                      <small class="num whitespace-nowrap font-bold text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-base)]' : 'text-[13.5px]'}">{card.note}</small>
+                    {/if}
+                  </div>
+
+                  <p class="reading-text max-w-[65ch] text-start text-[var(--c-text-2)] phone-l:leading-[1.55] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.72]' : 'text-[13px] leading-[1.7]'}">
+                    {card.body}
+                  </p>
+                </div>
+
+                <div class="flow-res-card-foot flex items-center justify-between gap-2 border-t border-[var(--c-line)] pt-2.5 text-[var(--c-muted)] phone-l:pt-1.5 {isDesktop ? 'pt-3 text-[var(--flow-fs-xs)]' : 'text-[11px]'}">
+                  <span>{card.source}</span>
+                  <span>{isDesktop ? 'انقر أو استخدم ← → للتنقل' : 'اضغط أو اسحب للتالي'}</span>
+                </div>
+              </article>
+            {/key}
+          {/if}
         </div>
-      </aside>
+      </div>
 
-      <div class="scroll-area min-h-0 flex-1 overflow-y-auto p-3" data-results-stage={stage}>
-        {#if isLedger}
-          <!-- Ledger summary -->
-          <div class="flex flex-col gap-2">
-            <div class="flex items-center gap-1.5">
-              <GameIcon name="chart" cls="h-4 w-4 shrink-0 text-wheat-gold" />
-              <h3 class="font-heading text-[13px] font-bold text-wheat-gold">الملخص المالي والخدمي</h3>
-            </div>
-
-            <!-- Foreign currency -->
-            <div class="overflow-hidden border border-wheat-mid/12 bg-charcoal-deep/40 shell-round-item">
-              <div class="flex items-center justify-between gap-2 border-b border-wheat-mid/10 bg-forest-mid/30 px-2.5 py-1.5 text-[9px] tracking-wide text-wheat-mid">
-                <span>صافي النقد الأجنبي (الدولار)</span>
-                <b dir="ltr" class="font-mono text-[11px] text-wheat-gold">${formatMillionUSD($gameStore.macro.reservesUSD)}M</b>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>صافي التغيّر هذا الدور</span>
-                <b dir="ltr" class="font-mono {audit.netUSDDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}">
-                  {audit.netUSDDelta >= 0 ? '+' : ''}${formatMillionUSD(audit.netUSDDelta)}M
-                </b>
-              </div>
-              {#if (audit.debtServiceUSD ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>خدمة الدين</span>
-                  <b dir="ltr" class="font-mono text-wheat-light">${formatMillionUSD(audit.debtServiceUSD)}M</b>
-                </div>
-              {/if}
-              {#if (audit.iranOilCouponUSD ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>القسط النفطي الإيراني</span>
-                  <b dir="ltr" class="font-mono text-wheat-light">${formatMillionUSD(audit.iranOilCouponUSD)}M</b>
-                </div>
-              {:else if ($gameStore.flags?.Debt_Repudiated_Iran_Formal ?? 0) === 1}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>القسط الإيراني</span>
-                  <b class="text-forest-accent">مُسقط ✓</b>
-                </div>
-              {/if}
-              {#if (audit.mortgageDrainUSD ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>نزيف الرهون</span>
-                  <b dir="ltr" class="font-mono text-umber-crimson">${formatMillionUSD(audit.mortgageDrainUSD)}M</b>
-                </div>
-              {/if}
-              {#if (audit.debtRepaymentPaidUSD ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>سداد أصل</span>
-                  <b dir="ltr" class="font-mono text-forest-accent">${formatMillionUSD(audit.debtRepaymentPaidUSD)}M</b>
-                </div>
-              {/if}
-            </div>
-
-            <!-- Treasury -->
-            <div class="overflow-hidden border border-wheat-mid/12 bg-charcoal-deep/40 shell-round-item">
-              <div class="flex items-center justify-between gap-2 border-b border-wheat-mid/10 bg-forest-mid/30 px-2.5 py-1.5 text-[9px] tracking-wide text-wheat-mid">
-                <span>رصيد الخزينة (SP)</span>
-                <b dir="ltr" class="font-mono text-[11px] {$gameStore.macro.treasurySYP < 0 ? 'text-umber-crimson' : 'text-wheat-gold'}">
-                  {formatBillionSYP($gameStore.macro.treasurySYP)}B SP
-                </b>
-              </div>
-              <div class="flex items-center justify-between gap-3 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>المحصّل مقابل المصروف</span>
-                <b dir="ltr" class="font-mono text-wheat-light">
-                  {formatBillionSYP(audit.grossCapturedSYP)}B − {formatBillionSYP(audit.expendedSYP)}B
-                </b>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>الصافي هذا الدور</span>
-                <b dir="ltr" class="font-mono {audit.netSYPDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}">
-                  {audit.netSYPDelta >= 0 ? '+' : ''}{formatBillionSYP(audit.netSYPDelta)}B
-                </b>
-              </div>
-              <div class="border-t border-wheat-mid/8 px-2.5 py-1.5">
-                <div class="flex items-center justify-between gap-2 text-[9.5px] text-wheat-dark">
-                  <span>
-                    تشغيلي <b dir="ltr" class="font-mono text-wheat-mid">{formatBillionSYP(audit.operatingExpendedSYP ?? audit.expendedSYP)}B</b>
-                    ({opShare}%)
-                  </span>
-                  <span>
-                    استثماري <b dir="ltr" class="font-mono text-forest-accent">{formatBillionSYP(audit.investmentExpendedSYP ?? 0)}B</b>
-                    ({100 - opShare}%)
-                  </span>
-                </div>
-                <div class="mt-1 flex h-1.5 w-full overflow-hidden bg-charcoal-surface shell-round-chip" aria-hidden="true">
-                  <div class="h-full bg-wheat-gold/70" style="width: {opShare}%"></div>
-                  <div class="h-full bg-forest-accent/80" style="width: {100 - opShare}%"></div>
-                </div>
-              </div>
-              {#if (audit.capacityRevenueBonusSYP ?? 0) > 0 || (audit.projectRevenueSYP ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>إيراد متكرر جديد من النمو</span>
-                  <b dir="ltr" class="font-mono text-forest-accent">
-                    +{formatBillionSYP((audit.capacityRevenueBonusSYP ?? 0) + (audit.projectRevenueSYP ?? 0))}B
-                  </b>
-                </div>
-              {/if}
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>المسار قبل نفاد الاحتياطي</span>
-                <b dir="ltr" class="font-mono text-wheat-light">~{audit.runwayTurnsEstimate ?? 99} دوراً</b>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>عبء الفوائد من الإيرادات</span>
-                <b dir="ltr" class="font-mono text-wheat-light">{audit.interestBurdenPct ?? 0}%</b>
-              </div>
-              <div class="border-t border-wheat-mid/8 px-2.5 pb-1 pt-1 text-[8px] leading-snug text-wheat-dark/80">
-                تقديرات المسار مبنية على تثبيت سياسات هذا الدور.
-              </div>
-              {#if (audit.facilityInflowUSD ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>تسهيلات هذا الدور</span>
-                  <b dir="ltr" class="font-mono text-forest-accent">+${formatMillionUSD(audit.facilityInflowUSD)}M</b>
-                </div>
-              {/if}
-              {#if $gameStore.macro.treasurySYP < 0}
-                <div class="border-t border-umber-border/40 bg-umber-deep/30 px-2.5 py-1 text-[10px] font-bold text-umber-crimson">
-                  عجز مالي متراكم على الخزينة العامة
-                </div>
-              {:else if audit.seignioragePrintedSYP > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>إصدار نقدي</span>
-                  <b dir="ltr" class="font-mono text-wheat-gold">+{formatBillionSYP(audit.seignioragePrintedSYP)}B</b>
-                </div>
-              {/if}
-              {#if (audit.overdraftInterestSYP ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>فوائد العجز</span>
-                  <b dir="ltr" class="font-mono text-umber-crimson">{formatBillionSYP(audit.overdraftInterestSYP)}B</b>
-                </div>
-              {/if}
-              {#if (audit.auctionAbsorbedSYP ?? 0) > 0}
-                <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                  <span>امتصاص المزاد (أُتلف)</span>
-                  <b dir="ltr" class="font-mono text-wheat-light">{formatBillionSYP(audit.auctionAbsorbedSYP)}B</b>
-                </div>
-              {/if}
-            </div>
-
-            <!-- Services & living standards -->
-            <div class="overflow-hidden border border-wheat-mid/12 bg-charcoal-deep/40 shell-round-item">
-              <div class="border-b border-wheat-mid/10 bg-forest-mid/30 px-2.5 py-1.5 text-[9px] tracking-wide text-wheat-mid">
-                الخدمات ومعيشة المواطنين
-              </div>
-              <div class="flex items-center justify-between gap-3 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>سعر الصرف في السوق الموازي</span>
-                <b dir="ltr" class="font-mono text-wheat-gold">{formatNumber($gameStore.macro.parallelRateSYP)} SP</b>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>متوسط الأجر الحقيقي للموظف</span>
-                <b dir="ltr" class="font-mono text-forest-accent">${realWage} / شهرياً</b>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>التوليد الكهربائي المتاح</span>
-                <b dir="ltr" class="font-mono text-wheat-light">
-                  {$gameStore.macro.gridCapacityMW} ميغاواط ({$gameStore.macro.dailyPowerHours} ساعة)
-                </b>
-              </div>
-              <div class="flex items-center justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>مؤشر الاحتقان الوطني العام</span>
-                <b dir="ltr" class="font-mono {$gameStore.macro.nationalRRI < 40 ? 'text-forest-accent' : $gameStore.macro.nationalRRI < 65 ? 'text-wheat-gold' : 'text-umber-crimson'}">
-                  {$gameStore.macro.nationalRRI} / 100
-                </b>
-              </div>
-            </div>
-
-            <!-- Distance from catastrophic fail states -->
-            <div class="overflow-hidden border border-wheat-mid/12 bg-charcoal-deep/40 shell-round-item">
-              <div class="border-b border-wheat-mid/10 bg-forest-mid/30 px-2.5 py-1.5 text-[9px] tracking-wide text-wheat-mid">
-                المسافة من الانهيارات الكبرى
-              </div>
-              <div class="flex items-center justify-between gap-3 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span>الاستدامة المالية للنقد الأجنبي</span>
-                <b dir="ltr" class="font-mono {audit.runwayMonths <= 3.0 ? 'text-umber-crimson' : audit.runwayMonths <= 6.0 ? 'text-wheat-gold' : 'text-forest-accent'}">
-                  {audit.runwayMonths} شهراً {audit.runwayMonths <= 3.0 ? '[منطقة خطر]' : '[مستقر]'}
-                </b>
-              </div>
-              <div class="flex items-start justify-between gap-3 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] text-wheat-dark">
-                <span class="shrink-0">العصيان المدني المسلح</span>
-                <b class="text-end font-mono {insurrectionRisk ? 'text-umber-crimson' : 'text-wheat-light'}">
-                  {provincesInRevoltCount} محافظة متمردة · احتقان {$gameStore.macro.nationalRRI}/100
-                  <span class="block text-[9px] font-normal text-wheat-dark">الانهيار عند 4 محافظات متمردة واحتقان 80+</span>
-                </b>
-              </div>
-            </div>
-
-            <!-- Provinces (current post-turn state, sorted by unrest) -->
-            <div class="overflow-hidden border border-wheat-mid/12 bg-charcoal-deep/40 shell-round-item">
-              <div class="flex items-center justify-between gap-2 border-b border-wheat-mid/10 bg-forest-mid/30 px-2.5 py-1.5">
-                <span class="text-[9px] tracking-wide text-wheat-mid">أوضاع المحافظات بعد الدور</span>
-                <span class="text-[8px] text-wheat-dark">مرتبة بحسب الاحتقان</span>
-              </div>
-              {#each sortedGovernorates as gov (gov.id)}
-                <div class="flex items-center justify-between gap-2 border-t border-wheat-mid/8 px-2.5 py-1 text-[10px] first:border-t-0">
-                  <span class="flex min-w-0 items-center gap-1.5">
-                    <span class="truncate text-wheat-mid">{gov.nameAr}</span>
-                    <span class="shrink-0 border px-1 py-px text-[8px] font-bold shell-round-chip {tierClass(gov.tier)}">
-                      {tierLabel(gov.tier)}
-                    </span>
-                  </span>
-                  <span class="flex shrink-0 items-baseline gap-2 font-mono text-[9.5px]">
-                    <span dir="ltr" class="text-wheat-light">RRI {gov.prri}</span>
-                    <span dir="ltr" class="text-wheat-dark">{gov.dailyBlackoutHours}س</span>
-                  </span>
-                </div>
-              {/each}
-            </div>
-
-            <!-- Five-figure mini strip -->
-            <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
-              <div class="border border-wheat-mid/12 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
-                <div class="text-[8px] text-wheat-dark">الخزينة</div>
-                <div dir="ltr" class="font-mono text-[13px] text-wheat-light">{formatBillionSYP($gameStore.macro.treasurySYP)}B</div>
-                <div dir="ltr" class="font-mono text-[8px] {audit.netSYPDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}">
-                  {audit.netSYPDelta >= 0 ? '+' : ''}{formatBillionSYP(audit.netSYPDelta)}B
-                </div>
-              </div>
-              <div class="border border-wheat-mid/12 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
-                <div class="text-[8px] text-wheat-dark">الاحتياطي</div>
-                <div dir="ltr" class="font-mono text-[13px] text-wheat-light">${formatMillionUSD($gameStore.macro.reservesUSD)}M</div>
-                <div dir="ltr" class="font-mono text-[8px] {audit.netUSDDelta >= 0 ? 'text-forest-accent' : 'text-umber-crimson'}">
-                  {audit.netUSDDelta >= 0 ? '+' : ''}${formatMillionUSD(audit.netUSDDelta)}M
-                </div>
-              </div>
-              <div class="border border-wheat-mid/12 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
-                <div class="text-[8px] text-wheat-dark">الرصيد السياسي</div>
-                <div dir="ltr" class="font-mono text-[13px] text-wheat-light">{Math.round($gameStore.macro.politicalCapital)}</div>
-                <div dir="ltr" class="font-mono text-[8px] text-wheat-dark">/200</div>
-              </div>
-              <div class="border border-wheat-mid/12 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
-                <div class="text-[8px] text-wheat-dark">الثقة الشعبية</div>
-                <div dir="ltr" class="font-mono text-[13px] text-wheat-light">{$gameStore.macro.civicTrust}%</div>
-                <div dir="ltr" class="font-mono text-[8px] text-wheat-dark">/100</div>
-              </div>
-              <div class="border border-wheat-mid/12 bg-charcoal-deep/40 px-2 py-1.5 shell-round-item">
-                <div class="text-[8px] text-wheat-dark">الاحتقان</div>
-                <div dir="ltr" class="font-mono text-[13px] text-wheat-light">{$gameStore.macro.nationalRRI}</div>
-                <div dir="ltr" class="font-mono text-[8px] text-wheat-dark">/100</div>
-              </div>
-            </div>
-          </div>
-        {:else if card}
-          <!-- Newspaper headline card -->
-          <article class="relative overflow-hidden border border-wheat-mid/15 bg-forest-mid/30 p-4 shell-round-item">
-            <div class="flex items-start justify-between gap-2 text-[8px] tracking-[1.6px] text-wheat-gold">
-              <span>{card.kicker}</span>
-              <span class="text-wheat-dark">جريدة الدولة · العدد {completedTurn}</span>
-            </div>
-            <h3 class="mt-2 max-w-[52ch] font-heading text-[clamp(19px,2.4vw,28px)] font-semibold leading-snug text-wheat-light">
-              {card.title}
-            </h3>
-            <p class="mt-1.5 max-w-[62ch] text-[11px] leading-relaxed text-wheat-light/85">
-              {card.body}
-            </p>
-            <div class="mt-3 inline-flex items-baseline gap-2 border px-2.5 py-1.5 shell-round-item {toneClass(card.tone)}">
-              <b dir="ltr" class="font-heading text-[24px] leading-none">{card.delta}</b>
-              {#if card.note}
-                <span dir="ltr" class="font-mono text-[10px] opacity-80">{card.note}</span>
-              {/if}
-            </div>
-            <div class="mt-2 flex items-center gap-1.5 text-[8.5px] text-wheat-dark">
-              <GameIcon name="castle" cls="h-3 w-3 shrink-0 opacity-70" />
-              {card.source}
-            </div>
-            <div
-              class="pointer-events-none absolute bottom-3 end-4 hidden h-[62px] w-[62px] flex-col items-center justify-center border border-wheat-gold/30 text-center font-heading text-[7.5px] leading-tight text-wheat-gold/70 sm:flex shell-round-seal"
-              aria-hidden="true"
+      <!-- Bottom-only pinned navigation footer (Previous appears from card 2+) -->
+      <footer class="flow-res-foot flex shrink-0 items-center gap-2 border-t border-[var(--c-line)] bg-[var(--c-panel)] px-3.5 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] phone-l:py-2 {isDesktop ? 'justify-end gap-2.5 px-[var(--flow-pad-x)] py-3' : ''}">
+        {#if !isLast}
+          {#if isDesktop}
+            <button
+              type="button"
+              onclick={skipToLedger}
+              aria-label="تخطي إلى الملخص المالي"
+              style="min-height: var(--flow-btn-h);"
+              class="kit-btn sec shrink-0 gap-2 bg-transparent px-3.5 text-[var(--flow-fs-sm)] text-[var(--c-muted)] hover:text-[var(--c-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
             >
-              <span>الديوان</span>
-              <span>الرئاسي</span>
-              <span class="font-mono" dir="ltr">{$gameStore.calendarYear}</span>
-            </div>
-          </article>
-        {/if}
-      </div>
-    </div>
-
-    <!-- Footer action -->
-    <footer class="flex shrink-0 flex-wrap items-center gap-2 border-t border-wheat-mid/10 bg-charcoal-deep/30 px-4 py-2.5 phone-p:flex-col phone-p:items-stretch">
-      <div class="min-w-0 flex-1 text-[8.5px] leading-relaxed text-wheat-dark">
-        {#if isLedger}
-          الإيرادات والمصروفات وكل فروق المؤشرات من دفتر الدولة لهذا الدور.
+              <span>{stage >= 1 ? 'للملخص' : 'تخطي إلى الملخص'}</span>
+              <KbdHint keys="S" />
+            </button>
+            {#if stage >= 1}
+              <button
+                type="button"
+                onclick={prev}
+                style="min-height: var(--flow-btn-h);"
+                class="kit-btn sec shrink-0 gap-2 bg-[var(--c-bg)] px-4 text-[var(--flow-fs-sm)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+              >
+                <span>السابق</span>
+                <KbdHint keys="→" />
+              </button>
+            {/if}
+            <button
+              type="button"
+              onclick={primaryAction}
+              style="min-height: var(--flow-btn-pri-h);"
+              class="btn-primary-chamfer pressable shrink-0 gap-2 px-6 text-[var(--flow-fs-base)] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+            >
+              <span>التالي</span>
+              <KbdHint keys="← · Enter" tone="accent" />
+            </button>
+          {:else}
+            {#if stage >= 1}
+              <button
+                type="button"
+                onclick={prev}
+                class="kit-btn sec min-h-12 shrink-0 bg-[var(--c-bg)] px-3.5 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:min-h-11"
+              >
+                السابق
+              </button>
+            {/if}
+            <button
+              type="button"
+              onclick={skipToLedger}
+              aria-label="تخطي إلى الملخص المالي"
+              class="kit-btn sec min-h-12 shrink-0 bg-transparent px-3 text-[12.5px] text-[var(--c-muted)] hover:text-[var(--c-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:min-h-11"
+            >
+              {stage >= 1 ? 'للملخص' : 'تخطي إلى الملخص'}
+            </button>
+            <button
+              type="button"
+              onclick={primaryAction}
+              class="btn-primary-chamfer pressable min-h-12 flex-1 px-4 text-[14px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:min-h-11"
+            >
+              التالي
+            </button>
+          {/if}
+        {:else if isDesktop}
+          {#if stage >= 1}
+            <button
+              type="button"
+              onclick={prev}
+              style="min-height: var(--flow-btn-h);"
+              class="kit-btn sec shrink-0 gap-2 bg-[var(--c-bg)] px-4 text-[var(--flow-fs-sm)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+            >
+              <span>السابق</span>
+              <KbdHint keys="→" />
+            </button>
+          {/if}
+          <button
+            type="button"
+            onclick={primaryAction}
+            style="min-height: var(--flow-btn-pri-h);"
+            class="btn-primary-chamfer pressable shrink-0 gap-2 px-6 text-[var(--flow-fs-base)] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+          >
+            <span>متابعة المهام الرئاسية للدور الجديد</span>
+            <KbdHint keys="Enter" tone="accent" />
+          </button>
         {:else}
-          بطاقة {stage + 1} من {headlines.length} · تنقّل بالأسهم أو من التسلسل الجانبي.
+          {#if stage >= 1}
+            <button
+              type="button"
+              onclick={prev}
+              class="kit-btn sec min-h-12 shrink-0 bg-[var(--c-bg)] px-3.5 text-[13px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:min-h-11"
+            >
+              السابق
+            </button>
+          {/if}
+          <button
+            type="button"
+            onclick={primaryAction}
+            class="btn-primary-chamfer pressable min-h-12 flex-1 px-3 text-[13.5px] font-bold sm:text-[14px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] phone-l:min-h-11"
+          >
+            متابعة المهام الرئاسية للدور الجديد
+          </button>
         {/if}
-      </div>
-      <button
-        type="button"
-        onclick={primaryAction}
-        class="flex min-h-11 items-center justify-center gap-1.5 border border-wheat-gold bg-wheat-gold px-4 py-2 text-[11px] font-bold text-forest-deep shadow-md transition-colors hover:bg-wheat-light phone-p:w-full shell-round-item"
-      >
-        {#if isLast}
-          متابعة المهام الرئاسية للدور الجديد
-        {:else}
-          البطاقة التالية
-          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
-            <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        {/if}
-      </button>
-    </footer>
+      </footer>
+    {/if}
   {:else}
-    <div class="flex flex-1 items-center justify-center p-6 text-center text-[12px] text-wheat-dark">
+    <div class="flex flex-1 items-center justify-center p-6 text-center text-[12px] text-[var(--c-muted)]">
       لا يوجد تقرير إغلاق متاح لهذا الدور.
     </div>
   {/if}
 </div>
+
+<style>
+  .kpi-tiles :global(.tile-delta) {
+    text-align: right;
+  }
+  @media (max-height: 780px) {
+    :global(.flow-desktop) .flow-res-head {
+      padding-block: 7px;
+    }
+    :global(.flow-desktop) .flow-res-prog {
+      padding-block: 4px;
+    }
+    :global(.flow-desktop) .flow-res-scroll {
+      padding: 12px 18px;
+    }
+    :global(.flow-desktop) .flow-res-card {
+      padding: 14px 18px;
+      gap: 10px;
+    }
+    :global(.flow-desktop) .flow-res-card-inner {
+      gap: 10px;
+    }
+    :global(.flow-desktop) .flow-res-title {
+      height: 82px;
+    }
+    :global(.flow-desktop) .flow-res-hero-band {
+      padding-block: 10px;
+    }
+    :global(.flow-desktop) .flow-res-card-foot {
+      padding-top: 8px;
+    }
+    :global(.flow-desktop) .flow-res-foot {
+      padding-block: 8px;
+    }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes stamp-pop {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    @keyframes headline-slide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .stamp-enter {
+      animation: stamp-pop 0.16s ease-out both;
+    }
+    .headline-enter {
+      animation: headline-slide 0.16s ease-out both;
+    }
+  }
+</style>
+
+

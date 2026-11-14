@@ -1,72 +1,176 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { gameStore } from '../stores/game-store';
+  import { uiStore } from '../stores/ui-store';
   import { startNewGame } from '../stores/new-game';
   import { focusTrap } from './actions/focus-trap';
+  import StatTile from './kit/StatTile.svelte';
   import { MAX_TURNS } from '../engine/constants';
+  import { shellLayout } from './shell/viewport';
+  import { fx } from './fx/feedback';
+  import KbdHint from './flow/KbdHint.svelte';
+  import { hasModifierKey, isTypingTarget } from './flow/kbd';
+  import './flow/flow-desktop.css';
+
+  let layout = $derived($shellLayout);
+  let isDesktop = $derived(layout === 'desktop');
 
   let failState = $derived($gameStore.failState);
-  // executeTurnLifecycle increments turnNumber before the fail check, so a
-  // collapse caused by turn 40 would otherwise be reported as "turn 41".
   let playedTurn = $derived(Math.min($gameStore.turnNumber, MAX_TURNS));
 
+  let reservesM = $derived(($gameStore.macro.reservesUSD / 1_000_000).toFixed(1));
+  let treasuryB = $derived(($gameStore.macro.treasurySYP / 1_000_000_000).toFixed(2));
+
+  let playedFailFx = false;
+  $effect(() => {
+    if ($gameStore.isGameOver && failState) {
+      if (!playedFailFx) {
+        playedFailFx = true;
+        fx('bad');
+      }
+    } else {
+      playedFailFx = false;
+    }
+  });
+
   function handleRestart(): void {
+    fx('confirm');
     startNewGame();
   }
+
+  function onCaptureKey(e: KeyboardEvent): void {
+    if (!($gameStore.isGameOver && failState)) return;
+    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen) return;
+
+    if (e.key !== 'Tab') {
+      e.stopPropagation();
+    }
+    if (hasModifierKey(e) || isTypingTarget(e.target)) return;
+
+    if (e.key === 'Enter') {
+      const targetEl = e.target as HTMLElement | null;
+      const onOtherAction = targetEl?.closest('button:not([data-fail-restart]), a');
+      if (!onOtherAction) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        handleRestart();
+      }
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', onCaptureKey, true);
+    return () => window.removeEventListener('keydown', onCaptureKey, true);
+  });
 </script>
 
 {#if $gameStore.isGameOver && failState}
   <div
-    class="pointer-events-auto fixed inset-0 z-[80] flex select-none items-center justify-center bg-black/45 p-4 backdrop-blur-sm scroll-area scroll-umber overflow-y-auto font-arabic"
+    class="pointer-events-auto fixed inset-0 z-[80] flex select-none font-arabic {isDesktop
+      ? 'flow-desktop items-center justify-center bg-[var(--c-bg)] p-6'
+      : 'items-stretch justify-stretch bg-[var(--c-bg)] p-0'}"
   >
     <div
       use:focusTrap
       role="dialog"
+      tabindex="-1"
       aria-modal="true"
       aria-label="نهاية المحاكاة — انهيار سيادي"
-      class="relative m-auto w-full max-w-[620px] overflow-hidden border border-umber-border/70 bg-forest-deep text-center text-wheat-light shadow-2xl shell-round-pop"
-      style="background: radial-gradient(640px 220px at 100% 0%, rgb(from var(--color-status-danger) r g b / 0.16), transparent 72%), linear-gradient(165deg, var(--color-forest-mid), var(--color-forest-deep) 62%, var(--color-charcoal-deep));"
+      class="fail-slam relative flex flex-col overflow-hidden bg-[var(--c-bg)] text-[var(--c-text)] border-t-2 border-t-[var(--c-neg)] {isDesktop
+        ? 'max-h-[calc(100dvh-48px)] w-[min(var(--flow-stage-w,clamp(640px,46vw,880px)),calc(100vw-48px))] border border-[var(--c-neg)] border-t-2 border-t-[var(--c-neg)]'
+        : 'h-full w-full pt-[env(safe-area-inset-top)]'}"
     >
-      <span
-        class="pointer-events-none absolute inset-x-0 top-0 h-[3px]"
-        style="background: linear-gradient(90deg, transparent, var(--color-status-danger), var(--color-wheat-gold), var(--color-status-danger), transparent);"
-        aria-hidden="true"
-      ></span>
-
-      <div class="space-y-3 px-6 pb-6 pt-7">
-        <div
-          class="mx-auto flex h-14 w-14 items-center justify-center rounded-full border-2 border-umber-crimson bg-umber-deep font-heading text-2xl font-bold text-wheat-light"
-          aria-hidden="true"
-        >
-          !
-        </div>
-
-        <div class="space-y-1.5">
-          <span class="block text-[8.5px] font-bold uppercase tracking-[2.4px] text-umber-crimson font-heading">
-            نهاية المحاكاة — انهيار سيادي
+      <!-- Dark-red kicker band -->
+      <header class="shrink-0 border-b border-[var(--c-line)] bg-[var(--c-ev-bg)] {isDesktop ? 'px-[var(--flow-pad-x)] py-3' : 'px-5 py-2.5 sm:px-7 phone-l:py-2'}">
+        <div class="flex flex-wrap items-center justify-between gap-2 font-bold text-[var(--c-neg)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[12px]'}">
+          <span>نهاية المحاكاة · انهيار سيادي</span>
+          <span class="num font-medium text-[var(--c-muted)]">
+            الدور {String(playedTurn).padStart(2, '0')} · {$gameStore.calendarYear}
           </span>
-          <h2 class="font-heading text-[22px] font-bold leading-snug text-wheat-light">
+        </div>
+      </header>
+
+      <!-- Scrollable content area -->
+      <div class="scroll-area scroll-umber min-h-0 flex-1 overflow-y-auto {isDesktop ? 'px-[var(--flow-pad-x)] py-[var(--flow-pad-y)]' : 'px-5 py-5 sm:px-7 phone-l:py-3'}">
+        <div class="space-y-1.5 text-start">
+          <h2 class="font-display font-bold leading-[1.35] text-[var(--c-text)] {isDesktop ? 'text-[clamp(26px,2.2vw,40px)]' : 'text-[clamp(24px,4vw,34px)] phone-l:text-[22px]'}">
             {failState.titleAr}
           </h2>
-          <span class="block font-mono text-[10.5px] text-wheat-dark">
+          <span class="num block text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[12px]'}">
             سقطت الدولة في الدور {playedTurn} ({$gameStore.calendarYear})
           </span>
         </div>
 
-        <p class="border border-wheat-mid/12 bg-charcoal-deep/70 p-4 text-start text-[11px] leading-relaxed text-wheat-light/90 shell-round-item">
-          {failState.narrativeAr}
-        </p>
-
-        <div class="flex flex-col items-stretch gap-2 pt-2 sm:flex-row sm:justify-center">
-          <button
-            data-autofocus
-            type="button"
-            onclick={handleRestart}
-            class="min-h-11 border border-umber-crimson bg-umber-crimson px-7 py-2.5 text-[11.5px] font-bold text-wheat-light transition-colors hover:bg-umber-mid active:translate-y-0.5 shell-round-item"
-          >
-            إعادة المحاولة من البداية
-          </button>
+        <!-- Ruled key stats tiles: 1 row of 4 on desktop -->
+        <div class="kpi-tiles mt-4 grid gap-2 phone-l:mt-3 {isDesktop ? 'grid-cols-4' : 'grid-cols-2 sm:grid-cols-4'}">
+          <StatTile
+            label="الدور الأخير"
+            value={String(playedTurn).padStart(2, '0')}
+            delta={String($gameStore.calendarYear)}
+          />
+          <StatTile
+            label="الاحتياطي"
+            value="${reservesM}M"
+            valueTone="accent"
+            delta="نقد أجنبي"
+          />
+          <StatTile
+            label="الخزينة"
+            value="{treasuryB}B"
+            valueTone={$gameStore.macro.treasurySYP < 0 ? 'neg' : 'default'}
+            delta="ليرة سورية"
+          />
+          <StatTile
+            label="الاحتقان"
+            value="{$gameStore.macro.nationalRRI}/100"
+            valueTone="neg"
+            delta="المؤشر العام"
+          />
         </div>
+
+        {#if failState.narrativeAr}
+          <div class="mt-4 border-y border-[var(--c-line)] py-4 phone-l:mt-3 phone-l:py-3">
+            <p class="reading-text max-w-[65ch] text-start text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.78]' : 'text-[13.5px] leading-[1.75]'}">
+              {failState.narrativeAr}
+            </p>
+          </div>
+        {/if}
       </div>
+
+      <!-- Pinned bottom primary action -->
+      <footer class="shrink-0 border-t border-[var(--c-line)] bg-[var(--c-panel)] {isDesktop
+        ? 'flex justify-end px-[var(--flow-pad-x)] py-3'
+        : 'px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-7 phone-l:py-2'}">
+        <button
+          data-autofocus
+          data-fail-restart
+          type="button"
+          onclick={handleRestart}
+          style={isDesktop ? 'min-height: var(--flow-btn-pri-h);' : ''}
+          class="btn-primary-chamfer pressable flex gap-2 items-center justify-center bg-[var(--c-neg)] px-7 py-2.5 font-bold text-[var(--c-ink)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-text)] {isDesktop
+            ? 'w-auto text-[var(--flow-fs-base)]'
+            : 'min-h-12 w-full text-[14px] sm:w-auto phone-l:min-h-11'}"
+        >
+          <span>إعادة المحاولة من البداية</span>
+          <KbdHint keys="Enter" tone="accent" />
+        </button>
+      </footer>
     </div>
   </div>
 {/if}
+
+<style>
+  .kpi-tiles :global(.tile-delta) {
+    text-align: right;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes fail-slam-in {
+      0% { opacity: 0; transform: translateY(-6px); }
+      100% { opacity: 1; transform: none; }
+    }
+    .fail-slam {
+      animation: fail-slam-in 0.2s ease-out both;
+    }
+  }
+</style>
+

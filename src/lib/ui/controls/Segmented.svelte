@@ -15,7 +15,10 @@
 </script>
 
 <script lang="ts">
+  import './econ-plates.css';
   import EffectChip from './EffectChip.svelte';
+  import LockIcon from './LockIcon.svelte';
+  import { triggerFx } from './feedback-bridge';
 
   interface Props {
     value: string | null;
@@ -24,6 +27,8 @@
     onchange: (value: string) => void;
     columns?: number;
     disabled?: boolean;
+    /** Show a padlock glyph on disabled options (default true). */
+    showLockIcon?: boolean;
   }
 
   let {
@@ -33,7 +38,15 @@
     onchange,
     columns = options.length,
     disabled = false,
+    showLockIcon = true,
   }: Props = $props();
+
+  function selectOption(nextValue: string): void {
+    if (nextValue !== value) {
+      triggerFx('select');
+    }
+    onchange(nextValue);
+  }
 
   function nextEnabledIndex(index: number, delta: number): number {
     const count = options.length;
@@ -51,14 +64,14 @@
     const forward = event.key === 'ArrowLeft' ? rtl : !rtl;
     const target = nextEnabledIndex(index, forward ? 1 : -1);
     if (target === index) return;
-    onchange(options[target].value);
+    selectOption(options[target].value);
     const sibling = (event.currentTarget as HTMLElement).parentElement?.children[target];
     if (sibling instanceof HTMLElement) sibling.focus();
   }
 </script>
 
 <div
-  class="grid gap-1.5"
+  class="grid border border-[var(--c-line-strong)] bg-[var(--c-panel)]"
   style="grid-template-columns: repeat({columns}, minmax(0, 1fr));"
   role="radiogroup"
   aria-label={label}
@@ -74,16 +87,22 @@
       title={option.title ?? ''}
       disabled={isDisabled}
       onclick={() => {
-        if (!isDisabled) onchange(option.value);
+        if (!isDisabled) selectOption(option.value);
       }}
       onkeydown={(event) => onKeydown(event, index)}
-      class="relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 border px-1.5 py-2 text-center transition-colors
+      class="pressable relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 border-0 px-1.5 py-1.5 text-center sm:px-2
+        {index > 0 ? 'border-s border-[var(--c-line-strong)]' : ''}
         {isActive
-          ? 'border-wheat-gold bg-forest-surface text-wheat-gold shadow-sm'
-          : 'border-charcoal-mid bg-charcoal-surface text-wheat-dark hover:border-wheat-mid/60 hover:text-wheat-light'}
-        {isDisabled ? 'cursor-not-allowed opacity-40 grayscale' : 'cursor-pointer'}"
+          ? 'bg-[var(--c-text)] text-[var(--c-ink)] font-bold'
+          : 'bg-transparent text-wheat-mid hover:text-wheat-light'}
+        {isDisabled ? 'cursor-not-allowed opacity-35' : 'cursor-pointer'}"
     >
-      <span class="font-heading text-[10.5px] font-bold leading-tight">{option.label}</span>
+      <span class="flex max-w-full items-center justify-center gap-1 font-heading text-[11.5px] font-bold leading-[1.2] sm:text-[12px]">
+        {#if isDisabled && showLockIcon}
+          <LockIcon cls="h-3 w-3 shrink-0" />
+        {/if}
+        <span>{option.label}</span>
+      </span>
       {#if option.chips?.length}
         <span class="flex flex-wrap items-center justify-center gap-1">
           {#each option.chips as chip}

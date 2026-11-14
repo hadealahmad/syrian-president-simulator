@@ -105,12 +105,55 @@ export function fmtVal(fmt: StatFmt, v: number): string {
   }
 }
 
+/** Format an intermediate interpolated value to match the target precision. */
+export function fmtAnimatedVal(fmt: StatFmt, v: number, target: number): string {
+  switch (fmt) {
+    case 'pct':
+      return Number.isInteger(target) ? `${Math.round(v)}%` : `${v.toFixed(1)}%`;
+    case 'points':
+    case 'per100':
+      return `${Math.round(v)}`;
+    case 'usd':
+      return Number.isInteger(target) ? `$${Math.round(v)}` : `$${v.toFixed(1)}`;
+    case 'hours':
+      return Number.isInteger(target) ? `${Math.round(v)}` : v.toFixed(1);
+    default:
+      return fmtVal(fmt, v);
+  }
+}
+
 export function signed(n: number, digits = 1): string {
   return `${n > 0 ? '+' : ''}${n.toFixed(digits)}`;
 }
 
 export function signedPct(pctChange: number): string {
   return `${signed(pctChange)}%`;
+}
+
+/** Format an absolute delta in the stat's own unit and precision. */
+export function fmtAbsDelta(fmt: StatFmt, absDiff: number): string {
+  switch (fmt) {
+    case 'billion':
+      return `${formatBillion(absDiff)}B`;
+    case 'mUSD':
+      return `$${(absDiff / 1_000_000).toFixed(1)}M`;
+    case 'bUSD':
+      return `$${(absDiff / 1_000_000_000).toFixed(2)}B`;
+    case 'usd':
+      return `$${Number.isInteger(absDiff) ? absDiff : absDiff.toFixed(1)}`;
+    case 'pct':
+      return Number.isInteger(absDiff) ? `${absDiff}%` : `${absDiff.toFixed(1)}%`;
+    case 'points':
+    case 'per100':
+      return `${Math.round(absDiff)}`;
+    case 'hours':
+      return `${Number.isInteger(absDiff) ? absDiff : absDiff.toFixed(1)}س`;
+    case 'int':
+    case 'headcount':
+      return formatNumber(absDiff);
+    default:
+      return `${Math.round(absDiff)}`;
+  }
 }
 
 // ── Projected-turn stat tiles (general tab) ────────────────────────────────

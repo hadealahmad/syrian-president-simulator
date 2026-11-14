@@ -1,6 +1,4 @@
 <script lang="ts">
-  // Thin range meter for bounded KPIs: current fill, projected marker and an
-  // optional danger tripwire (e.g. the $8 wage line). Purely presentational.
   interface Props {
     min: number;
     max: number;
@@ -8,7 +6,6 @@
     projected?: number | null;
     dangerAt?: number;
     fillClass?: string;
-    /** Extra class for the track height (phones use a taller hit-visible bar). */
     sizeClass?: string;
   }
 
@@ -18,8 +15,8 @@
     current,
     projected = null,
     dangerAt,
-    fillClass = 'bg-forest-accent',
-    sizeClass = 'h-1.5',
+    fillClass = 'bg-[var(--c-pos)]',
+    sizeClass = 'h-1',
   }: Props = $props();
 
   const span = $derived(Math.max(1, max - min));
@@ -34,23 +31,23 @@
 </script>
 
 <div
-  class="relative w-full overflow-hidden bg-wheat-light/8 shell-round-chip {sizeClass}"
+  class="relative w-full overflow-hidden bg-[var(--c-track)] {sizeClass}"
   aria-hidden="true"
 >
   <span
-    class="block h-full shell-round-chip transition-[width] duration-500 motion-reduce:transition-none {fillClass}"
+    class="block h-full transition-[width] duration-500 motion-reduce:transition-none {fillClass}"
     style="width: {currentPct}%; margin-inline-start: 0;"
   ></span>
   {#if dangerPct !== null}
     <span
-      class="absolute inset-y-0 w-px bg-umber-crimson/70"
+      class="absolute inset-y-0 w-px bg-[var(--c-neg)]"
       style="inset-inline-start: {dangerPct}%"
       aria-hidden="true"
     ></span>
   {/if}
   {#if projectedPct !== null && Math.abs(projectedPct - currentPct) > 0.4}
     <span
-      class="absolute -top-0.5 -bottom-0.5 w-0.5 bg-wheat-light/90"
+      class="absolute inset-y-0 w-0.5 bg-[var(--c-text)]"
       style="inset-inline-start: {projectedPct}%"
       aria-hidden="true"
     ></span>

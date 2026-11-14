@@ -34,17 +34,17 @@ export interface ThemeMeta {
 export const THEMES: Record<ThemeId, ThemeMeta> = {
   default: {
     id: 'default',
-    labelAr: 'الافتراضي',
-    labelEn: 'Default',
-    hint: 'Forest & wheat institutional palette (current game look).',
-    swatches: ['#0a1b18', '#1a453e', '#4ec7b4', '#f2cf77', '#f87171'],
+    labelAr: 'غرفة العمليات',
+    labelEn: 'Operations Console',
+    hint: 'Operations Console flat tactical palette.',
+    swatches: ['#0b0f12', '#12181d', '#2b353d', '#f2b233', '#f0665a'],
   },
   mono: {
     id: 'mono',
     labelAr: 'أسود وأبيض',
     labelEn: 'Black & White',
-    hint: 'Test theme: grayscale UI chrome + pure red/blue/green/yellow status colors.',
-    swatches: ['#000000', '#ffffff', '#ffe600', '#ff0000', '#2b7fff'],
+    hint: 'Flat square greyscale variant with high-contrast status colors.',
+    swatches: ['#000000', '#101010', '#ffffff', '#ffe600', '#ff0000'],
   },
 };
 

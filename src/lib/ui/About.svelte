@@ -1,8 +1,16 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import GameIcon from './GameIcon.svelte';
   import { PROJECT_LINKS } from '../project-links';
   import { uiStore } from '../stores/ui-store';
   import { focusTrap } from './actions/focus-trap';
+  import { fx } from './fx/feedback';
+  import { shellLayout } from './shell/viewport';
+  import KbdHint from './flow/KbdHint.svelte';
+  import './flow/flow-desktop.css';
+
+  let layout = $derived($shellLayout);
+  let isDesktop = $derived(layout === 'desktop');
 
   interface SourceRef {
     label: string;
@@ -10,11 +18,8 @@
   }
 
   interface FactCard {
-    /** Short Arabic label for the figure's subject. */
     topic: string;
-    /** The figure itself, in Arabic words or figures. */
     figure: string;
-    /** One sentence of context, written as a complete sentence. */
     detail: string;
     sources: SourceRef[];
   }
@@ -119,263 +124,327 @@
   ];
 
   function close(): void {
+    fx('cancel');
     uiStore.setAboutOpen(false);
   }
 
-  function onKey(e: KeyboardEvent): void {
-    if (e.key === 'Escape') close();
+  function onCaptureKey(e: KeyboardEvent): void {
+    if (!$uiStore.isAboutOpen) return;
+    if (e.key !== 'Tab') {
+      e.stopPropagation();
+    }
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      close();
+    }
   }
-</script>
 
-<svelte:window onkeydown={onKey} />
+  onMount(() => {
+    window.addEventListener('keydown', onCaptureKey, true);
+    return () => window.removeEventListener('keydown', onCaptureKey, true);
+  });
+</script>
 
 {#if $uiStore.isAboutOpen}
   <div
     use:focusTrap
-    class="pointer-events-auto fixed inset-0 z-[200] overflow-y-auto bg-charcoal-deep font-arabic scroll-area"
+    tabindex="-1"
+    class="pointer-events-auto fixed inset-0 z-[200] flex flex-col overflow-hidden border-t-2 border-t-[var(--c-accent)] bg-[var(--c-bg)] pt-[env(safe-area-inset-top)] text-[var(--c-text)] font-arabic {isDesktop ? 'flow-desktop' : ''}"
     role="dialog"
     aria-modal="true"
     aria-label="عن اللعبة"
   >
-    <article class="mx-auto w-full max-w-[760px] px-6 py-8 md:px-10 md:py-12">
-      <!-- ── Header ─────────────────────────────────────────────────────── -->
-      <header class="flex items-start justify-between gap-4 border-b-2 border-wheat-mid/70 pb-6">
-        <div class="space-y-2">
-          <span class="block text-xs font-bold tracking-widest text-wheat-dark uppercase font-heading"
-            >محاكي إدارة المرحلة الانتقالية السورية</span
+    {#if isDesktop}
+      <!-- Quiet sticky header bar on desktop with return action + Esc hint -->
+      <div class="sticky top-0 z-10 shrink-0 border-b border-[var(--c-line)] bg-[var(--c-panel)] px-8 py-2.5">
+        <div class="mx-auto flex w-full max-w-[min(70ch,calc(100vw-64px))] items-center justify-between gap-4">
+          <div class="flex min-w-0 items-center gap-2.5">
+            <span class="font-heading text-[var(--flow-fs-xs)] font-bold text-[var(--c-accent)]">
+              محاكي إدارة المرحلة الانتقالية السورية
+            </span>
+            <span class="text-[var(--c-line-strong)]" aria-hidden="true">/</span>
+            <span class="truncate font-heading text-[var(--flow-fs-sm)] font-bold text-[var(--c-text)]">
+              عن اللعبة والمصادر
+            </span>
+          </div>
+          <button
+            data-autofocus
+            type="button"
+            onclick={close}
+            style="min-height: var(--flow-btn-h);"
+            class="kit-btn sec shrink-0 gap-2 px-4 text-[var(--flow-fs-sm)] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
           >
-          <h1 class="text-3xl font-bold text-wheat-gold font-heading">عن اللعبة</h1>
-          <p class="max-w-[54ch] text-sm leading-relaxed text-wheat-mid">
-            محاكاة استراتيجية واقتصادية مبنية على إحصاءات حقيقية عن سوريا. هذه الصفحة تشرح فكرتها،
-            وتذكر أرقامها، ومصدر كل رقم منها.
-          </p>
+            <span>العودة إلى اللعبة</span>
+            <KbdHint keys="Esc" />
+          </button>
         </div>
-        <button
-          onclick={close}
-          aria-label="إغلاق صفحة عن اللعبة"
-          class="h-9 w-9 shrink-0 flex items-center justify-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-wheat-dark hover:text-wheat-gold transition-colors cursor-pointer gloss-hover"
-        >
-          <GameIcon name="cross-mark" cls="w-4 h-4 shrink-0" />
-        </button>
-      </header>
+      </div>
+    {/if}
 
-      <!-- ── الفكرة ─────────────────────────────────────────────────────── -->
-      <section class="mt-10 space-y-4">
-        <h2 class="flex items-center gap-2 text-lg font-bold text-wheat-light font-heading">
-          <GameIcon name="scroll-quill" cls="w-5 h-5 shrink-0 text-wheat-gold" />
-          <span>فكرة اللعبة</span>
-        </h2>
-
-        <p class="text-sm leading-loose text-wheat-light">
-          تبدأ اللعبة من عام 2027، بعد سقوط النظام، وأنت في موقع قيادة الدولة السورية. بيدك أربعون
-          دوراً، يمتد كل دور منها ستة أشهر، أي عشرون عاماً تتخذ فيها قراراتك. غير أن الفوز والخسارة لا
-          يُحسَمان في هذه العشرين عاماً: فبعد الدور الأخير يشغّل المحرّك «تقرير المئوية»، فيُقاس أثر ما
-          فعلت حتى عام 2127. ومن ثمّ يُصبح القرار الذي يبدو ثانوياً اليوم قراراً تحتمله الثمن بعد
-          عقدين.
-        </p>
-
-        <p class="text-sm leading-loose text-wheat-light">
-          للعبة هدفان، لا هدف واحد. الأول أن يرى اللاعب كم يبلغ تعقيد الوضع، وأن يقف على حجم العمل
-          المتراكم أمامه: فالوضع ضغوط متراكمة لا تنفك، وكل واحدة منها تستهلك ما
-          تنفقه الأخرى.
-        </p>
-
-        <p class="text-sm leading-loose text-wheat-light">
-          والهدف الثاني أن يفهم اللاعب <span class="text-wheat-gold font-bold">أنواع</span> المشاكل، وأن
-          يعرف لكل نوعٍ ما يقتضيه من معالجة. تكفي محاكاة مبسطة، إذا بُنيت على أرقام حقيقية، لتوصل هذه الفكرة: ما نوع هذه
-          المشكلة؟ وما الذي تقتضيه معالجتها؟ وأين تقع حدّها؟
-        </p>
-
-        <p class="text-sm leading-loose text-wheat-light">
-          ولهذا صيغت اللعبة على إحصاءات وأرقام حقيقية عن سوريا. وأرقامٌ من هذا الحجم تعني أن إصلاح
-          الوضع موازنة اختيارات، وأن بعض هذه الاختيارات مكلف: الناتج المحلي الإجمالي انكمش إلى نحو
-          21.4 مليار دولار، وكلفة إعادة الإعمار تُقدَّر بـ216 مليار دولار.
-        </p>
-      </section>
-
-      <!-- ── كيف تُلعب ──────────────────────────────────────────────────── -->
-      <section class="mt-10 space-y-4">
-        <h2 class="flex items-center gap-2 text-lg font-bold text-wheat-light font-heading">
-          <GameIcon name="chart" cls="w-5 h-5 shrink-0 text-wheat-gold" />
-          <span>كيف تُلعب</span>
-        </h2>
-
-        <ul class="space-y-3">
-          <li class="flex gap-3 text-sm leading-relaxed text-wheat-mid">
-            <span class="shrink-0 mt-1.5 h-1.5 w-1.5 bg-wheat-gold" aria-hidden="true"></span>
-            <span>
-              <span class="font-bold text-wheat-light">أربعون دوراً</span>
-              ، كل دور منها ستة أشهر: موسم حصاد، ثم موسم شتاء. ولكل محافظة أرقامها الخاصة: أضرارها
-              التي لم تُصلَح بعد، ونسبة ما تولّده من الكهرباء، ومؤشّر نزوح أهلها.
-            </span>
-          </li>
-          <li class="flex gap-3 text-sm leading-relaxed text-wheat-mid">
-            <span class="shrink-0 mt-1.5 h-1.5 w-1.5 bg-wheat-gold" aria-hidden="true"></span>
-            <span>
-              <span class="font-bold text-wheat-light">خزينة من عملتين</span>
-              : دولار للصفقات الخارجية، وليرة للخزينة الداخلية. والتحويل من إحداهما إلى الأخرى له ثمن
-              وكلفة، فالنتيجة إفلاس سيادي قبل أن يكون انهياراً سياسياً.
-            </span>
-          </li>
-          <li class="flex gap-3 text-sm leading-relaxed text-wheat-mid">
-            <span class="shrink-0 mt-1.5 h-1.5 w-1.5 bg-wheat-gold" aria-hidden="true"></span>
-            <span>
-              <span class="font-bold text-wheat-light">لكل وزارة متغيراتها</span>
-              ، ومن التوجيه الذي يبدو هامشياً في العام الأول إلى ما يؤثر في العام الأخير. فقرار واحد
-              متعجّل قد يقف في السنة العاشرة.
-            </span>
-          </li>
-          <li class="flex gap-3 text-sm leading-relaxed text-wheat-mid">
-            <span class="shrink-0 mt-1.5 h-1.5 w-1.5 bg-wheat-gold" aria-hidden="true"></span>
-            <span>
-              <span class="font-bold text-wheat-light"
-              >الأحداث عشوائية، وأثر قرارك فيها محسوب سلفاً.</span
+    <div class="scroll-area min-h-0 flex-1 overflow-y-auto">
+      <article class="mx-auto w-full {isDesktop
+        ? 'max-w-[min(70ch,calc(100vw-64px))] py-10'
+        : 'max-w-[760px] px-5 py-6 sm:px-8 sm:py-9 phone-l:py-4'}">
+        <!-- Title Header -->
+        <header class="flex items-start justify-between gap-4 border-b border-[var(--c-line)] {isDesktop ? 'pb-6' : 'pb-5 phone-l:pb-3'}">
+          <div class="space-y-1.5">
+            {#if !isDesktop}
+              <span class="block font-heading text-xs font-bold text-[var(--c-accent)]">
+                محاكي إدارة المرحلة الانتقالية السورية
+              </span>
+            {/if}
+            <h1 class="font-display font-bold text-[var(--c-text)] {isDesktop ? 'text-[clamp(28px,2.2vw,40px)] leading-[1.25]' : 'text-3xl phone-l:text-2xl'}">
+              عن اللعبة
+            </h1>
+            <p class="reading-text max-w-[60ch] leading-relaxed text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-sm'}">
+              محاكاة استراتيجية واقتصادية مبنية على إحصاءات حقيقية عن سوريا. هذه الصفحة تشرح فكرتها،
+              وتذكر أرقامها، ومصدر كل رقم منها.
+            </p>
+          </div>
+          {#if !isDesktop}
+            <button
+              data-autofocus
+              type="button"
+              onclick={close}
+              aria-label="إغلاق صفحة عن اللعبة"
+              class="kit-btn sec h-11 w-11 shrink-0 p-0 text-[var(--c-muted)] hover:text-[var(--c-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
             >
-              فلا يكون ردّ الفعل مفاجأة.
-            </span>
-          </li>
-          <li class="flex gap-3 text-sm leading-relaxed text-wheat-mid">
-            <span class="shrink-0 mt-1.5 h-1.5 w-1.5 bg-wheat-gold" aria-hidden="true"></span>
-            <span>
-              <span class="font-bold text-wheat-light">ثلاث عشرة نهاية</span>
-              ، لكلٍّ منها تقرير ختامي يشرح الطريق الذي أوصلك إليها.
-            </span>
-          </li>
-        </ul>
-      </section>
+              <GameIcon name="cross-mark" cls="w-4 h-4 shrink-0" />
+            </button>
+          {/if}
+        </header>
 
-      <!-- ── أرقام من سوريا ────────────────────────────────────────────── -->
-      <section class="mt-10 space-y-4">
-        <h2 class="flex items-center gap-2 text-lg font-bold text-wheat-light font-heading">
-          <GameIcon name="stone-throne" cls="w-5 h-5 shrink-0 text-wheat-gold" />
-          <span>أرقام من سوريا</span>
-        </h2>
-        <p class="max-w-[64ch] text-sm leading-relaxed text-wheat-mid">
-          هذه أرقام بُنيت عليها اللعبة أو صُحّحت. ولكل رقمٍ مصدرُه مذكور تحته، وقد جُمع بعضها من أكثر من
-          مصدر. وكل مصدر قابل للتحقق بنقرة.
-        </p>
+        <!-- الفكرة -->
+        <section class="mt-7 space-y-4">
+          <h2 class="flex items-center gap-2 border-b border-[var(--c-line)] pb-2 font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[16px]'}">
+            <GameIcon name="scroll-quill" cls="w-5 h-5 shrink-0 text-[var(--c-accent)]" />
+            <span>فكرة اللعبة</span>
+          </h2>
 
-        <div class="grid gap-3 sm:grid-cols-2">
-          {#each FACTS as fact (fact.topic)}
-            <div class="space-y-2 bg-charcoal-deep border border-charcoal-mid p-4">
-              <span class="block text-xs font-bold text-wheat-dark font-heading">{fact.topic}</span>
-              <span class="block text-lg font-bold text-wheat-gold font-mono" dir="rtl"
-                >{fact.figure}</span
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            تبدأ اللعبة من عام 2027، بعد سقوط النظام، وأنت في موقع قيادة الدولة السورية. بيدك أربعون
+            دوراً، يمتد كل دور منها ستة أشهر، أي عشرون عاماً تتخذ فيها قراراتك. غير أن الفوز والخسارة لا
+            يُحسَمان في هذه العشرين عاماً: فبعد الدور الأخير يشغّل المحرّك «تقرير المئوية»، فيُقاس أثر ما
+            فعلت حتى عام 2127. ومن ثمّ يُصبح القرار الذي يبدو ثانوياً اليوم قراراً تحتمله الثمن بعد
+            عقدين.
+          </p>
+
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            للعبة هدفان، لا هدف واحد. الأول أن يرى اللاعب كم يبلغ تعقيد الوضع، وأن يقف على حجم العمل
+            المتراكم أمامه: فالوضع ضغوط متراكمة لا تنفك، وكل واحدة منها تستهلك ما
+            تنفقه الأخرى.
+          </p>
+
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            والهدف الثاني أن يفهم اللاعب <span class="font-bold text-[var(--c-accent)]">أنواع</span> المشاكل، وأن
+            يعرف لكل نوعٍ ما يقتضيه من معالجة. تكفي محاكاة مبسطة، إذا بُنيت على أرقام حقيقية، لتوصل هذه الفكرة: ما نوع هذه
+            المشكلة؟ وما الذي تقتضيه معالجتها؟ وأين تقع حدّها؟
+          </p>
+
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            ولهذا صيغت اللعبة على إحصاءات وأرقام حقيقية عن سوريا. وأرقامٌ من هذا الحجم تعني أن إصلاح
+            الوضع موازنة اختيارات، وأن بعض هذه الاختيارات مكلف: الناتج المحلي الإجمالي انكمش إلى نحو
+            21.4 مليار دولار، وكلفة إعادة الإعمار تُقدَّر بـ216 مليار دولار.
+          </p>
+        </section>
+
+        <!-- كيف تُلعب -->
+        <section class="mt-8 space-y-4">
+          <h2 class="flex items-center gap-2 border-b border-[var(--c-line)] pb-2 font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[16px]'}">
+            <GameIcon name="chart" cls="w-5 h-5 shrink-0 text-[var(--c-accent)]" />
+            <span>كيف تُلعب</span>
+          </h2>
+
+          <ul class="max-w-[65ch] space-y-3">
+            <li class="flex gap-3 text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.75]' : 'text-[13.5px] leading-[1.7]'}">
+              <span class="mt-2.5 h-1.5 w-1.5 shrink-0 bg-[var(--c-accent)]" aria-hidden="true"></span>
+              <span>
+                <span class="font-bold text-[var(--c-text)]">أربعون دوراً</span>
+                ، كل دور منها ستة أشهر: موسم حصاد، ثم موسم شتاء. ولكل محافظة أرقامها الخاصة: أضرارها
+                التي لم تُصلَح بعد، ونسبة ما تولّده من الكهرباء، ومؤشّر نزوح أهلها.
+              </span>
+            </li>
+            <li class="flex gap-3 text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.75]' : 'text-[13.5px] leading-[1.7]'}">
+              <span class="mt-2.5 h-1.5 w-1.5 shrink-0 bg-[var(--c-accent)]" aria-hidden="true"></span>
+              <span>
+                <span class="font-bold text-[var(--c-text)]">خزينة من عملتين</span>
+                : دولار للصفقات الخارجية، وليرة للخزينة الداخلية. والتحويل من إحداهما إلى الأخرى له ثمن
+                وكلفة، فالنتيجة إفلاس سيادي قبل أن يكون انهياراً سياسياً.
+              </span>
+            </li>
+            <li class="flex gap-3 text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.75]' : 'text-[13.5px] leading-[1.7]'}">
+              <span class="mt-2.5 h-1.5 w-1.5 shrink-0 bg-[var(--c-accent)]" aria-hidden="true"></span>
+              <span>
+                <span class="font-bold text-[var(--c-text)]">لكل وزارة متغيراتها</span>
+                ، ومن التوجيه الذي يبدو هامشياً في العام الأول إلى ما يؤثر في العام الأخير. فقرار واحد
+                متعجّل قد يقف في السنة العاشرة.
+              </span>
+            </li>
+            <li class="flex gap-3 text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.75]' : 'text-[13.5px] leading-[1.7]'}">
+              <span class="mt-2.5 h-1.5 w-1.5 shrink-0 bg-[var(--c-accent)]" aria-hidden="true"></span>
+              <span>
+                <span class="font-bold text-[var(--c-text)]">الأحداث عشوائية، وأثر قرارك فيها محسوب سلفاً.</span>
+                فلا يكون ردّ الفعل مفاجأة.
+              </span>
+            </li>
+            <li class="flex gap-3 text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.75]' : 'text-[13.5px] leading-[1.7]'}">
+              <span class="mt-2.5 h-1.5 w-1.5 shrink-0 bg-[var(--c-accent)]" aria-hidden="true"></span>
+              <span>
+                <span class="font-bold text-[var(--c-text)]">ثلاث عشرة نهاية</span>
+                ، لكلٍّ منها تقرير ختامي يشرح الطريق الذي أوصلك إليها.
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <!-- أرقام من سوريا -->
+        <section class="mt-8 space-y-4">
+          <h2 class="flex items-center gap-2 border-b border-[var(--c-line)] pb-2 font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[16px]'}">
+            <GameIcon name="stone-throne" cls="w-5 h-5 shrink-0 text-[var(--c-accent)]" />
+            <span>أرقام من سوريا</span>
+          </h2>
+          <p class="reading-text max-w-[65ch] text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            هذه أرقام بُنيت عليها اللعبة أو صُحّحت. ولكل رقمٍ مصدرُه مذكور تحته، وقد جُمع بعضها من أكثر من
+            مصدر. وكل مصدر قابل للتحقق بنقرة.
+          </p>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            {#each FACTS as fact (fact.topic)}
+              <div class="space-y-2 border border-[var(--c-line)] bg-[var(--c-panel)] p-4">
+                <span class="block font-heading font-bold text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-xs'}">{fact.topic}</span>
+                <span class="num block font-heading font-bold text-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-lg'}" dir="rtl">
+                  {fact.figure}
+                </span>
+                <p class="leading-[1.65] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12.5px]'}">{fact.detail}</p>
+                <ul class="space-y-0.5 pt-1">
+                  {#each fact.sources as source (source.href)}
+                    <li>
+                      <a
+                        href={source.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        onclick={() => fx('tap')}
+                        class="inline-flex min-h-11 md:min-h-9 items-center text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11.5px]'}"
+                      >
+                        {source.label}
+                      </a>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            {/each}
+          </div>
+        </section>
+
+        <!-- عن المطور -->
+        <section class="mt-8 space-y-3">
+          <h2 class="flex items-center gap-2 border-b border-[var(--c-line)] pb-2 font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[16px]'}">
+            <GameIcon name="crown-coin" cls="w-5 h-5 shrink-0 text-[var(--c-accent)]" />
+            <span>عن المطوّر</span>
+          </h2>
+          <div class="space-y-2.5 border-b border-[var(--c-line)] pb-4">
+            <span class="block font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-base'}">هادي الأحمد</span>
+            <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+              متخصص في إدارة المشاريع الرقمية وتطوير الويب، وصانع محتوى رقمي، مهتم بالسياسة والثقافة
+              الرقمية والتقنيات مفتوحة المصدر. وله مشاريع أخرى في البنية التحتية الرقمية السورية، منها
+              <a
+                href="https://syrian.zone"
+                target="_blank"
+                rel="noreferrer"
+                onclick={() => fx('tap')}
+                class="text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+                >المساحة السورية</a
+              >، وغيرها.
+            </p>
+            <div class="flex flex-wrap items-center gap-x-6 gap-y-1 pt-1">
+              <a
+                href={PROJECT_LINKS.authorSite}
+                target="_blank"
+                rel="noreferrer"
+                onclick={() => fx('tap')}
+                class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
               >
-              <p class="text-xs leading-relaxed text-wheat-mid">{fact.detail}</p>
-              <ul class="space-y-1 pt-1">
-                {#each fact.sources as source (source.href)}
-                  <li>
-                    <a
-                      href={source.href}
-                      target="_blank"
-                      rel="noreferrer"
-                      class="text-[11px] text-forest-accent hover:text-wheat-gold underline underline-offset-2 transition-colors"
-                    >
-                      {source.label}
-                    </a>
-                  </li>
-                {/each}
-              </ul>
+                الموقع الشخصي
+              </a>
+              <a
+                href={PROJECT_LINKS.authorGithub}
+                target="_blank"
+                rel="noreferrer"
+                onclick={() => fx('tap')}
+                class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
+              >
+                <GameIcon name="brand-github" cls="w-4 h-4 shrink-0" />
+                <span>حساب المطوّر</span>
+              </a>
             </div>
-          {/each}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      <!-- ── عن المطور ──────────────────────────────────────────────────── -->
-      <section class="mt-10 space-y-4">
-        <h2 class="flex items-center gap-2 text-lg font-bold text-wheat-light font-heading">
-          <GameIcon name="crown-coin" cls="w-5 h-5 shrink-0 text-wheat-gold" />
-          <span>عن المطوّر</span>
-        </h2>
-        <div class="space-y-3 bg-charcoal-deep border border-charcoal-mid p-5">
-          <span class="block text-base font-bold text-wheat-light font-heading">هادي الأحمد</span>
-          <p class="text-sm leading-relaxed text-wheat-mid">
-            متخصص في إدارة المشاريع الرقمية وتطوير الويب، وصانع محتوى رقمي، مهتم بالسياسة والثقافة
-            الرقمية والتقنيات مفتوحة المصدر. وله مشاريع أخرى في البنية التحتية الرقمية السورية، منها
-            <a
-              href="https://syrian.zone"
-              target="_blank"
-              rel="noreferrer"
-              class="text-forest-accent hover:text-wheat-gold underline underline-offset-2 transition-colors"
-              >المساحة السورية</a
-            >، وغيرها.
+        <!-- مفتوح المصدر -->
+        <section class="mt-8 space-y-3 pb-2">
+          <h2 class="flex items-center gap-2 border-b border-[var(--c-line)] pb-2 font-heading font-bold text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-lg)]' : 'text-[16px]'}">
+            <GameIcon name="key" cls="w-5 h-5 shrink-0 text-[var(--c-accent)]" />
+            <span>مفتوح المصدر</span>
+          </h2>
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            نُشرت هذه اللعبة تحت رخصة <bdi class="font-bold text-[var(--c-text)]">MIT</bdi>، والكود
+            والتوثيق متاحان للجميع: تقرأهما، وتنسخهما، وتعدّلهما، وتبني عليهما، بما في ذلك الاستخدام
+            التجاري. والشرط الوحيد هو الإبقاء على إشعار حقوق النشر والرخصة.
           </p>
-          <div class="flex flex-wrap items-center gap-2 pt-1">
+          <p class="reading-text max-w-[65ch] text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-base)] leading-[1.8]' : 'text-[13.5px] leading-[1.75]'}">
+            وإذا وجدت خطأً في رقم من أرقام اللعبة، أو في طريقة حسابها، فالمستودع مفتوح للمساهمات، وسأقرأ
+            كل تقرير.
+          </p>
+          <div class="flex flex-wrap items-center gap-x-6 gap-y-1 pt-1">
             <a
-              href={PROJECT_LINKS.authorSite}
+              href={PROJECT_LINKS.repo}
               target="_blank"
               rel="noreferrer"
-              class="h-9 px-4 flex items-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-xs font-bold text-wheat-light font-heading transition-colors cursor-pointer gloss-hover"
-            >
-              الموقع الشخصي
-            </a>
-            <a
-              href={PROJECT_LINKS.authorGithub}
-              target="_blank"
-              rel="noreferrer"
-              class="h-9 px-4 flex items-center gap-2 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-xs font-bold text-wheat-light font-heading transition-colors cursor-pointer gloss-hover"
+              onclick={() => fx('tap')}
+              class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
             >
               <GameIcon name="brand-github" cls="w-4 h-4 shrink-0" />
-              <span>حساب المطوّر</span>
+              <span>مستودع الكود</span>
+            </a>
+            <a
+              href={PROJECT_LINKS.repoIssues}
+              target="_blank"
+              rel="noreferrer"
+              onclick={() => fx('tap')}
+              class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
+            >
+              <GameIcon name="check-mark" cls="w-4 h-4 shrink-0" />
+              <span>الإبلاغ عن خطأ أو اقتراح</span>
+            </a>
+            <a
+              href={PROJECT_LINKS.license}
+              target="_blank"
+              rel="noreferrer"
+              onclick={() => fx('tap')}
+              class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
+            >
+              نص الرخصة
             </a>
           </div>
-        </div>
-      </section>
+        </section>
+      </article>
+    </div>
 
-      <!-- ── مفتوح المصدر ──────────────────────────────────────────────── -->
-      <section class="mt-10 space-y-4">
-        <h2 class="flex items-center gap-2 text-lg font-bold text-wheat-light font-heading">
-          <GameIcon name="key" cls="w-5 h-5 shrink-0 text-wheat-gold" />
-          <span>مفتوح المصدر</span>
-        </h2>
-        <p class="max-w-[64ch] text-sm leading-relaxed text-wheat-mid">
-          نُشرت هذه اللعبة تحت رخصة <bdi class="font-bold text-wheat-light">MIT</bdi>، والكود
-          والتوثيق متاحان للجميع: تقرأهما، وتنسخهما، وتعدّلهما، وتبني عليهما، بما في ذلك الاستخدام
-          التجاري. والشرط الوحيد هو الإبقاء على إشعار حقوق النشر والرخصة.
-        </p>
-        <p class="max-w-[64ch] text-sm leading-relaxed text-wheat-mid">
-          وإذا وجدت خطأً في رقم من أرقام اللعبة، أو في طريقة حسابها، فالمستودع مفتوح للمساهمات، وسأقرأ
-          كل تقرير.
-        </p>
-        <div class="flex flex-wrap items-center gap-2 pt-1">
-          <a
-            href={PROJECT_LINKS.repo}
-            target="_blank"
-            rel="noreferrer"
-            class="h-10 px-5 flex items-center gap-2 bg-forest-mid hover:bg-forest-surface border border-wheat-mid/60 text-xs font-bold text-wheat-light font-heading transition-colors cursor-pointer gloss-hover"
+    {#if !isDesktop}
+      <!-- Pinned return action outside the scroll container on phone layouts -->
+      <footer class="shrink-0 border-t border-[var(--c-line)] bg-[var(--c-panel)] px-5 py-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] sm:px-8 phone-l:py-2">
+        <div class="mx-auto flex w-full max-w-[760px] sm:justify-end">
+          <button
+            type="button"
+            onclick={close}
+            class="btn-primary-chamfer pressable min-h-11 w-full px-8 font-heading text-sm font-bold sm:w-auto focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-text)]"
           >
-            <GameIcon name="brand-github" cls="w-4 h-4 shrink-0 text-wheat-gold" />
-            <span>مستودع الكود</span>
-          </a>
-          <a
-            href={PROJECT_LINKS.repoIssues}
-            target="_blank"
-            rel="noreferrer"
-            class="h-10 px-5 flex items-center gap-2 bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-xs font-bold text-wheat-light font-heading transition-colors cursor-pointer gloss-hover"
-          >
-            <GameIcon name="check-mark" cls="w-4 h-4 shrink-0 text-wheat-gold" />
-            <span>الإبلاغ عن خطأ أو اقتراح</span>
-          </a>
-          <a
-            href={PROJECT_LINKS.license}
-            target="_blank"
-            rel="noreferrer"
-            class="h-10 px-5 flex items-center bg-charcoal-surface hover:bg-forest-mid border border-charcoal-mid hover:border-wheat-mid/60 text-xs font-bold text-wheat-light font-heading transition-colors cursor-pointer gloss-hover"
-          >
-            نص الرخصة
-          </a>
+            العودة إلى اللعبة
+          </button>
         </div>
-      </section>
-
-      <footer class="mt-12 pt-6 border-t border-charcoal-mid">
-        <button
-          onclick={close}
-          class="h-11 px-8 flex items-center justify-center bg-wheat-mid hover:bg-wheat-light text-forest-deep font-bold text-xs border border-wheat-mid transition-colors active:translate-y-0.5 cursor-pointer rounded-none font-heading"
-        >
-          العودة إلى اللعبة
-        </button>
       </footer>
-    </article>
+    {/if}
   </div>
 {/if}
+

@@ -1,203 +1,587 @@
 <script lang="ts">
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import GameIcon from './GameIcon.svelte';
   import { TOUR_STEPS } from './tour-steps';
-  import { tourActive, tourIndex, tourNext, tourPrev, stopGuideTour } from './guide-tour';
+  import { fx } from './fx/feedback';
+  import { focusTrap } from './actions/focus-trap';
+  import { shellLayout } from './shell/viewport';
+  import { uiStore } from '../stores/ui-store';
+  import KbdHint from './flow/KbdHint.svelte';
+  import { hasModifierKey, isTypingTarget } from './flow/kbd';
+  import './flow/flow-desktop.css';
+  import {
+    tourActive,
+    tourIndex,
+    tourNext,
+    tourPrev,
+    tourSkipMissingStep,
+    stopGuideTour,
+  } from './guide-tour';
 
-  const PAD = 8;
-  const GAP = 18;
-  const CARD_W = 348;
+  const PAD = 4;
+  const GAP = 12;
+  const PHONE_CARD_W = 340;
+
+  interface Rect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
 
   let popEl: HTMLDivElement | null = $state(null);
-  let target = $state<{ x: number; y: number; w: number; h: number } | null>(null);
-  let pop = $state<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: CARD_W, h: 220 });
-  let placedSide: 'top' | 'bottom' | 'center' = $state('bottom');
-  // Layout-space viewport of this overlay. Under the HUD zoom the overlay
-  // lives inside a scaled layer, so rect measurements (visual px) and the
-  // window size must be divided by the zoom before being used in here.
+  let target = $state<Rect | null>(null);
+  let pop = $state<Rect>({ x: 12, y: 12, w: PHONE_CARD_W, h: 220 });
+  let popMaxH = $state<number | null>(null);
+  let placedSide: 'top' | 'bottom' | 'left' | 'right' | 'center' = $state('bottom');
   let vpW = $state(0);
   let vpH = $state(0);
-  const hudZoom = (): number =>
-    Number(getComputedStyle(document.documentElement).getPropertyValue('--hud-zoom')) || 1;
 
+  let layout = $derived($shellLayout);
+  let isDesktop = $derived(layout === 'desktop');
   let isActive = $derived($tourActive);
   let idx = $derived($tourIndex);
   let step = $derived(TOUR_STEPS[idx] ?? TOUR_STEPS[0]);
   let isFirst = $derived(idx === 0);
   let isLast = $derived(idx === TOUR_STEPS.length - 1);
 
+  let consecutiveSkips = 0;
+
+  function intersectArea(a: Rect, b: Rect): number {
+    const x1 = Math.max(a.x, b.x);
+    const y1 = Math.max(a.y, b.y);
+    const x2 = Math.min(a.x + a.w, b.x + b.w);
+    const y2 = Math.min(a.y + a.h, b.y + b.h);
+    if (x2 <= x1 || y2 <= y1) return 0;
+    return (x2 - x1) * (y2 - y1);
+  }
+
+  function toPaddedRect(r: DOMRect, pad: number, vw: number, vh: number): Rect {
+    const cx = Math.max(2, r.left - pad);
+    const cy = Math.max(2, r.top - pad);
+    const cw = Math.max(12, Math.min(vw - 2, r.right + pad) - cx);
+    const ch = Math.max(12, Math.min(vh - 2, r.bottom + pad) - cy);
+    return { x: cx, y: cy, w: cw, h: ch };
+  }
+
   async function measure(): Promise<void> {
     await tick();
     if (!$tourActive) return;
-    const z = hudZoom();
-    vpW = window.innerWidth / z;
-    vpH = window.innerHeight / z;
-    const el = step.selector ? document.querySelector(step.selector) : null;
-    const r = el?.getBoundingClientRect() ?? null;
-    target =
-      r && r.width > 0 && r.height > 0
-        ? {
-            x: r.x / z - PAD,
-            y: r.y / z - PAD,
-            w: r.width / z + PAD * 2,
-            h: r.height / z + PAD * 2,
-          }
-        : null;
-    const w = popEl?.offsetWidth || CARD_W;
-    const h = Math.min(popEl?.offsetHeight || 220, vpH - 20);
-    place(w, h);
+    vpW = window.innerWidth;
+    vpH = window.innerHeight;
+
+    let targetEl: Element | null = null;
+    if (step.selector) {
+      targetEl = document.querySelector(step.selector);
+      const r = targetEl?.getBoundingClientRect() ?? null;
+      if (!r || r.width <= 0 || r.height <= 0) {
+        if (consecutiveSkips < TOUR_STEPS.length) {
+          consecutiveSkips += 1;
+          tourSkipMissingStep(idx);
+          return;
+        }
+        consecutiveSkips = 0;
+        target = null;
+      } else {
+        consecutiveSkips = 0;
+        target = toPaddedRect(r, PAD, vpW, vpH);
+      }
+    } else {
+      consecutiveSkips = 0;
+      target = null;
+    }
+
+    popMaxH = null;
+    await tick();
+    const edgePad = isDesktop ? 24 : 16;
+    const maxAllowedW = Math.max(240, vpW - edgePad);
+    const maxAllowedH = Math.max(150, vpH - edgePad);
+    const w = Math.min(popEl?.offsetWidth || PHONE_CARD_W, maxAllowedW);
+    const h = Math.min(popEl?.offsetHeight || 220, maxAllowedH);
+    place(w, h, targetEl);
   }
 
-  function place(w: number, h: number): void {
-    const z = hudZoom();
-    const vw = window.innerWidth / z;
-    const vh = window.innerHeight / z;
-    if (!target || step.side === 'center') {
+  function place(w: number, h: number, targetEl: Element | null): void {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const margin = isDesktop ? 12 : 8;
+    const clampedW = Math.min(w, Math.max(240, vw - margin * 2));
+    const clampedH = Math.min(h, Math.max(150, vh - margin * 2));
+
+    const clampX = (raw: number, boxW = clampedW) =>
+      Math.max(margin, Math.min(raw, Math.max(margin, vw - boxW - margin)));
+    const clampY = (raw: number, boxH = clampedH) =>
+      Math.max(margin, Math.min(raw, Math.max(margin, vh - boxH - margin)));
+
+    // Full-viewport or center-designated steps
+    if (!target || step.side === 'center' || (target.w > vw * 0.72 && target.h > vh * 0.55)) {
       placedSide = 'center';
-      pop = { x: Math.max(8, (vw - w) / 2), y: Math.max(8, (vh - h) / 2), w, h };
+      popMaxH = null;
+      const cx = target ? target.x + (target.w - clampedW) / 2 : (vw - clampedW) / 2;
+      const cy = target ? target.y + (target.h - clampedH) / 2 : (vh - clampedH) / 2;
+      pop = {
+        x: clampX(cx),
+        y: clampY(cy),
+        w: clampedW,
+        h: clampedH,
+      };
       return;
     }
-    const cx = Math.min(Math.max(target.x + target.w / 2, w / 2 + 8), vw - w / 2 - 8);
-    const spaceBelow = vh - (target.y + target.h) - GAP;
-    const spaceAbove = target.y - GAP;
+
+    // Desktop-aware placement: never cover target, docked Sheet body, or End Turn slab.
+    if (isDesktop) {
+      const topBarEl = document.querySelector('header.hud-chrome');
+      const topClear = Math.max(margin, (topBarEl?.getBoundingClientRect().bottom ?? 0) + 10);
+
+      const sheetEl =
+        targetEl?.closest('[role="dialog"].hud-chrome') ??
+        document.querySelector('[role="dialog"].hud-chrome');
+      const rawSheet = sheetEl?.getBoundingClientRect() ?? null;
+      const sheetRect: Rect | null =
+        rawSheet && rawSheet.width > 0 && rawSheet.height > 0
+          ? { x: rawSheet.left, y: rawSheet.top, w: rawSheet.width, h: rawSheet.height }
+          : null;
+
+      const endTurnEl = document.querySelector('[data-tour="end-turn"]');
+      const rawEndTurn = endTurnEl?.getBoundingClientRect() ?? null;
+      const endTurnRect: Rect | null =
+        rawEndTurn && rawEndTurn.width > 0 && rawEndTurn.height > 0
+          ? { x: rawEndTurn.left, y: rawEndTurn.top, w: rawEndTurn.width, h: rawEndTurn.height }
+          : null;
+
+      const avoidRects: Rect[] = [target];
+      if (sheetRect) avoidRects.push(sheetRect);
+      if (endTurnRect) avoidRects.push(endTurnRect);
+
+      const targetInSheet = Boolean(
+        sheetEl && targetEl && (sheetEl === targetEl || sheetEl.contains(targetEl))
+      );
+      const isRailTarget =
+        target.w <= 140 && (target.x > vw * 0.65 || target.x + target.w < vw * 0.35);
+
+      type Candidate = {
+        side: 'top' | 'bottom' | 'left' | 'right';
+        x: number;
+        y: number;
+        w: number;
+        h: number;
+        maxH: number | null;
+      };
+      const candidates: Candidate[] = [];
+
+      const pushCandidate = (
+        side: 'top' | 'bottom' | 'left' | 'right',
+        rawX: number,
+        rawY: number,
+        boxW = clampedW,
+        boxH = clampedH,
+        maxH: number | null = null
+      ) => {
+        candidates.push({
+          side,
+          x: clampX(rawX, boxW),
+          y: clampY(rawY, boxH),
+          w: boxW,
+          h: boxH,
+          maxH,
+        });
+      };
+
+      // 1. Target inside or equal to docked Sheet: place cleanly alongside the Sheet over the map.
+      if (targetInSheet && sheetRect) {
+        const rightSpace = vw - (sheetRect.x + sheetRect.w) - GAP - margin;
+        const leftSpace = sheetRect.x - GAP - margin;
+        if (rightSpace >= 260 || rightSpace >= leftSpace) {
+          const boxW = Math.min(clampedW, Math.max(260, rightSpace));
+          const x = sheetRect.x + sheetRect.w + GAP;
+          const alignedY = Math.max(topClear, target.y - 12);
+          pushCandidate('right', x, alignedY, boxW);
+          pushCandidate('right', x, target.y + target.h / 2 - clampedH / 2, boxW);
+          if (endTurnRect) {
+            pushCandidate('right', x, endTurnRect.y - GAP - clampedH, boxW);
+          }
+        }
+        if (leftSpace >= 260) {
+          const boxW = Math.min(clampedW, leftSpace);
+          const x = sheetRect.x - GAP - boxW;
+          pushCandidate('left', x, Math.max(topClear, target.y - 12), boxW);
+        }
+      }
+
+      // 2. Side rail targets: place horizontally beside the rail.
+      if (isRailTarget && !targetInSheet) {
+        const spaceLeft = target.x - GAP - margin;
+        const spaceRight = vw - (target.x + target.w) - GAP - margin;
+        const goLeft = spaceLeft >= clampedW || spaceLeft >= spaceRight;
+        const boxW = Math.min(clampedW, Math.max(260, goLeft ? spaceLeft : spaceRight));
+        const x = goLeft ? target.x - GAP - boxW : target.x + target.w + GAP;
+        const side = goLeft ? 'left' : 'right';
+        pushCandidate(side, x, Math.max(topClear, target.y + target.h / 2 - clampedH / 2), boxW);
+        if (endTurnRect) {
+          pushCandidate(side, x, Math.max(topClear, endTurnRect.y - GAP - clampedH), boxW);
+        }
+        pushCandidate(side, x, topClear, boxW);
+      }
+
+      // 3. TopBar or general targets: try preferred vertical side, opposite, then horizontals.
+      if (!targetInSheet) {
+        const wantBottom = step.side === 'bottom';
+        const vOrder: Array<'bottom' | 'top'> = wantBottom ? ['bottom', 'top'] : ['top', 'bottom'];
+        for (const s of vOrder) {
+          const y = s === 'bottom' ? target.y + target.h + GAP : target.y - GAP - clampedH;
+          pushCandidate(s, target.x + target.w / 2 - clampedW / 2, y);
+          // Also try nudged away from left/right edges or rail
+          pushCandidate(s, target.x, y);
+        }
+        const spaceLeft = target.x - GAP - margin;
+        const spaceRight = vw - (target.x + target.w) - GAP - margin;
+        if (spaceLeft >= 280) {
+          const boxW = Math.min(clampedW, spaceLeft);
+          pushCandidate('left', target.x - GAP - boxW, Math.max(topClear, target.y), boxW);
+        }
+        if (spaceRight >= 280) {
+          const boxW = Math.min(clampedW, spaceRight);
+          pushCandidate('right', target.x + target.w + GAP, Math.max(topClear, target.y), boxW);
+        }
+      }
+
+      let best: Candidate | null = null;
+      let bestPenalty = Number.POSITIVE_INFINITY;
+      for (const cand of candidates) {
+        const box: Rect = { x: cand.x, y: cand.y, w: cand.w, h: cand.h };
+        let overlap = 0;
+        for (const obs of avoidRects) {
+          overlap += intersectArea(box, obs);
+        }
+        if (overlap === 0) {
+          best = cand;
+          break;
+        }
+        if (overlap < bestPenalty) {
+          bestPenalty = overlap;
+          best = cand;
+        }
+      }
+
+      if (best) {
+        placedSide = best.side;
+        popMaxH = best.maxH;
+        pop = { x: best.x, y: best.y, w: best.w, h: best.h };
+        return;
+      }
+    }
+
+    // Mobile / fallback placement (preserves existing approved phone layouts)
+    const spaceBelow = vh - (target.y + target.h) - GAP - 8;
+    const spaceAbove = target.y - GAP - 8;
+    const spaceRight = vw - (target.x + target.w) - GAP - 8;
+    const spaceLeft = target.x - GAP - 8;
+
     const wantBottom = step.side === 'bottom';
-    const useBottom = wantBottom ? spaceBelow >= h || spaceBelow >= spaceAbove : spaceAbove < h && spaceBelow > spaceAbove;
-    placedSide = useBottom ? 'bottom' : 'top';
-    const rawY = useBottom ? target.y + target.h + GAP : target.y - GAP - h;
-    pop = {
-      x: Math.min(Math.max(cx - w / 2, 8), Math.max(8, vw - w - 8)),
-      y: Math.max(8, Math.min(rawY, Math.max(8, vh - h - 8))),
-      w,
-      h,
+    const fitsBottom = spaceBelow >= clampedH;
+    const fitsTop = spaceAbove >= clampedH;
+    const fitsLeft = spaceLeft >= clampedW;
+    const fitsRight = spaceRight >= clampedW;
+
+    const isRailTarget =
+      vw > 460 &&
+      target.w <= 120 &&
+      (target.x > vw * 0.65 || target.x + target.w < vw * 0.35);
+
+    const placeHorizontal = (useRight: boolean, boxH = clampedH, maxH: number | null = null) => {
+      placedSide = useRight ? 'right' : 'left';
+      popMaxH = maxH;
+      const boxW = Math.min(clampedW, useRight ? spaceRight : spaceLeft);
+      pop = {
+        x: clampX(useRight ? target!.x + target!.w + GAP : target!.x - GAP - boxW, boxW),
+        y: clampY(target!.y + target!.h / 2 - boxH / 2, boxH),
+        w: boxW,
+        h: boxH,
+      };
     };
+
+    const placeVertical = (useBottom: boolean, boxH = clampedH, maxH: number | null = null) => {
+      placedSide = useBottom ? 'bottom' : 'top';
+      popMaxH = maxH;
+      pop = {
+        x: clampX(target!.x + target!.w / 2 - clampedW / 2),
+        y: clampY(useBottom ? target!.y + target!.h + GAP : target!.y - GAP - boxH, boxH),
+        w: clampedW,
+        h: boxH,
+      };
+    };
+
+    if (isRailTarget && (fitsLeft || fitsRight)) {
+      placeHorizontal(fitsRight && (!fitsLeft || spaceRight >= spaceLeft));
+      return;
+    }
+
+    if (wantBottom && fitsBottom) {
+      placeVertical(true);
+      return;
+    }
+    if (!wantBottom && fitsTop) {
+      placeVertical(false);
+      return;
+    }
+
+    if (fitsBottom || fitsTop) {
+      placeVertical(fitsBottom && (!fitsTop || spaceBelow >= spaceAbove));
+      return;
+    }
+
+    if (fitsLeft || fitsRight) {
+      placeHorizontal(fitsRight && (!fitsLeft || spaceRight >= spaceLeft));
+      return;
+    }
+
+    if (target.h > vh * 0.65 && Math.max(spaceBelow, spaceAbove) < 90) {
+      placedSide = 'center';
+      popMaxH = null;
+      pop = {
+        x: clampX((vw - clampedW) / 2),
+        y: clampY((vh - clampedH) / 2),
+        w: clampedW,
+        h: clampedH,
+      };
+      return;
+    }
+
+    const bestVert = Math.max(spaceBelow, spaceAbove);
+    const bestHoriz = Math.max(spaceLeft, spaceRight);
+    if (bestHoriz >= 240 && bestHoriz > bestVert) {
+      const useRight = spaceRight >= spaceLeft;
+      placeHorizontal(useRight, clampedH, null);
+      return;
+    }
+    if (bestVert >= 140) {
+      const useBottom = spaceBelow >= spaceAbove;
+      const capH = Math.floor(useBottom ? spaceBelow : spaceAbove);
+      placeVertical(useBottom, Math.min(clampedH, capH), capH);
+      return;
+    }
+
+    const useBottom = spaceBelow >= spaceAbove;
+    const capH = Math.max(150, Math.floor(useBottom ? spaceBelow : spaceAbove));
+    placeVertical(useBottom, Math.min(clampedH, capH), capH);
   }
 
-  // Connector endpoints: popover edge <-> target edge (facing each other).
   let line = $derived.by(() => {
     if (!target || placedSide === 'center') return null;
-    const pcx = pop.x + pop.w / 2;
+    const pcx = Math.max(pop.x + 12, Math.min(target.x + target.w / 2, pop.x + pop.w - 12));
+    const pcy = Math.max(pop.y + 12, Math.min(target.y + target.h / 2, pop.y + pop.h - 12));
+    const tcx = target.x + target.w / 2;
+    const tcy = target.y + target.h / 2;
     if (placedSide === 'bottom') {
-      return { x1: pcx, y1: pop.y, x2: target.x + target.w / 2, y2: target.y + target.h };
+      return { x1: pcx, y1: pop.y, x2: tcx, y2: target.y + target.h };
     }
-    return { x1: pcx, y1: pop.y + pop.h, x2: target.x + target.w / 2, y2: target.y };
+    if (placedSide === 'top') {
+      return { x1: pcx, y1: pop.y + pop.h, x2: tcx, y2: target.y };
+    }
+    if (placedSide === 'right') {
+      return { x1: pop.x, y1: pcy, x2: target.x + target.w, y2: tcy };
+    }
+    return { x1: pop.x + pop.w, y1: pcy, x2: target.x, y2: tcy };
   });
 
-  let cutout = $derived(
-    target
-      ? `M ${target.x},${target.y} h ${target.w} v ${target.h} h ${-target.w} Z`
-      : '',
-  );
-
   $effect(() => {
-    // Re-run measurement on step/visibility change + after slide transitions.
     void $tourActive;
     void $tourIndex;
     measure();
-    const t = setTimeout(measure, 380);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(measure, 210);
+    const t2 = setTimeout(measure, 400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   });
 
-  function onKey(e: KeyboardEvent): void {
-    if (!$tourActive) return;
-    if (e.key === 'Escape') stopGuideTour();
-    else if (e.key === 'ArrowLeft') tourNext();
-    else if (e.key === 'ArrowRight') tourPrev();
+  function handleNext(): void {
+    fx(isLast ? 'confirm' : 'tap');
+    tourNext();
   }
+
+  function handlePrev(): void {
+    if (isFirst) return;
+    fx('tap');
+    tourPrev();
+  }
+
+  function handleSkip(): void {
+    fx('cancel');
+    stopGuideTour();
+  }
+
+  function onCaptureKey(e: KeyboardEvent): void {
+    if (!$tourActive) return;
+    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen) return;
+
+    if (e.key !== 'Tab') {
+      e.stopPropagation();
+    }
+    if (hasModifierKey(e) || isTypingTarget(e.target)) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      handleSkip();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      handleNext();
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      handlePrev();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      const targetEl = e.target as HTMLElement | null;
+      const otherBtn = targetEl?.closest('button:not([data-tour-next]), a');
+      if (!otherBtn) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        handleNext();
+      }
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', onCaptureKey, true);
+    return () => window.removeEventListener('keydown', onCaptureKey, true);
+  });
 </script>
 
-<svelte:window onkeydown={onKey} onresize={measure} />
+<svelte:window onresize={measure} />
 
 {#if isActive}
-  <div class="pointer-events-auto fixed inset-0 z-[200] font-arabic select-none" dir="rtl" role="dialog" aria-label="الجولة التعريفية">
-    <!-- Dim + cutout -->
-    <svg class="absolute inset-0 h-full w-full" onmousedown={stopGuideTour} aria-hidden="true">
-      <path
-        d={`M 0,0 H ${vpW} V ${vpH} H 0 Z ${cutout}`}
-        fill="rgb(from var(--color-charcoal-deep) r g b / 0.82)"
-        fill-rule="evenodd"
-      />
-      {#if line}
-        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="var(--color-wheat-gold)" stroke-width="2" />
-        <rect
-          x={line.x2 - 5}
-          y={line.y2 - 5}
-          width="10"
-          height="10"
-          transform={`rotate(45 ${line.x2} ${line.y2})`}
-          fill="var(--color-wheat-gold)"
-          stroke="var(--color-charcoal-deep)"
-          stroke-width="2"
-        />
-      {/if}
-    </svg>
-
+  <div
+    class="pointer-events-auto fixed inset-0 z-[200] select-none font-arabic {isDesktop ? 'flow-desktop' : ''}"
+    dir="rtl"
+    role="dialog"
+    aria-modal="true"
+    aria-label="الجولة التعريفية"
+  >
+    <!-- 4 clean dim bands around target (or full screen when centered without target) -->
     {#if target}
-      <!-- Viewfinder corner brackets -->
-      {@const c = target}
-      <div class="pointer-events-none absolute" style="left:{c.x}px;top:{c.y}px;width:{c.w}px;height:{c.h}px;">
-        <span class="tb-corner" style="top:-2px;right:-2px;border-top:3px solid var(--color-wheat-gold);border-right:3px solid var(--color-wheat-gold);"></span>
-        <span class="tb-corner" style="top:-2px;left:-2px;border-top:3px solid var(--color-wheat-gold);border-left:3px solid var(--color-wheat-gold);"></span>
-        <span class="tb-corner" style="bottom:-2px;right:-2px;border-bottom:3px solid var(--color-wheat-gold);border-right:3px solid var(--color-wheat-gold);"></span>
-        <span class="tb-corner" style="bottom:-2px;left:-2px;border-bottom:3px solid var(--color-wheat-gold);border-left:3px solid var(--color-wheat-gold);"></span>
-        <span class="absolute inset-0 border border-wheat-gold/40 shadow-[0_0_35px_rgba(242,207,119,0.35)]"></span>
-      </div>
+      <div
+        class="absolute inset-x-0 top-0 bg-[rgb(from_var(--c-bg)_r_g_b/0.82)]"
+        style="height:{target.y}px;"
+        onmousedown={handleSkip}
+        aria-hidden="true"
+      ></div>
+      <div
+        class="absolute inset-x-0 bottom-0 bg-[rgb(from_var(--c-bg)_r_g_b/0.82)]"
+        style="top:{target.y + target.h}px;"
+        onmousedown={handleSkip}
+        aria-hidden="true"
+      ></div>
+      <div
+        class="absolute left-0 bg-[rgb(from_var(--c-bg)_r_g_b/0.82)]"
+        style="top:{target.y}px;width:{target.x}px;height:{target.h}px;"
+        onmousedown={handleSkip}
+        aria-hidden="true"
+      ></div>
+      <div
+        class="absolute right-0 bg-[rgb(from_var(--c-bg)_r_g_b/0.82)]"
+        style="top:{target.y}px;left:{target.x + target.w}px;height:{target.h}px;"
+        onmousedown={handleSkip}
+        aria-hidden="true"
+      ></div>
+      <!-- Single crisp 2px square outline around target -->
+      <div
+        class="pointer-events-none absolute border-2 border-[var(--c-accent)]"
+        style="left:{target.x}px;top:{target.y}px;width:{target.w}px;height:{target.h}px;"
+        aria-hidden="true"
+      ></div>
+    {:else}
+      <div
+        class="absolute inset-0 bg-[rgb(from_var(--c-bg)_r_g_b/0.82)]"
+        onmousedown={handleSkip}
+        aria-hidden="true"
+      ></div>
     {/if}
 
-    <!-- Card -->
+    {#if line}
+      <svg class="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+        <line x1={line.x1} y1={line.y1} x2={line.x2} y2={line.y2} stroke="var(--c-accent)" stroke-width="1.5" />
+      </svg>
+    {/if}
+
+    <!-- Flat square tooltip card clamped inside viewport -->
     <div
       bind:this={popEl}
-      class="absolute w-[348px] max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] scroll-area overflow-y-auto border border-wheat-mid/25 text-wheat-light shadow-[0_20px_60px_rgba(0,0,0,0.85)] shell-round-pop"
-      style="left:{pop.x}px;top:{pop.y}px;background: var(--shell-surface);"
+      use:focusTrap
+      tabindex="-1"
+      data-tour-card
+      class="absolute flex flex-col overflow-hidden border border-[var(--c-line-strong)] border-t-2 border-t-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-text)] {isDesktop
+        ? 'w-[min(var(--flow-tour-w,clamp(340px,24vw,440px)),calc(100vw-24px))] max-h-[calc(100dvh-24px)]'
+        : 'w-[min(340px,calc(100vw-16px))] max-h-[calc(100dvh-16px)]'}"
+      style="left:{pop.x}px;top:{pop.y}px;{popMaxH ? `max-height:${popMaxH}px;` : ''}"
     >
-      <div class="px-4 pt-3">
+      <div class="shrink-0 border-b border-[var(--c-line)] bg-[var(--c-panel)] {isDesktop ? 'px-4 py-3' : 'px-3.5 py-2.5 phone-l:px-3 phone-l:py-1.5'}">
         <div class="flex items-center justify-between gap-2">
-          <span class="border border-wheat-gold/40 bg-wheat-gold/15 px-1.5 py-0.5 text-[9px] font-bold text-wheat-gold shell-round-chip">
+          <span class="min-w-0 truncate border border-[var(--c-accent)] bg-[var(--c-bg)] px-2 py-0.5 font-bold text-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11px]'}">
             {step.badge}
           </span>
           <button
             type="button"
-            onclick={stopGuideTour}
-            class="flex min-h-11 items-center px-2 text-[10.5px] text-wheat-dark transition-colors hover:text-wheat-gold phone-p:min-h-11"
+            onclick={handleSkip}
+            class="pressable flex min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap px-2 font-bold text-[var(--c-muted)] transition-colors hover:text-[var(--c-accent)] md:min-h-9 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[12px]'}"
             aria-label="تخطي الجولة"
           >
-            تخطي ✕
+            <span>تخطي ✕</span>
+            <KbdHint keys="Esc" />
           </button>
         </div>
-        <div class="flex items-center gap-2.5 pt-1">
-          <GameIcon name={step.icon} cls="w-7 h-7 shrink-0 text-wheat-gold/85" />
-          <h3 class="font-heading text-[16px] font-bold leading-snug text-wheat-light">{step.title}</h3>
+        <div class="mt-1.5 flex items-center gap-2 phone-l:mt-1">
+          <GameIcon name={step.icon} cls="h-4.5 w-4.5 shrink-0 text-[var(--c-accent)]" />
+          <h3 class="font-heading font-bold leading-snug text-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-[14px] phone-l:text-[13px]'}">{step.title}</h3>
         </div>
-        <div class="mt-2 h-[2px] w-14 bg-wheat-gold/80"></div>
       </div>
 
-      <div class="tour-body px-4 py-2.5 text-[12px] leading-[1.95] text-wheat-light/90">
+      <div class="tour-body scroll-area min-h-0 flex-1 overflow-y-auto {isDesktop ? 'px-4 py-3 text-[var(--flow-fs-sm)] leading-[1.68]' : 'px-3.5 py-2.5 text-[12.5px] leading-[1.65] phone-l:px-3 phone-l:py-1.5 phone-l:text-[12px] phone-l:leading-[1.5]'} text-[var(--c-text-2)]">
         {@html step.body}
       </div>
 
-      <div class="sticky bottom-0 border-t border-wheat-mid/10 bg-charcoal-deep/90 px-4 pb-3 pt-1">
-        <div class="flex items-center gap-2 py-1.5">
-          <div class="relative h-1 flex-1 bg-charcoal-mid" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
-            <div class="absolute inset-y-0 right-0 bg-wheat-gold transition-all" style="width: {((idx + 1) / TOUR_STEPS.length) * 100}%"></div>
+      <div class="shrink-0 border-t border-[var(--c-line)] bg-[var(--c-panel)] {isDesktop ? 'px-4 pb-3.5 pt-2.5' : 'px-3.5 pb-3 pt-2 phone-l:px-3 phone-l:pb-2 phone-l:pt-1.5'}">
+        <div class="flex items-center gap-2 pb-2 phone-l:pb-1.5">
+          <span class="num shrink-0 font-heading font-bold text-[var(--c-muted)] {isDesktop ? 'text-[var(--flow-fs-xs)]' : 'text-[11px]'}" dir="ltr">
+            {idx + 1} / {TOUR_STEPS.length}
+          </span>
+          <div class="flex flex-1 gap-0.5" role="progressbar" aria-valuenow={idx + 1} aria-valuemin={1} aria-valuemax={TOUR_STEPS.length}>
+            {#each TOUR_STEPS as _, i (i)}
+              <span
+                class="block h-1 flex-1 {i === idx
+                  ? 'bg-[var(--c-accent)]'
+                  : i < idx
+                    ? 'bg-[var(--c-disabled)]'
+                    : 'bg-[var(--c-track)]'}"
+              ></span>
+            {/each}
           </div>
-          <span class="shrink-0 font-mono text-[10px] text-wheat-dark"><bdi>{idx + 1} / {TOUR_STEPS.length}</bdi></span>
         </div>
-        <div class="flex items-center justify-between gap-2">
+        <div class="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onclick={tourPrev}
+            onclick={handlePrev}
             disabled={isFirst}
-            class="flex min-h-9 items-center border border-charcoal-mid px-3.5 text-[11px] font-bold transition-all phone-p:min-h-11 phone-l:min-h-11 shell-round-item {isFirst
-              ? 'cursor-not-allowed text-wheat-dark opacity-30'
-              : 'text-wheat-mid hover:border-wheat-mid hover:text-wheat-light'}"
+            style={isDesktop ? 'min-height: var(--flow-btn-h);' : ''}
+            class="kit-btn sec gap-1.5 min-h-11 px-3.5 font-bold disabled:opacity-35 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[12.5px]'}"
           >
-            السابق
+            <span>السابق</span>
+            {#if !isFirst}
+              <KbdHint keys="→" />
+            {/if}
           </button>
           <button
+            data-autofocus
+            data-tour-next
             type="button"
-            onclick={tourNext}
-            class="flex min-h-9 items-center border border-wheat-gold bg-wheat-gold px-4 text-[11px] font-bold text-forest-deep shadow-md transition-all hover:bg-wheat-light phone-p:min-h-11 phone-l:min-h-11 shell-round-item"
+            onclick={handleNext}
+            style={isDesktop ? 'min-height: var(--flow-btn-h);' : ''}
+            class="btn-primary-chamfer pressable gap-1.5 min-h-11 px-4 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-text)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
           >
-            {isLast ? 'بدء الحكم' : 'التالي'}
+            <span>{isLast ? 'بدء الحكم' : 'التالي'}</span>
+            <KbdHint keys="←" tone="accent" />
           </button>
         </div>
       </div>
@@ -206,47 +590,38 @@
 {/if}
 
 <style>
-  .tb-corner {
-    position: absolute;
-    width: 22px;
-    height: 22px;
-    filter: drop-shadow(0 0 6px rgba(242, 207, 119, 0.6));
-  }
   .tour-body :global(b),
   .tour-body :global(strong) {
-    color: var(--color-wheat-gold);
+    color: var(--c-accent);
   }
-  /* Numeric/mixed tokens stay LTR-isolated so comparisons never scramble */
   .tour-body :global(bdi) {
     unicode-bidi: isolate;
-    font-family: 'Thmanyah Sans', system-ui, sans-serif;
+    font-family: var(--font-arabic);
   }
   .tour-body :global(.lead) {
-    color: rgb(from var(--color-wheat-light) r g b / 0.95);
+    color: var(--c-text);
   }
-  /* Takeaway lists: square gold markers keep the angular marker language */
   .tour-body :global(ul) {
     display: grid;
-    gap: 7px;
-    margin-top: 9px;
+    gap: 6px;
+    margin-top: 8px;
   }
   .tour-body :global(li) {
     position: relative;
-    padding-right: 17px;
-    color: rgb(from var(--color-wheat-light) r g b / 0.82);
+    padding-right: 14px;
+    color: var(--c-text-2);
   }
   .tour-body :global(li::before) {
     content: "";
     position: absolute;
     right: 0;
-    top: 13px;
-    width: 7px;
-    height: 7px;
-    background: var(--color-wheat-gold);
-    opacity: 0.85;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    background: var(--c-accent);
   }
-  /* RRI legend tones */
-  .tour-body :global(li[data-tone="good"]::before) { background: var(--color-forest-accent); }
-  .tour-body :global(li[data-tone="warn"]::before) { background: var(--color-status-warn); }
-  .tour-body :global(li[data-tone="bad"]::before) { background: var(--color-umber-crimson); }
+  .tour-body :global(li[data-tone="good"]::before) { background: var(--c-pos); }
+  .tour-body :global(li[data-tone="warn"]::before) { background: var(--c-accent); }
+  .tour-body :global(li[data-tone="bad"]::before) { background: var(--c-neg); }
 </style>
+

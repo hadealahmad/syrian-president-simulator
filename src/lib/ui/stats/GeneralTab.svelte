@@ -2,12 +2,16 @@
   import { gameStore } from '../../stores/game-store';
   import { previewRangesStore, projectedTurnStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
+  import { selectStatAndJump } from '../shell/section-nav';
+  import { statState } from '../panels/shared';
   import KpiTile from './KpiTile.svelte';
   import LedgerBlock from './LedgerBlock.svelte';
+  import TickValue from './TickValue.svelte';
   import {
     KPI_STATS,
     METER_FILL,
     explainerFor,
+    fmtAbsDelta,
     fmtVal,
     formatBillion,
     formatNumber,
@@ -15,7 +19,7 @@
     signed,
     signedPct,
     suffixFor,
-    valueTone,
+    type ProjectedKey,
   } from './stat-catalog';
 
   let p = $derived($projectedTurnStore);
@@ -26,8 +30,12 @@
   let seasonText = $derived($gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء');
   let turnText = $derived(String($gameStore.turnNumber).padStart(2, '0'));
 
-  // Current-only macro figures — the same five rows the table listed under
-  // "مؤشرات كلية حالية".
+  function kpiValueTone(statId: string, key: ProjectedKey, value: number): 'default' | 'neg' {
+    if (key === 'treasurySYP' && value < 0) return 'neg';
+    if (statState(statId, value) === 'crit') return 'neg';
+    return 'default';
+  }
+
   let macroRows = $derived([
     { label: 'السعر الرسمي للدولار', value: formatNumber(macro.officialRateSYP), suffix: 'SP' },
     { label: 'سلة الغذاء الشهرية', value: formatNumber(macro.monthlyFoodBasketSYP), suffix: 'SP' },
@@ -36,15 +44,22 @@
     { label: 'قدرة التوليد المتاحة', value: formatNumber(macro.gridCapacityMW), suffix: 'م.و' },
   ]);
 
-  // Rehearsal bands — unchanged numbers from `previewRangesStore`.
   let rangeRows = $derived([
     {
       label: 'كفاية الاحتياطي',
       value: `${ranges.runwayMonthsEstimated}`,
+      numericValue: ranges.runwayMonthsEstimated,
+      formatNum: (n: number) => `${Math.round(n)}`,
       suffix: 'شهراً',
-      tone: ranges.runwayMonthsEstimated <= 6 ? 'text-umber-crimson' : 'text-forest-accent',
     },
-    { label: 'عجز الموازنة', value: `${formatBillion(ranges.deficitSYP)}B`, suffix: 'SP' },
+    {
+      label: 'عجز الموازنة',
+      value: `${formatBillion(ranges.deficitSYP)}B`,
+      numericValue: ranges.deficitSYP,
+      formatNum: (n: number) => `${formatBillion(n)}B`,
+      suffix: 'SP',
+      emphasize: true,
+    },
     {
       label: 'النطاق المرجح للصرف',
       value: `${formatNumber(ranges.fxRateMin)} - ${formatNumber(ranges.fxRateMax)}`,
@@ -60,61 +75,66 @@
     {
       label: 'الطباعة النقدية المطلوبة',
       value: `${formatBillion(ranges.requiresPrintingSYP)}B`,
+      numericValue: ranges.requiresPrintingSYP,
+      formatNum: (n: number) => `${formatBillion(n)}B`,
       suffix: 'SP',
+      emphasize: true,
     },
   ]);
 
   function useStatFilter(id: string): void {
-    uiStore.openStatRelatedOptions(id);
+    selectStatAndJump(id);
   }
 </script>
 
-<div class="space-y-3">
-  <!-- Turn context + fiscal runway (the old table header, kept intact). -->
+<div class="space-y-2">
+  <!-- Slim single-line turn context + fiscal runway -->
   <div
-    class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border border-wheat-mid/15 bg-forest-mid/20 px-2.5 py-2 shell-round-item"
+    class="flex items-center justify-between gap-2 border border-[var(--c-line)] bg-[var(--c-strip)] px-2.5 py-1.5 text-[11px]"
   >
-    <span class="font-mono text-[10px] text-wheat-dark">
-      الدور <span dir="ltr" class="font-bold text-wheat-mid">{turnText}/40</span>
-      · <span dir="ltr">{$gameStore.calendarYear}</span>
+    <span class="truncate leading-[1.4] text-[var(--c-muted)]">
+      الدور <span dir="ltr" class="oc-kit-num font-bold text-[var(--c-text)]">{turnText}/40</span>
+      · <span dir="ltr" class="oc-kit-num">{$gameStore.calendarYear}</span>
       · {seasonText}
     </span>
-    <span class="text-[10px] text-wheat-dark">
-      كفاية الاحتياطي:
-      <span
-        dir="ltr"
-        class="font-mono font-bold {ranges.runwayMonthsEstimated <= 6
-          ? 'text-umber-crimson'
-          : 'text-forest-accent'}"
-      >
-        {ranges.runwayMonthsEstimated}
-      </span>
+    <span class="shrink-0 text-[var(--c-muted)]">
+      الاحتياطي:
+      <TickValue
+        value={ranges.runwayMonthsEstimated}
+        format={(n) => `${Math.round(n)}`}
+        class="font-bold {ranges.runwayMonthsEstimated <= 6
+          ? 'text-[var(--c-neg)]'
+          : 'text-[var(--c-pos)]'}"
+      />
       شهراً
     </span>
   </div>
 
   <section class="space-y-1.5">
     <div class="flex items-baseline justify-between gap-2">
-      <h3 class="flex items-center gap-2 text-[9px] font-bold tracking-[1.2px] text-forest-accent/90">
-        <span class="h-px w-3 bg-forest-accent/50" aria-hidden="true"></span>
+      <h3 class="text-[11.5px] font-bold text-[var(--c-muted)]">
         المؤشرات المسقطة للدور القادم
       </h3>
-      <span class="text-[8.5px] text-wheat-dark">الحالي ← المتوقع</span>
+      <span class="text-[11px] text-[var(--c-disabled)]">الحالي ← المتوقع</span>
     </div>
 
-    <div class="grid grid-cols-2 items-stretch gap-2">
+    <div class="oc-kpi-grid">
       {#each KPI_STATS as spec, i (spec.key)}
         {@const stat = p[spec.key]}
         <KpiTile
           label={spec.labelAr}
           icon={spec.icon}
+          fmt={spec.fmt}
           value={fmtVal(spec.fmt, stat.current)}
           suffix={suffixFor(spec.fmt)}
           projected={stat.isChanged ? fmtVal(spec.fmt, stat.projected) : ''}
-          delta={stat.isChanged ? signedPct(stat.pctChange) : ''}
+          pctChange={stat.pctChange}
+          pctText={stat.isChanged ? signedPct(stat.pctChange) : ''}
+          delta={stat.isChanged ? fmtAbsDelta(spec.fmt, Math.abs(stat.projected - stat.current)) : ''}
+          deltaArrow={stat.isChanged ? (stat.projected > stat.current ? '▲' : '▼') : ''}
           changed={stat.isChanged}
           beneficial={stat.isBeneficial}
-          valueClass={valueTone(spec.statId, spec.key, stat.current)}
+          valueTone={kpiValueTone(spec.statId, spec.key, stat.current)}
           fillClass={METER_FILL[meterTone(spec.statId, spec.key, stat.current)]}
           min={spec.range?.min ?? Number.NaN}
           max={spec.range?.max ?? Number.NaN}
@@ -134,7 +154,7 @@
   <LedgerBlock title="مؤشرات كلية حالية" rows={macroRows} />
   <LedgerBlock title="التوقعات النطاقية للبروفة" rows={rangeRows} />
 
-  <p class="text-[9px] leading-relaxed text-wheat-dark">
-    اضغط «الخيارات المرتبطة» في أي بطاقة لتصفية القرارات التي تحرّك هذا المؤشر، أو «؟» لقراءة الشرح.
+  <p class="text-[11px] leading-relaxed text-[var(--c-muted)]">
+    اضغط أيقونة التصفية في زاوية البطاقة لعرض القرارات المرتبطة، أو «؟» لقراءة الشرح.
   </p>
 </div>

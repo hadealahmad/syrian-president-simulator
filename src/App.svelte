@@ -14,21 +14,12 @@
   import TopBar from './lib/ui/shell/TopBar.svelte';
   import AlertsStack from './lib/ui/shell/AlertsStack.svelte';
   import CommandDock from './lib/ui/shell/CommandDock.svelte';
-  import EndTurnSeal from './lib/ui/shell/EndTurnSeal.svelte';
   import PanelHost from './lib/ui/shell/PanelHost.svelte';
+  import { openSection } from './lib/ui/shell/section-nav';
   import { shellLayout } from './lib/ui/shell/viewport';
   import { uiStore } from './lib/stores/ui-store';
   import { hasSeenTour, startGuideTour } from './lib/ui/guide-tour';
 
-  // Default 130% zoom for the HUD on 2K-class screens (≥ 2000 CSS px wide:
-  // 1440p/DCI-2K and 4K at 100%). The HUD is scaled by a transform layer
-  // over the untouched WebGL map; --hud-zoom (set on <html>) also drives
-  // --vp-w/--vp-h so drawers and modals still fit (see app.css), and the
-  // map viewport's own top offset multiplies with it so the enlarged top
-  // bar never overlaps the map.
-  const HUD_ZOOM = 1.3;
-  const HUD_ZOOM_QUERY = '(min-width: 2000px)';
-  let hudZoomed = $state(false);
   let sheetOpen = $derived(
     $uiStore.activeCommandPanel !== null || $uiStore.isStatsSidebarOpen,
   );
@@ -43,89 +34,65 @@
     }
   });
 
-  onMount(() => {
-    // Dev/screenshot shortcut: `?play=1` enters the game directly using the
-    // exact flags the Continue path sets (started + settings closed), and
-    // skips the first-run tour so headless captures show the HUD.
-    const devPlay =
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).get('play') === '1';
-    if (devPlay) {
-      uiStore.markGameStarted();
-      uiStore.setSettingsOpen(false);
-      // Optional capture helper: `&panel=decrees|tax|stats|...` opens that
-      // section so verification screenshots can show a Sheet without input.
-      const panel = new URLSearchParams(window.location.search).get('panel');
-      const known = [
-        'provincial',
-        'policies',
-        'assets',
-        'tax',
-        'decrees',
-        'emergency',
-        'stats',
-      ];
-      if (panel && known.includes(panel)) {
-        if (panel === 'stats') {
-          uiStore.closeCommandPanel();
-          uiStore.toggleStatsSidebar(true);
-        } else {
-          if (panel === 'provincial' && !get(uiStore).selectedGovernorateId) {
-            uiStore.selectGovernorate('damascus');
-          }
-          uiStore.openCommandPanel(panel, true);
-        }
+  // Dev/screenshot shortcut: `?play=1` enters the game directly before child
+  // components mount so the settings curtain never renders a partial exit
+  // transition in headless captures.
+  const devPlay =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('play') === '1';
+
+  if (devPlay) {
+    uiStore.markGameStarted();
+    uiStore.setSettingsOpen(false);
+    const panel = new URLSearchParams(window.location.search).get('panel');
+    const known = [
+      'provincial',
+      'policies',
+      'assets',
+      'tax',
+      'decrees',
+      'emergency',
+      'stats',
+    ];
+    if (panel && known.includes(panel)) {
+      if (panel === 'provincial' && !get(uiStore).selectedGovernorateId) {
+        uiStore.selectGovernorate('damascus');
       }
-      return;
+      openSection(panel);
     }
+  }
+
+  onMount(() => {
+    if (devPlay) return;
     // First-run wizard: if the user already started a game session without
     // completing the tour, launch the spotlight tour. Brand-new visitors
     // start on the fullscreen curtain menu and trigger the tour upon clicking
     // "New Game" (بدء لعبة جديدة).
     if ($uiStore.hasStartedGame && !hasSeenTour()) startGuideTour();
   });
-
-  onMount(() => {
-    const mq = window.matchMedia(HUD_ZOOM_QUERY);
-    const update = (): void => {
-      hudZoomed = mq.matches;
-      document.documentElement.style.setProperty(
-        '--hud-zoom',
-        hudZoomed ? String(HUD_ZOOM) : '1',
-      );
-    };
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  });
 </script>
 
-<main class="app-shell relative w-screen h-screen overflow-hidden bg-charcoal-deep text-wheat-light font-arabic">
-  <!-- Map viewport: fills everything below the new top bar. On desktop the
-       open Sheet narrows it (via --shell-map-end) so the whole map stays
-       visible beside the drawer; on phones the Sheet is modal and overlays. -->
+<main class="app-shell relative w-screen h-screen overflow-hidden bg-[var(--c-bg)] text-[var(--c-text)] font-arabic">
+  <!-- Map viewport: fills the area between TopBar, CommandDock rail/tab-bar,
+       and the docked Sheet on desktop. -->
   <div
     data-tour="map"
-    class="map-viewport fixed inset-x-0 bottom-0 z-10 overflow-hidden"
-    style="top: calc(var(--shell-top-h) * var(--hud-zoom)); inset-inline-end: min(var(--shell-map-end, 0px), calc(100vw - 32px));"
+    class="map-viewport fixed z-10 overflow-hidden"
+    style="top: var(--shell-top-h); bottom: var(--shell-bottom-h, 0px); inset-inline-start: var(--shell-rail-w, 0px); inset-inline-end: min(var(--shell-map-end, 0px), calc(100vw - 32px));"
   >
     <GameMap />
   </div>
 
-  <!-- HUD layer: transformed to scale on 2K-class screens; a zero-box
-       pass-through div otherwise (fixed children escape it untouched). -->
-  <div class="hud-layer {hudZoomed ? 'hud-layer-zoomed' : ''}">
+  <!-- HUD controls: plain pass-through wrapper (fixed children use viewport coords). -->
+  <div>
     <!-- Sovereign top bar (stats, live rehearsal preview, turn chip) -->
     <TopBar />
 
     <!-- Read-only severity alerts (desktop stack, phone pill/bell) -->
     <AlertsStack />
 
-    <!-- Bottom command dock / portrait tab bar / landscape rail -->
+    <!-- 5-section command rail / bottom tab bar + integrated End Turn slab -->
     <CommandDock />
-
-    <!-- Gold End-Turn seal with pending-actions badge -->
-    <EndTurnSeal />
 
     <!-- The single responsive Sheet that hosts every command panel -->
     <PanelHost />
@@ -147,7 +114,6 @@
     <GuideTour />
   </div>
 
-  <!-- About page: outside .hud-layer on purpose. Inside it the HUD zoom
-       transform would scale a long reading page by 130% on 2K screens. -->
+  <!-- Fullscreen informational view -->
   <About />
 </main>

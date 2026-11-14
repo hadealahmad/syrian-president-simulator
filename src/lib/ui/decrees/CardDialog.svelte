@@ -2,6 +2,7 @@
   import type { Snippet } from 'svelte';
   import { focusTrap } from '../actions/focus-trap';
   import GameIcon from '../GameIcon.svelte';
+  import './decrees-theme.css';
 
   interface Props {
     open: boolean;
@@ -32,9 +33,6 @@
 
   let dialogEl: HTMLDialogElement | undefined = $state();
 
-  // A native <dialog> lives in the browser top layer, so the fixed-position
-  // sheet (whose entrance animation establishes a containing block) can never
-  // clip it or re-anchor it to the drawer.
   $effect(() => {
     if (!dialogEl) return;
     if (open && !dialogEl.open) dialogEl.showModal();
@@ -54,41 +52,54 @@
       onclose();
     }}
   >
-    <div class="absolute inset-0 flex items-center justify-center p-3">
+    <div
+      class="absolute inset-0 flex items-center justify-center p-3 phone-p:items-end phone-p:justify-stretch phone-p:p-0 phone-l:items-end phone-l:p-2"
+    >
       <button
         type="button"
-        class="dialog-scrim absolute inset-0 cursor-default bg-charcoal-deep/70"
+        class="dialog-scrim absolute inset-0 cursor-default bg-[var(--c-bg)]/80"
         onclick={onclose}
         tabindex="-1"
         aria-label="إلغاء"
       ></button>
 
       <div
-        class="dialog-card relative flex max-h-[calc(100dvh-24px)] w-full max-w-[430px] flex-col overflow-hidden border bg-forest-deep font-arabic text-wheat-light shell-round-pop {tone ===
+        class="dialog-card relative flex max-h-[calc(100dvh-24px)] w-full max-w-[430px] flex-col overflow-hidden border border-[var(--c-line-strong)] border-t-2 bg-[var(--c-bg)] font-arabic text-[var(--c-text)] phone-p:max-h-[82dvh] phone-p:max-w-none phone-p:border-x-0 phone-p:border-b-0 phone-l:max-h-[calc(100dvh-16px)] phone-l:max-w-[520px] {tone ===
         'danger'
-          ? 'border-umber-border/70'
-          : 'border-wheat-mid/40'}"
-        style="box-shadow: 0 30px 80px rgb(0 0 0 / 0.6);"
+          ? 'border-t-[var(--c-neg)]'
+          : 'border-t-[var(--c-accent)]'}"
       >
-        <header class="shrink-0 border-b border-wheat-mid/15 px-4 py-3">
-          <div class="flex items-center gap-1.5 text-[8px] tracking-[1.6px] text-forest-accent">
-            <span class="h-px w-3 bg-forest-accent/60"></span>
+        <header
+          class="shrink-0 border-b border-[var(--c-line)] bg-[var(--c-panel)] px-4 py-3 phone-l:py-2"
+        >
+          <div
+            class="flex items-center gap-1.5 text-[11.5px] font-bold {tone === 'danger'
+              ? 'text-[var(--c-neg)]'
+              : 'text-[var(--c-accent)]'}"
+          >
+            <span
+              class="h-px w-3 {tone === 'danger'
+                ? 'bg-[var(--c-neg)]'
+                : 'bg-[var(--c-accent)]'}"
+            ></span>
             {kicker}
           </div>
-          <h3 class="mt-1 font-heading text-[16px] leading-snug text-wheat-gold">{title}</h3>
+          <h3 class="mt-0.5 text-[17px] font-bold leading-snug text-[var(--c-text)] phone-l:text-[15px]">
+            {title}
+          </h3>
         </header>
 
-        <div class="scroll-area min-h-0 flex-1 overflow-y-auto px-4 py-3">
+        <div class="scroll-area min-h-0 flex-1 overflow-y-auto px-4 py-3 text-[12.5px] phone-l:py-2">
           {@render children()}
         </div>
 
         <footer
-          class="flex shrink-0 justify-end gap-2 border-t border-wheat-mid/15 px-4 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
+          class="flex shrink-0 items-center justify-end gap-2.5 border-t border-[var(--c-line)] bg-[var(--c-panel)] px-4 py-2.5 pb-[calc(0.65rem+env(safe-area-inset-bottom))] phone-p:gap-3 phone-p:pt-3"
         >
           <button
             type="button"
             onclick={onclose}
-            class="min-h-11 border border-charcoal-mid bg-charcoal-surface px-4 text-xs font-bold text-wheat-mid transition-colors hover:border-charcoal-light hover:text-wheat-light focus-visible:border-wheat-gold focus-visible:outline-none font-heading"
+            class="min-h-11 cursor-pointer border border-[var(--c-line-strong)] bg-transparent px-4 text-[12.5px] font-bold text-[var(--c-text)] hover:border-[var(--c-text)] phone-p:min-h-12 phone-p:px-5 phone-p:text-[13px]"
           >
             إلغاء
           </button>
@@ -96,12 +107,17 @@
             type="button"
             disabled={confirmDisabled}
             onclick={onconfirm}
-            class="inline-flex min-h-11 items-center gap-1.5 border px-4 text-xs font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-wheat-gold font-heading {confirmDisabled
-              ? 'cursor-not-allowed border-charcoal-mid bg-charcoal-surface text-wheat-dark opacity-60'
-              : 'cursor-pointer border-wheat-gold bg-wheat-gold text-forest-deep hover:bg-wheat-light'}"
+            class="inline-flex min-h-11 items-center justify-center gap-2 px-4 text-[12.5px] font-bold phone-p:min-h-12 phone-p:flex-1 phone-p:text-[13px] {confirmDisabled
+              ? 'cursor-not-allowed border border-dashed border-[var(--c-line-strong)] bg-transparent text-[var(--c-muted)]'
+              : tone === 'danger'
+                ? 'dialog-chamfer cursor-pointer border-0 bg-[var(--c-neg)] text-[var(--c-ink)]'
+                : 'dialog-chamfer cursor-pointer border-0 bg-[var(--c-accent)] text-[var(--c-ink)]'}"
           >
             {#if !confirmDisabled}
-              <GameIcon name="scroll-quill" cls="h-3.5 w-3.5 shrink-0" />
+              <GameIcon
+                name={tone === 'danger' ? 'gavel' : 'scroll-quill'}
+                cls="h-4 w-4 shrink-0"
+              />
             {/if}
             {confirmLabel}
           </button>
@@ -112,8 +128,6 @@
 {/if}
 
 <style>
-  /* Full-viewport, transparent top-layer host: the inner overlay paints the
-     scrim and centres the 430px card. */
   dialog.card-dialog {
     position: fixed;
     inset: 0;
@@ -124,6 +138,7 @@
     max-height: none;
     padding: 0;
     border: 0;
+    border-radius: 0;
     background: transparent;
     color: inherit;
     overflow: visible;
@@ -132,12 +147,21 @@
     background: transparent;
   }
 
+  .dialog-chamfer {
+    clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 0 100%);
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     .dialog-scrim {
-      animation: dialog-scrim-in 0.2s ease-out both;
+      animation: dialog-scrim-in 0.16s ease-out both;
     }
     .dialog-card {
-      animation: dialog-card-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+      animation: dialog-card-in 0.18s ease-out both;
+    }
+    @media (max-width: 767px) and (orientation: portrait) {
+      .dialog-card {
+        animation: dialog-sheet-in 0.18s ease-out both;
+      }
     }
   }
   @keyframes dialog-scrim-in {
@@ -151,7 +175,17 @@
   @keyframes dialog-card-in {
     from {
       opacity: 0;
-      transform: translateY(12px) scale(0.985);
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes dialog-sheet-in {
+    from {
+      opacity: 0.7;
+      transform: translateY(24px);
     }
     to {
       opacity: 1;

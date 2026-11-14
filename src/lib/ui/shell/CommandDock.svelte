@@ -1,20 +1,14 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { gameStore } from '../../stores/game-store';
   import { budgetStore, draftStore, previewRangesStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import GameIcon from '../GameIcon.svelte';
-  import { panelHasRelated } from '../panels/shared';
   import { governorateShape } from '../../spatial3d/syria-2d-paths';
+  import { fx } from '../fx/feedback';
+  import EndTurnSeal from './EndTurnSeal.svelte';
+  import { openSection, sectionHasRelated, type SectionId } from './section-nav';
   import { shellLayout } from './viewport';
-
-  type SectionId =
-    | 'provincial'
-    | 'policies'
-    | 'assets'
-    | 'tax'
-    | 'decrees'
-    | 'emergency'
-    | 'stats';
 
   interface Section {
     id: SectionId;
@@ -22,33 +16,22 @@
     labelAr: string;
   }
 
-  // Same order/labels/icons as the command hub it replaced. In RTL the first item
-  // renders at the right edge.
+  // Exact 5 sections in order: الخريطة, الخزينة, الدَّين, الحكم, التقارير
   const SECTIONS: Section[] = [
-    { id: 'provincial', icon: 'castle', labelAr: 'المحافظة' },
-    { id: 'policies', icon: 'vote', labelAr: 'السياسات' },
-    { id: 'assets', icon: 'open-treasure-chest', labelAr: 'الأصول' },
-    { id: 'tax', icon: 'abacus', labelAr: 'الماليّة' },
-    { id: 'decrees', icon: 'scroll-quill', labelAr: 'المراسيم' },
-    { id: 'emergency', icon: 'siren', labelAr: 'الطوارئ' },
-    { id: 'stats', icon: 'chart', labelAr: 'الإحصائيات' },
+    { id: 'provincial', icon: 'castle', labelAr: 'الخريطة' },
+    { id: 'tax', icon: 'abacus', labelAr: 'الخزينة' },
+    { id: 'emergency', icon: 'scales', labelAr: 'الدَّين' },
+    { id: 'decrees', icon: 'scroll-quill', labelAr: 'الحكم' },
+    { id: 'stats', icon: 'chart', labelAr: 'التقارير' },
   ];
-
-  const PORTRAIT_IDS: SectionId[] = ['provincial', 'decrees', 'tax', 'emergency', 'stats'];
-  const MORE_IDS: SectionId[] = ['policies', 'assets'];
 
   let layout = $derived($shellLayout);
   let active = $derived($uiStore.activeCommandPanel);
   let statsOpen = $derived($uiStore.isStatsSidebarOpen && !$uiStore.activeCommandPanel);
-  let sheetOpen = $derived($uiStore.activeCommandPanel !== null || $uiStore.isStatsSidebarOpen);
   let selectedStat = $derived($uiStore.selectedStatForOptions);
   let provShape = $derived(governorateShape($uiStore.selectedGovernorateId));
 
   let assetsLocked = $derived(($gameStore.turnNumber ?? 1) <= 2);
-  let assetsDone = $derived(
-    $gameStore.confiscatedAssets.length > 0 &&
-      $gameStore.confiscatedAssets.every((a) => a.status !== 'PENDING')
-  );
   let assetsPending = $derived(
     $gameStore.confiscatedAssets.filter((a) => a.status === 'PENDING').length
   );
@@ -63,51 +46,51 @@
       $gameStore.activeEvents.length > 0
   );
 
-  let orderedSections = $derived(
-    assetsDone
-      ? [...SECTIONS.filter((s) => s.id === 'assets'), ...SECTIONS.filter((s) => s.id !== 'assets')]
-      : SECTIONS
-  );
-  let portraitSections = $derived(orderedSections.filter((s) => PORTRAIT_IDS.includes(s.id)));
-  let moreSections = $derived(orderedSections.filter((s) => MORE_IDS.includes(s.id)));
+  let portraitNavEl: HTMLElement | null = $state(null);
 
-  let moreOpen = $state(false);
-
-  let activeId = $derived<SectionId | 'stats' | null>(
+  let activeId = $derived<SectionId | null>(
     active ? (active as SectionId) : statsOpen ? 'stats' : null
   );
 
-  function isLocked(id: SectionId): boolean {
-    return id === 'assets' && assetsLocked;
-  }
+  $effect(() => {
+    const root = document.documentElement;
+    if (layout !== 'phone-p') {
+      root.style.setProperty('--shell-bottom-h', '0px');
+      return;
+    }
+    const syncBottom = (): void => {
+      if (!portraitNavEl) return;
+      const h = Math.ceil(portraitNavEl.getBoundingClientRect().height);
+      if (h > 0) root.style.setProperty('--shell-bottom-h', `${h}px`);
+    };
+    syncBottom();
+    if (typeof ResizeObserver === 'undefined' || !portraitNavEl) return;
+    const ro = new ResizeObserver(syncBottom);
+    ro.observe(portraitNavEl);
+    return () => ro.disconnect();
+  });
+
+  onMount(() => {
+    return () => {
+      document.documentElement.style.setProperty('--shell-bottom-h', '0px');
+    };
+  });
 
   function clickSection(id: SectionId): void {
-    if (isLocked(id)) return;
-    moreOpen = false;
-    if (id === 'stats') {
-      if (statsOpen) uiStore.closeActivePanel();
-      else {
-        uiStore.closeCommandPanel();
-        uiStore.toggleStatsSidebar(true);
-      }
+    if (activeId === id) {
+      fx('cancel');
+      uiStore.closeActivePanel();
       return;
     }
-    if (active === id) {
-      uiStore.closeCommandPanel();
-      return;
+    if (activeId !== null) {
+      fx('tap');
     }
-    if (id === 'provincial' && !$uiStore.selectedGovernorateId) {
-      uiStore.selectGovernorate('damascus');
-    }
-    if (id === 'decrees') uiStore.checkItem('decrees');
-    if (id === 'provincial') uiStore.checkItem('province');
-    uiStore.openCommandPanel(id, true);
+    openSection(id);
   }
 
   function badgeCount(id: SectionId): number {
-    if (id === 'decrees') return decreePending;
-    if (id === 'assets') return assetsPending;
-    return 0;
+    if (id !== 'decrees') return 0;
+    return decreePending + (assetsLocked ? 0 : assetsPending);
   }
 
   function showsAlertDot(id: SectionId): boolean {
@@ -116,237 +99,231 @@
     return false;
   }
 
-  function titleFor(section: Section): string {
-    if (section.id === 'assets' && assetsLocked) return 'تُفتح الأصول في الدور الثالث';
-    if (section.id === 'assets' && assetsDone) return `${section.labelAr} — مراجعة القرارات`;
-    return section.labelAr;
+  function isTypingTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    const tag = target.tagName;
+    return (
+      tag === 'INPUT' ||
+      tag === 'TEXTAREA' ||
+      tag === 'SELECT' ||
+      target.isContentEditable
+    );
+  }
+
+  function hasBlockingOverlay(): boolean {
+    if (
+      $uiStore.turnFlowStage !== 'closed' ||
+      $uiStore.isSettingsOpen ||
+      $uiStore.isRestartModalOpen ||
+      $uiStore.isAboutOpen ||
+      $gameStore.isGameOver
+    ) {
+      return true;
+    }
+    if (typeof document === 'undefined') return false;
+    return Boolean(
+      document.querySelector(
+        '[aria-modal="true"]:not([data-sheet-root]), dialog[open], [data-topbar-popover], [data-tour-overlay]'
+      )
+    );
+  }
+
+  function triggerEndTurnShortcut(): void {
+    if ($gameStore.isGameOver || $uiStore.turnFlowStage !== 'closed') return;
+    fx(overBudget ? 'error' : 'endTurn');
+    uiStore.closeActivePanel();
+    uiStore.setAlertsOpen(false);
+    uiStore.setTurnFlowStage('review');
+  }
+
+  function onWindowKeydown(event: KeyboardEvent): void {
+    if (layout !== 'desktop') return;
+    if (event.defaultPrevented || event.isComposing) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (isTypingTarget(event.target)) return;
+    if (hasBlockingOverlay()) return;
+
+    const sectionDigitMap: Record<string, number> = {
+      Digit1: 0,
+      Digit2: 1,
+      Digit3: 2,
+      Digit4: 3,
+      Digit5: 4,
+      Numpad1: 0,
+      Numpad2: 1,
+      Numpad3: 2,
+      Numpad4: 3,
+      Numpad5: 4,
+    };
+    const secIdx = sectionDigitMap[event.code];
+    if (secIdx !== undefined && SECTIONS[secIdx]) {
+      event.preventDefault();
+      clickSection(SECTIONS[secIdx].id);
+      return;
+    }
+
+    if (event.code === 'KeyM') {
+      event.preventDefault();
+      window.dispatchEvent(new CustomEvent('oc:cycle-map-mode'));
+      return;
+    }
+
+    if (event.code === 'KeyE') {
+      event.preventDefault();
+      triggerEndTurnShortcut();
+      return;
+    }
+
+    if (event.key === 'Enter') {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('button, a, summary, [role="button"], [role="tab"], [data-gov-id], .map-root')
+      ) {
+        return;
+      }
+      event.preventDefault();
+      triggerEndTurnShortcut();
+    }
   }
 </script>
 
-{#if layout === 'desktop'}
-  <!-- Desktop: bottom-centre command dock. -->
-  <nav
-    data-tour="hub"
-    class="pointer-events-auto fixed inset-x-0 z-40 mx-auto flex w-max max-w-[calc(var(--vp-w)-16px)] items-center gap-px border border-wheat-mid/15 bg-forest-deep/92 p-1.5 shadow-2xl backdrop-blur-xl shell-round-dock {sheetOpen ? 'shell-dock-shifted' : ''}"
-    style="bottom: calc(15px + env(safe-area-inset-bottom));"
-    aria-label="لوحة القيادة الرئاسية"
-  >
-    {#each orderedSections as section (section.id)}
-      {@const isActive = activeId === section.id}
-      {@const locked = isLocked(section.id)}
-      {@const badge = badgeCount(section.id)}
-      {@const dot = showsAlertDot(section.id)}
-      {@const isDone = section.id === 'assets' && assetsDone}
-      <button
-        type="button"
-        data-panel-btn={section.id}
-        onclick={() => clickSection(section.id)}
-        disabled={locked}
-        aria-pressed={isActive}
-        aria-disabled={locked}
-        aria-label={section.labelAr}
-        title={titleFor(section)}
-        class="relative flex shrink-0 items-center justify-center gap-1.5 transition-all active:scale-95 shell-round-item
-          {isDone ? 'h-[54px] w-[62px]' : 'h-[64px] w-[88px]'}
-          flex-col
-          {locked
-            ? 'cursor-not-allowed border border-charcoal-mid text-wheat-dark opacity-40 grayscale'
-            : isDone
-              ? 'cursor-pointer border border-charcoal-mid text-wheat-dark opacity-75 saturate-50 hover:text-wheat-gold hover:opacity-100'
-              : `cursor-pointer border ${isActive
-                  ? 'border-wheat-gold/35 bg-gradient-to-b from-wheat-gold/15 to-wheat-gold/5 text-wheat-gold'
-                  : 'border-transparent text-wheat-dark hover:-translate-y-px hover:border-forest-accent/15 hover:bg-forest-accent/5 hover:text-wheat-light'}`}"
-      >
-        {#if section.id === 'provincial'}
-          <svg viewBox={provShape.vb} class="{isDone ? 'h-4 w-4' : 'h-5 w-5'} shrink-0" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <path d={provShape.d} fill="currentColor" />
-          </svg>
-        {:else}
-          <GameIcon name={section.icon} cls="{isDone ? 'h-4 w-4' : 'h-5 w-5'} shrink-0" />
-        {/if}
-        <span class="whitespace-nowrap text-[9.5px] font-bold leading-none font-heading">{section.labelAr}</span>
-        {#if badge > 0}
-          <span class="absolute top-1 end-3 flex h-[15px] min-w-[15px] items-center justify-center bg-status-danger px-1 font-mono text-[8.5px] font-bold leading-none text-charcoal-white shadow shell-round-chip">
-            {badge > 9 ? '9+' : badge}
-          </span>
-        {/if}
-        {#if dot}
-          <span class="absolute top-2 end-3.5 h-1.5 w-1.5 bg-status-danger shell-round-chip" aria-hidden="true"></span>
-        {/if}
-        {#if selectedStat && panelHasRelated(selectedStat, section.id)}
-          <span class="absolute top-2 start-3.5 h-1.5 w-1.5 animate-pulse bg-wheat-gold shell-round-chip" aria-hidden="true"></span>
-        {/if}
-        {#if isActive}
-          <span class="absolute bottom-1 h-0.5 w-4 bg-wheat-gold shell-round-chip" aria-hidden="true"></span>
-        {/if}
-      </button>
-    {/each}
-  </nav>
-{/if}
+<svelte:window onkeydown={onWindowKeydown} />
 
 {#if layout === 'phone-p'}
-  <!-- Portrait: five tabs + "المزيد". -->
-  {#if moreOpen}
-    <div
-      class="pointer-events-auto fixed inset-x-0 top-0 z-[39] h-[var(--vp-h)]"
-      role="presentation"
-      onclick={() => (moreOpen = false)}
-      aria-hidden="true"
-    ></div>
-    <div
-      class="pointer-events-auto fixed z-[41] flex flex-col gap-1 border border-wheat-mid/20 bg-forest-deep/98 p-2 shadow-2xl backdrop-blur-xl shell-round-pop shell-fade-in"
-      style="bottom: calc(var(--shell-tab-h) + env(safe-area-inset-bottom) + 80px); inset-inline: 8px;"
-      role="dialog"
-      aria-label="المزيد من الأقسام"
-    >
-      <div class="px-1 pb-1 text-[8.5px] tracking-[1.2px] text-wheat-dark">أقسام إضافية</div>
-      <div class="grid grid-cols-2 gap-1.5">
-        {#each moreSections as section (section.id)}
-          {@const isActive = activeId === section.id}
-          {@const locked = isLocked(section.id)}
-          <button
-            type="button"
-            data-panel-btn={section.id}
-            onclick={() => clickSection(section.id)}
-            disabled={locked}
-            aria-pressed={isActive}
-            aria-disabled={locked}
-            class="flex min-h-14 items-center justify-center gap-2 border px-2 shell-round-item {locked
-              ? 'cursor-not-allowed border-charcoal-mid text-wheat-dark opacity-40 grayscale'
-              : isActive
-                ? 'border-wheat-gold/50 bg-wheat-gold/10 text-wheat-gold'
-                : 'border-wheat-mid/15 bg-forest-mid/40 text-wheat-mid'}"
-            title={titleFor(section)}
+  <!-- Portrait phone: 5 flat cells + chamfered End Turn slab in one bottom row -->
+  <nav
+    bind:this={portraitNavEl}
+    data-tour="hub"
+    class="hud-chrome pointer-events-auto fixed inset-x-0 bottom-0 z-40 flex h-[calc(var(--shell-tab-h)+env(safe-area-inset-bottom))] items-stretch border-t border-[var(--c-line)] bg-[var(--c-panel)] pb-[env(safe-area-inset-bottom)]"
+    aria-label="لوحة القيادة الرئاسية"
+  >
+    {#each SECTIONS as section, index (section.id)}
+      {@const isActive = activeId === section.id}
+      {@const badge = badgeCount(section.id)}
+      {@const dot = showsAlertDot(section.id)}
+      {@const related = Boolean(selectedStat && sectionHasRelated(selectedStat, section.id))}
+      <button
+        type="button"
+        data-panel-btn={section.id}
+        onclick={() => clickSection(section.id)}
+        aria-pressed={isActive}
+        aria-label={section.labelAr}
+        title={section.labelAr}
+        class="pressable relative flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 border-t-[3px] px-0.5
+          {index > 0 ? 'border-s border-[var(--c-line)]' : ''}
+          {isActive
+            ? 'border-t-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-accent)]'
+            : 'border-t-transparent bg-transparent text-[var(--c-muted)] hover:text-[var(--c-text)]'}"
+      >
+        {#if section.id === 'decrees'}
+          <span class="pointer-events-none absolute inset-0" data-panel-btn="policies" aria-hidden="true"></span>
+          <span class="pointer-events-none absolute inset-0" data-panel-btn="assets" aria-hidden="true"></span>
+        {/if}
+
+        <GameIcon name={section.icon} cls="h-5 w-5 shrink-0" />
+        <span class="max-w-full truncate font-arabic text-[11px] font-bold leading-[1.3]">
+          {section.labelAr}
+        </span>
+
+        {#if badge > 0}
+          <span
+            class="num absolute top-1 end-1 flex h-4 min-w-4 items-center justify-center border border-[var(--c-line-strong)] bg-[var(--c-strip)] px-1 text-[10px] font-bold leading-none {isActive
+              ? 'text-[var(--c-accent)]'
+              : 'text-[var(--c-text-2)]'}"
           >
-            {#if section.id === 'provincial'}
-              <svg viewBox={provShape.vb} class="h-5 w-5 shrink-0" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-                <path d={provShape.d} fill="currentColor" />
-              </svg>
-            {:else}
-              <GameIcon name={section.icon} cls="h-5 w-5 shrink-0" />
-            {/if}
-            <span class="text-[10px] font-bold font-heading">{section.labelAr}</span>
-            {#if section.id === 'assets' && assetsPending > 0}
-              <span class="flex h-[15px] min-w-[15px] items-center justify-center bg-status-danger px-1 font-mono text-[8px] font-bold text-charcoal-white shell-round-chip">{assetsPending}</span>
-            {/if}
-          </button>
-        {/each}
-      </div>
-    </div>
-  {/if}
-
-  <nav
-    data-tour="hub"
-    class="pointer-events-auto fixed inset-x-0 bottom-0 z-40 flex h-[calc(var(--shell-tab-h)+env(safe-area-inset-bottom))] items-stretch border-t border-wheat-mid/20 bg-forest-deep/95 px-1 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
-    aria-label="لوحة القيادة الرئاسية"
-  >
-    {#each portraitSections as section (section.id)}
-      {@const isActive = activeId === section.id}
-      {@const locked = isLocked(section.id)}
-      {@const badge = badgeCount(section.id)}
-      {@const dot = showsAlertDot(section.id)}
-      <button
-        type="button"
-        data-panel-btn={section.id}
-        onclick={() => clickSection(section.id)}
-        disabled={locked}
-        aria-pressed={isActive}
-        aria-disabled={locked}
-        aria-label={section.labelAr}
-        title={titleFor(section)}
-        class="relative flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 active:scale-95 {locked
-          ? 'text-wheat-dark opacity-40 grayscale'
-          : isActive
-            ? 'text-wheat-gold'
-            : 'text-wheat-dark'}"
-      >
-        {#if section.id === 'provincial'}
-          <svg viewBox={provShape.vb} class="h-5 w-5 shrink-0" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <path d={provShape.d} fill="currentColor" />
-          </svg>
-        {:else}
-          <GameIcon name={section.icon} cls="h-5 w-5 shrink-0" />
-        {/if}
-        <span class="text-[8px] font-bold leading-none font-heading">{section.labelAr}</span>
-        {#if badge > 0}
-          <span class="absolute top-1 end-[calc(50%-20px)] flex h-[15px] min-w-[15px] items-center justify-center bg-status-danger px-1 font-mono text-[8px] font-bold text-charcoal-white shell-round-chip">
             {badge > 9 ? '9+' : badge}
           </span>
         {/if}
         {#if dot}
-          <span class="absolute top-1.5 end-[calc(50%-15px)] h-1.5 w-1.5 bg-status-danger shell-round-chip" aria-hidden="true"></span>
+          <span class="absolute top-1.5 end-1.5 h-1.5 w-1.5 bg-[var(--c-neg)]" aria-hidden="true"></span>
         {/if}
-        <span class="absolute inset-x-4 top-0 h-0.5 {isActive ? 'bg-wheat-gold' : 'bg-transparent'}" aria-hidden="true"></span>
+        {#if related}
+          <span class="absolute top-0 inset-x-3 h-[2px] bg-[var(--c-text-2)]" aria-hidden="true"></span>
+        {/if}
       </button>
     {/each}
-    <button
-      type="button"
-      onclick={() => (moreOpen = !moreOpen)}
-      aria-expanded={moreOpen}
-      aria-label="المزيد"
-      class="relative flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 text-wheat-dark {moreOpen ? 'text-wheat-gold' : ''}"
-    >
-      <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0" fill="currentColor" aria-hidden="true">
-        <circle cx="5" cy="12" r="1.9" />
-        <circle cx="12" cy="12" r="1.9" />
-        <circle cx="19" cy="12" r="1.9" />
-      </svg>
-      <span class="text-[8px] font-bold leading-none font-heading">المزيد</span>
-      {#if activeId === 'policies' || activeId === 'assets'}
-        <span class="absolute inset-x-4 top-0 h-0.5 bg-wheat-gold" aria-hidden="true"></span>
-      {/if}
-    </button>
+
+    <EndTurnSeal integrated={true} />
   </nav>
-{/if}
-
-{#if layout === 'phone-l'}
-  <!-- Landscape: vertical rail on the inline-start edge. -->
+{:else}
+  <!-- Desktop & phone-l: vertical rail on the inline-start edge with End Turn at its bottom -->
   <nav
     data-tour="hub"
-    class="pointer-events-auto fixed z-40 flex w-[58px] flex-col items-stretch justify-center gap-px overflow-y-auto border border-wheat-mid/15 bg-forest-deep/92 p-1 shadow-2xl backdrop-blur-xl shell-round-dock"
-    style="inset-inline-start: 6px; top: calc(var(--shell-top-h) + 4px); bottom: 6px;"
+    class="hud-chrome pointer-events-auto fixed bottom-0 z-40 flex flex-col border-e border-[var(--c-line)] bg-[var(--c-panel)]"
+    style="inset-inline-start: 0; top: var(--shell-top-h); width: var(--shell-rail-w);"
     aria-label="لوحة القيادة الرئاسية"
   >
-    {#each orderedSections as section (section.id)}
-      {@const isActive = activeId === section.id}
-      {@const locked = isLocked(section.id)}
-      {@const badge = badgeCount(section.id)}
-      {@const dot = showsAlertDot(section.id)}
-      <button
-        type="button"
-        data-panel-btn={section.id}
-        onclick={() => clickSection(section.id)}
-        disabled={locked}
-        aria-pressed={isActive}
-        aria-disabled={locked}
-        aria-label={section.labelAr}
-        title={titleFor(section)}
-        class="relative flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 px-0.5 active:scale-95 shell-round-item {locked
-          ? 'text-wheat-dark opacity-40 grayscale'
-          : isActive
-            ? 'bg-wheat-gold/15 text-wheat-gold'
-            : 'text-wheat-dark hover:bg-forest-accent/8 hover:text-wheat-light'}"
-      >
-        {#if section.id === 'provincial'}
-          <svg viewBox={provShape.vb} class="h-4 w-4 shrink-0" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <path d={provShape.d} fill="currentColor" />
-          </svg>
-        {:else}
-          <GameIcon name={section.icon} cls="h-4 w-4 shrink-0" />
-        {/if}
-        <span class="text-[7px] font-bold leading-none font-heading">{section.labelAr}</span>
-        {#if badge > 0}
-          <span class="absolute top-0.5 end-1 flex h-[12px] min-w-[12px] items-center justify-center bg-status-danger px-0.5 font-mono text-[7px] font-bold text-charcoal-white shell-round-chip">
-            {badge > 9 ? '9+' : badge}
+    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      {#each SECTIONS as section, index (section.id)}
+        {@const isActive = activeId === section.id}
+        {@const badge = badgeCount(section.id)}
+        {@const dot = showsAlertDot(section.id)}
+        {@const related = Boolean(selectedStat && sectionHasRelated(selectedStat, section.id))}
+        <button
+          type="button"
+          data-panel-btn={section.id}
+          onclick={() => clickSection(section.id)}
+          aria-pressed={isActive}
+          aria-label={section.labelAr}
+          title={layout === 'desktop' ? `${section.labelAr} (${index + 1})` : section.labelAr}
+          class="pressable relative flex shrink-0 flex-col items-center justify-center gap-1 border-b border-[var(--c-line)] border-s-[3px] px-1
+            {layout === 'phone-l'
+              ? 'min-h-[44px] flex-1 max-h-[58px]'
+              : 'h-[62px] min-[1600px]:h-[72px] min-[2200px]:h-[84px]'}
+            {isActive
+              ? 'border-s-[var(--c-accent)] bg-[var(--c-bg)] text-[var(--c-accent)]'
+              : 'border-s-transparent bg-transparent text-[var(--c-muted)] hover:bg-[var(--c-strip)] hover:text-[var(--c-text)]'}"
+        >
+          {#if section.id === 'decrees'}
+            <span class="pointer-events-none absolute inset-0" data-panel-btn="policies" aria-hidden="true"></span>
+            <span class="pointer-events-none absolute inset-0" data-panel-btn="assets" aria-hidden="true"></span>
+          {/if}
+
+          {#if layout === 'desktop'}
+            <span
+              class="num pointer-events-none absolute top-1 start-1 inline-flex h-[15px] min-w-[15px] min-[1600px]:h-[17px] min-[1600px]:min-w-[17px] items-center justify-center border border-[var(--c-line)] bg-[var(--c-strip)] px-0.5 text-[10px] min-[1600px]:text-[11px] font-bold leading-none {isActive
+                ? 'border-[var(--c-accent)] text-[var(--c-accent)]'
+                : 'text-[var(--c-muted)]'}"
+              aria-hidden="true"
+            >
+              {index + 1}
+            </span>
+          {/if}
+
+          <GameIcon
+            name={section.icon}
+            cls="{layout === 'phone-l'
+              ? 'h-5 w-5'
+              : 'h-6 w-6 min-[1600px]:h-7 min-[1600px]:w-7 min-[2200px]:h-8 min-[2200px]:w-8'} shrink-0"
+          />
+          <span
+            class="max-w-full truncate font-arabic font-bold leading-[1.3] {layout === 'phone-l'
+              ? 'text-[11.5px]'
+              : 'text-[12px] min-[1600px]:text-[13px] min-[2200px]:text-[14.5px]'}"
+          >
+            {section.labelAr}
           </span>
-        {/if}
-        {#if dot}
-          <span class="absolute top-1 end-1 h-1 w-1 bg-status-danger shell-round-chip" aria-hidden="true"></span>
-        {/if}
-        {#if selectedStat && panelHasRelated(selectedStat, section.id)}
-          <span class="absolute top-1 start-1 h-1 w-1 animate-pulse bg-wheat-gold shell-round-chip" aria-hidden="true"></span>
-        {/if}
-      </button>
-    {/each}
+
+          {#if badge > 0}
+            <span
+              class="num absolute top-1.5 end-1.5 flex h-4 min-w-4 items-center justify-center border border-[var(--c-line-strong)] bg-[var(--c-strip)] px-1 text-[10.5px] font-bold leading-none {isActive
+                ? 'text-[var(--c-accent)]'
+                : 'text-[var(--c-text-2)]'}"
+            >
+              {badge > 9 ? '9+' : badge}
+            </span>
+          {/if}
+          {#if dot}
+            <span class="absolute top-2 end-2 h-1.5 w-1.5 bg-[var(--c-neg)]" aria-hidden="true"></span>
+          {/if}
+          {#if related}
+            <span class="absolute inset-y-3 start-0 w-[2px] bg-[var(--c-text-2)]" aria-hidden="true"></span>
+          {/if}
+        </button>
+      {/each}
+    </div>
+
+    <EndTurnSeal integrated={true} />
   </nav>
 {/if}

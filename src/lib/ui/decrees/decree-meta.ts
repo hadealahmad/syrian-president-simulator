@@ -53,7 +53,7 @@ export function sypSeal(syp: number, unit = 'مليار ل.س'): SealData {
 }
 
 export function usdMillions(usd: number, digits = 1): string {
-  return `${(usd / 1_000_000).toFixed(digits)}M$`;
+  return `$${(usd / 1_000_000).toFixed(digits)}M`;
 }
 
 // ── Categories ─────────────────────────────────────────────────────────────

@@ -1,40 +1,44 @@
 <script lang="ts">
   import { gameStore } from '../../stores/game-store';
-  import { draftStore } from '../../stores/draft-store';
+  import { budgetStore, draftStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
+  import { fx } from '../fx/feedback';
   import { countPendingDraftActions } from './pending-actions';
   import { shellLayout } from './viewport';
+
+  interface Props {
+    /** True when mounted inside the portrait CommandDock or vertical rail. */
+    integrated?: boolean;
+  }
+
+  let { integrated = false }: Props = $props();
 
   let layout = $derived($shellLayout);
   let isPortrait = $derived(layout === 'phone-p');
   let isLandscape = $derived(layout === 'phone-l');
-  let pending = $derived(countPendingDraftActions($draftStore));
-  let gameOver = $derived($gameStore.isGameOver);
-  let seasonText = $derived($gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء');
-  let turnText = $derived(String($gameStore.turnNumber).padStart(2, '0'));
 
-  // Concept D wax seal: 104px on desktop, never below the 64px phone touch
-  // minimum on either phone orientation.
-  let size = $derived(isPortrait ? 68 : isLandscape ? 66 : 104);
-  let positionStyle = $derived(
-    isPortrait
-      ? 'bottom: calc(var(--shell-tab-h) + env(safe-area-inset-bottom) + 10px); inset-inline-start: 12px;'
-      : isLandscape
-        ? 'bottom: 8px; inset-inline-end: 8px;'
-        : 'bottom: calc(20px + env(safe-area-inset-bottom)); inset-inline-start: 22px;'
+  let pending = $derived(countPendingDraftActions($draftStore, $gameStore));
+  let overBudget = $derived(
+    $budgetStore.remainingPC < 0 || $budgetStore.remainingUSD < 0
   );
-  // Shape and embossed rings come from `.shell-round-seal` / `rounded-full`
-  // classes; only position, size and the wax gradient live inline.
-  let sealStyle = $derived(
-    `${positionStyle} width: ${size}px; height: ${size}px; ` +
-      'background: var(--shell-seal-gold); color: var(--shell-seal-ink); ' +
-      'border: 1px solid color-mix(in srgb, var(--color-wheat-light) 78%, transparent); ' +
-      'box-shadow: 0 14px 40px rgb(from var(--color-wheat-gold) r g b / 0.24), 0 4px 12px rgb(0 0 0 / 0.4), inset 0 0 0 5px rgb(0 0 0 / 0.08);'
-  );
+  let gameOver = $derived($gameStore.isGameOver);
+
+  let pendingLabel = $derived.by(() => {
+    if (overBudget) return 'تجاوز الموازنة';
+    if (pending === 0) return '0 قرارات';
+    if (pending === 1) return 'قرار 1 معلق';
+    if (pending === 2) return 'قراران معلقان';
+    if (pending <= 10) return `${pending} قرارات معلقة`;
+    return `${pending} قرار معلق`;
+  });
 
   function endTurn(): void {
-    if (gameOver) return;
+    if (gameOver) {
+      fx('error');
+      return;
+    }
     if ($uiStore.turnFlowStage !== 'closed') return;
+    fx(overBudget ? 'error' : 'endTurn');
     uiStore.closeActivePanel();
     uiStore.setAlertsOpen(false);
     uiStore.setTurnFlowStage('review');
@@ -47,60 +51,53 @@
   data-flow-open="review"
   onclick={endTurn}
   disabled={gameOver}
-  aria-label="إنهاء الدور والمصادقة على القرارات"
+  aria-label={overBudget
+    ? 'إنهاء الدور (تجاوز في الموازنة — راجع المسودة)'
+    : 'إنهاء الدور والمصادقة على القرارات'}
   title={gameOver
     ? 'انتهت اللعبة'
-    : 'مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها'}
-  class="shell-round-seal pointer-events-auto fixed z-[46] flex flex-col items-center justify-center transition-transform duration-150 hover:scale-[1.045] active:scale-[0.97] disabled:scale-100 disabled:cursor-not-allowed disabled:opacity-45 disabled:grayscale"
-  style={sealStyle}
+    : overBudget
+      ? 'تجاوز في الموازنة — انقر لمراجعة المسودة وتعديلها'
+      : layout === 'desktop'
+        ? 'مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها (E / Enter)'
+        : 'مراجعة القرارات المعتمدة لهذا الدور والمصادقة عليها'}
+  class="shell-seal pressable pointer-events-auto relative flex flex-col items-center justify-center leading-[1.25]
+    {isPortrait
+      ? 'h-full w-[96px] shrink-0 px-2'
+      : isLandscape
+        ? 'h-[56px] w-full shrink-0 px-1'
+        : 'h-[72px] min-[1600px]:h-[82px] min-[2200px]:h-[94px] w-full shrink-0 px-1.5'}
+    {overBudget ? 'border-2 border-[var(--c-neg)]' : ''}"
+  style={isPortrait
+    ? 'clip-path: polygon(0 12px, 12px 0, 100% 0, 100% 100%, 0 100%);'
+    : ''}
 >
-  <!-- Embossed rings pressed into the wax. -->
-  <span
-    class="pointer-events-none absolute inset-[6px] rounded-full border border-dashed"
-    style="border-color: rgb(0 0 0 / 0.42);"
-    aria-hidden="true"
-  ></span>
-  <span
-    class="pointer-events-none absolute inset-[13px] rounded-full border"
-    style="border-color: rgb(0 0 0 / 0.16);"
-    aria-hidden="true"
-  ></span>
-
-  <!-- Embossed star watermark pressed into the wax. -->
-  <span
-    class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.14]"
-    aria-hidden="true"
-  >
-    <svg viewBox="0 0 40 40" fill="currentColor" class="h-[72%] w-[72%]">
-      <path d="M20 4.6l4.7 11.4 12.4.8-9.6 7.9 3.2 12-10.7-6.6-10.7 6.6 3.2-12-9.6-7.9 12.4-.8L20 4.6Z" />
-    </svg>
-  </span>
-
-  <span class="relative z-10 flex flex-col items-center justify-center gap-0.5 leading-none">
-    {#if !isPortrait && !isLandscape}
-      <svg viewBox="0 0 40 40" fill="currentColor" class="mb-1 h-[18px] w-[18px] opacity-80" aria-hidden="true">
-        <path d="M20 3.4l4.9 11.9 12.9.9-9.9 8.3 3.3 12.5L20 30.1 8.8 37l3.3-12.5-9.9-8.3 12.9-.9L20 3.4Z" />
-      </svg>
-      <span class="text-center font-heading text-[14.5px] font-bold leading-[1.1]">إنهاء الدور</span>
-      <span class="text-[7.5px] tracking-[0.6px] opacity-70">{seasonText} · <bdi>{$gameStore.calendarYear}</bdi></span>
-      <span class="mt-0.5 font-mono text-[7px] opacity-65">الدور <bdi>{turnText}/40</bdi></span>
-    {:else}
-      <svg viewBox="0 0 40 40" fill="currentColor" class="h-[13px] w-[13px] opacity-80" aria-hidden="true">
-        <path d="M20 3.4l4.9 11.9 12.9.9-9.9 8.3 3.3 12.5L20 30.1 8.8 37l3.3-12.5-9.9-8.3 12.9-.9L20 3.4Z" />
-      </svg>
-      <span class="text-center font-heading text-[9px] font-bold leading-[1.15]">إنهاء الدور</span>
-      <span class="mt-0.5 font-mono text-[6.5px] opacity-70" dir="ltr">{turnText}/40</span>
-    {/if}
-  </span>
-
-  {#if pending > 0}
+  {#if layout === 'desktop'}
     <span
-      class="absolute -top-1 -end-1 z-20 flex h-[23px] min-w-[23px] items-center justify-center rounded-full px-1 font-mono text-[10px] font-bold leading-none text-charcoal-white shadow-md"
-      style="background: var(--color-status-danger); border: 2px solid var(--color-charcoal-deep);"
-      aria-label="{pending} قرارات معلّقة"
-      title="{pending} قرار معلّق في المسودة"
+      class="num pointer-events-none absolute top-1 start-1 inline-flex h-[15px] min-w-[15px] min-[1600px]:h-[17px] min-[1600px]:min-w-[17px] items-center justify-center border border-[var(--c-ink)]/35 bg-[var(--c-ink)]/10 px-0.5 text-[10px] font-bold leading-none text-[var(--c-ink)]"
+      aria-hidden="true"
     >
-      {pending > 99 ? '99+' : pending}
+      ⏎
     </span>
   {/if}
+  <span
+    class="font-heading font-bold {isPortrait
+      ? 'text-[13.5px]'
+      : isLandscape
+        ? 'text-[12px]'
+        : 'text-[15px] min-[1600px]:text-[16.5px] min-[2200px]:text-[18px]'}"
+  >
+    إنهاء الدور
+  </span>
+  {#key pending}
+    <span
+      class="oc-bump num mt-0.5 whitespace-nowrap font-semibold opacity-90 {isLandscape
+        ? 'text-[10px]'
+        : 'text-[11px] min-[1600px]:text-[12px] min-[2200px]:text-[13px]'} {overBudget
+        ? 'text-[var(--c-ev-bg)] font-bold'
+        : ''}"
+    >
+      {pendingLabel}
+    </span>
+  {/key}
 </button>

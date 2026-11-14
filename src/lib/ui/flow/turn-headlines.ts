@@ -55,10 +55,14 @@ function signedBillionSYP(syp: number): string {
   return `${syp >= 0 ? '+' : '-'}${value}B`;
 }
 
-function percentChange(delta: number, previous: number): string {
-  if (!previous || !Number.isFinite(previous) || previous <= 0) return '';
+function ltrIsolate(text: string): string {
+  return `\u2066${text}\u2069`;
+}
+
+function percentChange(delta: number, previous: number, minBase = 0): string {
+  if (!delta || !previous || !Number.isFinite(previous) || previous <= minBase) return '';
   const pct = (delta / previous) * 100;
-  if (!Number.isFinite(pct)) return '';
+  if (!Number.isFinite(pct) || Math.abs(pct) > 100 || Math.abs(pct) < 0.1) return '';
   return `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
 }
 
@@ -93,7 +97,7 @@ export function buildTurnHeadlines(state: GameState): HeadlineCard[] {
   // 1. Foreign reserves — the engine persists both the level and the delta,
   //    so the previous value can be reconstructed honestly.
   const previousReserves = macro.reservesUSD - audit.netUSDDelta;
-  const reservesPercent = percentChange(audit.netUSDDelta, previousReserves);
+  const reservesPercent = percentChange(audit.netUSDDelta, previousReserves, 25_000_000);
   const reservesVerb =
     audit.netUSDDelta > 0
       ? 'يرتفع إلى'
@@ -107,9 +111,9 @@ export function buildTurnHeadlines(state: GameState): HeadlineCard[] {
   cards.push({
     id: 'reserves',
     kicker: 'الاقتصاد · الأول',
-    title: `الاحتياطي الأجنبي ${reservesVerb} ${formatMillionUSD(macro.reservesUSD)} مليون دولار`,
+    title: `الاحتياطي الأجنبي ${reservesVerb} ${ltrIsolate(formatMillionUSD(macro.reservesUSD))} مليون دولار`,
     body:
-      `صافي التغيّر ${signedMillionUSD(audit.netUSDDelta)} هذا الدور، والغطاء يكفي ` +
+      `صافي التغيّر ${ltrIsolate(signedMillionUSD(audit.netUSDDelta))} هذا الدور، والغطاء يكفي ` +
       `${audit.runwayMonths.toFixed(1)} شهراً من الاستيراد.${debtServiceLine}`,
     delta: signedMillionUSD(audit.netUSDDelta),
     note: reservesPercent,
@@ -120,13 +124,13 @@ export function buildTurnHeadlines(state: GameState): HeadlineCard[] {
 
   // 2. Treasury.
   const previousTreasury = macro.treasurySYP - audit.netSYPDelta;
-  const treasuryPercent = percentChange(audit.netSYPDelta, previousTreasury);
+  const treasuryPercent = percentChange(audit.netSYPDelta, previousTreasury, 10_000_000_000);
   const treasuryVerb =
     audit.netSYPDelta > 0 ? 'ترتفع إلى' : audit.netSYPDelta < 0 ? 'تهبط إلى' : 'تستقر عند';
   cards.push({
     id: 'treasury',
     kicker: 'المالية · الثاني',
-    title: `الخزينة العامة ${treasuryVerb} ${formatBillionSYP(macro.treasurySYP)} مليار ل.س`,
+    title: `الخزينة العامة ${treasuryVerb} ${ltrIsolate(formatBillionSYP(macro.treasurySYP))} مليار ل.س`,
     body:
       `المحصّل ${formatBillionSYP(audit.grossCapturedSYP)} مليار ل.س مقابل مصروف ` +
       `${formatBillionSYP(audit.expendedSYP)} مليار، منه ` +

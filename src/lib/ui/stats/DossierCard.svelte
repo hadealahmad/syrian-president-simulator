@@ -1,9 +1,6 @@
 <script lang="ts">
   import MeterBar from './MeterBar.svelte';
 
-  // Special-dossier card (Golan/Quneitra, Golan/Daraa, Suwayda): title,
-  // watch-line description, one headline gauge, optional secondary gauges.
-  // Every number/status string from the old inline blocks is kept verbatim.
   type DossierTone = 'ok' | 'warn' | 'crit';
 
   interface SubMetric {
@@ -39,63 +36,51 @@
   }: Props = $props();
 
   const CARD_TONE: Record<DossierTone, string> = {
-    crit: 'border-umber-border/70 bg-umber-deep/25',
-    warn: 'border-wheat-mid/25 bg-forest-surface/30',
-    ok: 'border-forest-accent/25 bg-forest-mid/20',
+    crit: 'border-[var(--c-line-strong)] bg-[var(--c-panel)]',
+    warn: 'border-[var(--c-line)] bg-[var(--c-panel)]',
+    ok: 'border-[var(--c-line)] bg-[var(--c-panel)]',
   };
 
   const CHIP_TONE: Record<DossierTone, string> = {
-    crit: 'border-umber-border bg-umber-deep text-umber-crimson',
-    warn: 'border-status-warn/40 bg-status-warn/10 text-status-warn',
-    ok: 'border-forest-accent/40 bg-forest-accent/10 text-forest-accent',
-  };
-
-  const DOT_TONE: Record<DossierTone, string> = {
-    crit: 'bg-umber-crimson',
-    warn: 'bg-status-warn',
-    ok: 'bg-forest-accent',
+    crit: 'border-[var(--c-line-strong)] bg-[var(--c-strip)] text-[var(--c-neg)]',
+    warn: 'border-[var(--c-line-strong)] bg-[var(--c-strip)] text-[var(--c-accent)]',
+    ok: 'border-[var(--c-line-strong)] bg-[var(--c-strip)] text-[var(--c-pos)]',
   };
 
   const VALUE_TONE: Record<DossierTone, string> = {
-    crit: 'text-umber-crimson',
-    warn: 'text-status-warn',
-    ok: 'text-forest-accent',
+    crit: 'text-[var(--c-neg)]',
+    warn: 'text-[var(--c-accent)]',
+    ok: 'text-[var(--c-pos)]',
   };
 
   const FILL_TONE: Record<DossierTone, string> = {
-    crit: 'bg-umber-crimson',
-    warn: 'bg-status-warn',
-    ok: 'bg-forest-accent',
+    crit: 'bg-[var(--c-neg)]',
+    warn: 'bg-[var(--c-accent)]',
+    ok: 'bg-[var(--c-pos)]',
   };
 </script>
 
-<article class="space-y-2 border p-2.5 shell-round-item {CARD_TONE[tone]}">
+<article class="space-y-2 border p-2.5 {CARD_TONE[tone]}">
   <header class="flex items-start justify-between gap-2">
-    <div class="flex min-w-0 items-start gap-1.5">
-      <span
-        class="mt-1.5 h-1.5 w-1.5 shrink-0 shell-round-chip {DOT_TONE[tone]}"
-        aria-hidden="true"
-      ></span>
-      <div class="min-w-0">
-        <h4 class="text-[11.5px] font-bold leading-snug text-wheat-gold font-heading">
-          {title}
-        </h4>
-        <p class="mt-0.5 text-[9.5px] leading-relaxed text-wheat-dark">
-          {description}
-        </p>
-      </div>
+    <div class="min-w-0 flex-1">
+      <h4 class="text-[12.5px] font-bold leading-snug text-[var(--c-text)]">
+        {title}
+      </h4>
+      <p class="mt-0.5 text-[11.5px] leading-relaxed text-[var(--c-muted)]">
+        {description}
+      </p>
     </div>
-    <span class="shrink-0 border px-1.5 py-0.5 text-[8.5px] font-bold leading-tight shell-round-chip {CHIP_TONE[tone]}">
+    <span class="shrink-0 border px-2 py-0.5 text-[11px] font-bold leading-[1.38] {CHIP_TONE[tone]}">
       {statusAr}
     </span>
   </header>
 
   <div class="space-y-1">
-    <div class="flex items-baseline justify-between gap-2 text-[10px]">
-      <span class="min-w-0 text-wheat-dark">{metricLabel}</span>
-      <span class="shrink-0 font-mono font-bold {VALUE_TONE[tone]}">
+    <div class="flex items-baseline justify-between gap-2 text-[11.5px]">
+      <span class="min-w-0 text-[var(--c-muted)]">{metricLabel}</span>
+      <span class="oc-kit-num shrink-0 font-bold {VALUE_TONE[tone]}">
         <span dir="ltr">{metricValue}</span>
-        {#if metricNote}<span class="ms-1 text-[8.5px] font-normal text-wheat-dark">{metricNote}</span>{/if}
+        {#if metricNote}<span class="ms-1 text-[11px] font-normal text-[var(--c-muted)]">{metricNote}</span>{/if}
       </span>
     </div>
     <MeterBar
@@ -103,22 +88,26 @@
       max={100}
       current={metricPct}
       fillClass={FILL_TONE[tone]}
-      sizeClass="h-2"
+      sizeClass="h-[3px]"
     />
   </div>
 
   {#if subMetrics.length > 0}
-    <div class="grid grid-cols-2 gap-2 border-t border-wheat-mid/10 pt-2">
+    <div class="grid grid-cols-2 gap-2 border-t border-[var(--c-line)] pt-2">
       {#each subMetrics as sub (sub.label)}
-        <div class="min-w-0 space-y-0.5">
-          <div class="flex items-baseline justify-between gap-1 text-[9.5px] text-wheat-dark">
-            <span class="min-w-0 truncate">{sub.label}</span>
-            <span dir="ltr" class="shrink-0 font-mono font-bold {VALUE_TONE[sub.tone]}">{sub.value}</span>
+        <div class="min-w-0 space-y-1">
+          <div class="flex items-baseline justify-between gap-1 text-[11px] text-[var(--c-muted)]">
+            <span class="min-w-0 truncate leading-[1.4]">{sub.label}</span>
+            <span dir="ltr" class="oc-kit-num shrink-0 font-bold {VALUE_TONE[sub.tone]}">{sub.value}</span>
           </div>
-          <div class="h-1 w-full overflow-hidden bg-charcoal-surface shell-round-chip">
-            <span class="block h-full {FILL_TONE[sub.tone]}" style="width: {Math.min(100, Math.max(2, sub.pct))}%"></span>
-          </div>
-          {#if sub.note}<span class="block text-[8px] text-wheat-dark">{sub.note}</span>{/if}
+          <MeterBar
+            min={0}
+            max={100}
+            current={sub.pct}
+            fillClass={FILL_TONE[sub.tone]}
+            sizeClass="h-[3px]"
+          />
+          {#if sub.note}<span class="block text-[11px] text-[var(--c-muted)]">{sub.note}</span>{/if}
         </div>
       {/each}
     </div>

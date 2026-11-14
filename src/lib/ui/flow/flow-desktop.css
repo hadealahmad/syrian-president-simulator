@@ -1,0 +1,96 @@
+/* Desktop-only scaling & polish for Flow screens (1280x720 -> 2560x1440).
+   Applied strictly when `.flow-desktop` is present (`shellLayout === 'desktop'`),
+   leaving portrait and landscape phone layouts completely untouched. */
+
+.flow-desktop {
+  --flow-title-col-w: clamp(380px, 26vw, 520px);
+  --flow-title-h1: 40px;
+  --flow-title-cta-h: 56px;
+  --flow-stage-w: clamp(640px, 46vw, 880px);
+  --flow-crisis-w: clamp(640px, 44vw, 820px);
+  --flow-banner-w: clamp(360px, 26vw, 480px);
+  --flow-tour-w: clamp(340px, 24vw, 440px);
+  --flow-tray-w: var(--shell-dock-w-wide, clamp(460px, 32vw, 640px));
+
+  --flow-fs-xs: 11.5px;
+  --flow-fs-sm: 12.5px;
+  --flow-fs-base: 13.5px;
+  --flow-fs-md: 15px;
+  --flow-fs-lg: 17px;
+  --flow-fs-h2: 20px;
+  --flow-fs-hero: 42px;
+  --flow-fs-hero-mid: 38px;
+  --flow-fs-hero-long: 32px;
+
+  --flow-btn-h: 44px;
+  --flow-btn-pri-h: 48px;
+  --flow-pad-x: 20px;
+  --flow-pad-y: 16px;
+}
+
+@media (min-width: 1600px) {
+  .flow-desktop {
+    --flow-title-h1: 56px;
+    --flow-title-cta-h: 60px;
+
+    --flow-fs-xs: 12.5px;
+    --flow-fs-sm: 13.5px;
+    --flow-fs-base: 14.5px;
+    --flow-fs-md: 16px;
+    --flow-fs-lg: 18px;
+    --flow-fs-h2: 23px;
+    --flow-fs-hero: 54px;
+    --flow-fs-hero-mid: 48px;
+    --flow-fs-hero-long: 40px;
+
+    --flow-btn-h: 48px;
+    --flow-btn-pri-h: 52px;
+    --flow-pad-x: 24px;
+    --flow-pad-y: 20px;
+  }
+}
+
+@media (min-width: 2200px) {
+  .flow-desktop {
+    --flow-title-h1: 72px;
+    --flow-title-cta-h: 64px;
+
+    --flow-fs-xs: 13.5px;
+    --flow-fs-sm: 14.5px;
+    --flow-fs-base: 15.5px;
+    --flow-fs-md: 17.5px;
+    --flow-fs-lg: 20px;
+    --flow-fs-h2: 26px;
+    --flow-fs-hero: 64px;
+    --flow-fs-hero-mid: 56px;
+    --flow-fs-hero-long: 48px;
+
+    --flow-btn-h: 52px;
+    --flow-btn-pri-h: 56px;
+    --flow-pad-x: 28px;
+    --flow-pad-y: 24px;
+  }
+}
+
+/* Small laptop vertical comfort (1280x720, 1366x768): tighten paddings before reducing type */
+@media (max-height: 780px) {
+  .flow-desktop {
+    --flow-pad-x: 16px;
+    --flow-pad-y: 12px;
+    --flow-btn-h: 40px;
+    --flow-btn-pri-h: 44px;
+  }
+}
+
+/* Hover transitions capped at 140ms across flow surfaces */
+.flow-desktop button,
+.flow-desktop a,
+.flow-desktop [role='button'] {
+  transition-duration: 130ms;
+}
+
+.flow-desktop button:not(:disabled):not([aria-disabled='true']),
+.flow-desktop a,
+.flow-desktop [role='button']:not([aria-disabled='true']) {
+  cursor: pointer;
+}

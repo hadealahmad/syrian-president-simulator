@@ -1,50 +1,109 @@
 <script lang="ts">
   import { gameStore } from '../../stores/game-store';
   import MeterBar from './MeterBar.svelte';
+  import { fx } from './fx-bridge';
 
-  // Executive ministries: competence as a big serif number + meter, opposition
-  // coalition flagged as a chip. Same fields as the old list, grouped in cards.
   let ministries = $derived(Object.values($gameStore.ministries));
+  let avgCompetence = $derived(
+    ministries.length > 0
+      ? Math.round(ministries.reduce((acc, m) => acc + m.competence, 0) / ministries.length)
+      : 0
+  );
+  let oppositionCount = $derived(ministries.filter((m) => m.isOpposition).length);
+
+  let groupOpen = $state(true);
 </script>
 
-<section class="space-y-2">
-  <h3 class="flex items-center gap-2 text-[9px] font-bold tracking-[1.2px] text-forest-accent/90">
-    <span class="h-px w-3 bg-forest-accent/50" aria-hidden="true"></span>
-    الحقائب التنفيذية وتصنيف الكفاءة
-    <span class="ms-auto font-mono text-[8.5px] font-normal text-wheat-dark">{ministries.length} حقيبة</span>
-  </h3>
+<section class="border border-[var(--c-line)] bg-[var(--c-panel)]">
+  <button
+    type="button"
+    onclick={() => {
+      groupOpen = !groupOpen;
+      fx('tap');
+    }}
+    aria-expanded={groupOpen}
+    class="pressable flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-start hover:bg-[var(--c-strip)]"
+  >
+    <span class="text-[12px] font-bold text-[var(--c-text)]">
+      الحقائب التنفيذية وتصنيف الكفاءة
+    </span>
+    <span class="flex items-center gap-2 text-[11px] text-[var(--c-muted)]">
+      <span class="oc-kit-num">{ministries.length} حقيبة</span>
+      <span aria-hidden="true" class="oc-kit-num text-[14px] font-bold leading-none">
+        {groupOpen ? '−' : '+'}
+      </span>
+    </span>
+  </button>
 
-  <div class="grid grid-cols-1 gap-2 md:grid-cols-2 phone-l:grid-cols-1">
-    {#each ministries as min (min.id)}
-      <article class="border border-wheat-mid/15 bg-forest-mid/20 p-2.5 shell-round-item">
-        <div class="flex items-start justify-between gap-2">
-          <h4 class="min-w-0 text-[12px] font-bold leading-tight text-wheat-gold font-heading">
-            {min.nameAr}
-          </h4>
-          <div class="flex shrink-0 items-baseline gap-0.5" dir="ltr">
-            <span class="font-heading text-[20px] font-semibold leading-none text-forest-accent">{min.competence}</span>
-            <span class="text-[9px] text-wheat-dark">%</span>
-          </div>
-        </div>
-
-        <div class="mt-1.5">
-          <MeterBar
-            min={0}
-            max={100}
-            current={min.competence}
-            fillClass={min.competence >= 60 ? 'bg-forest-accent' : min.competence >= 40 ? 'bg-status-warn' : 'bg-umber-crimson'}
-          />
-        </div>
-
-        <div class="mt-2 flex flex-wrap items-center justify-between gap-1.5 text-[10px] text-wheat-dark">
-          <span class="min-w-0 truncate">الوزير: <span class="text-wheat-mid">{min.ministerNameAr}</span></span>
-          {#if min.isOpposition}
-            <span class="shrink-0 border border-wheat-gold/30 bg-wheat-gold/10 px-1.5 py-0.5 text-[8.5px] font-bold text-wheat-gold shell-round-chip">
-              معارضة ائتلافية
-            </span>
-          {/if}
-        </div>
-      </article>
-    {/each}
-  </div>
+  {#if groupOpen}
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-t border-[var(--c-line)] bg-[var(--c-strip)] text-[11px] text-[var(--c-muted)]">
+          <th scope="col" class="px-3 py-1.5 text-start font-medium">الحقيبة والوزير</th>
+          <th scope="col" class="w-24 px-3 py-1.5 text-end font-medium">الكفاءة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each ministries as min (min.id)}
+          <tr class="border-t border-[var(--c-line)]">
+            <td class="px-3 py-2 align-top">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-[13px] font-bold leading-[1.4] text-[var(--c-text)]">
+                  {min.nameAr}
+                </span>
+                {#if min.isOpposition}
+                  <span class="border border-[var(--c-line-strong)] bg-[var(--c-strip)] px-1.5 py-0.5 text-[11px] font-bold leading-[1.3] text-[var(--c-text-2)]">
+                    معارضة ائتلافية
+                  </span>
+                {/if}
+              </div>
+              <div class="mt-0.5 text-[11.5px] leading-[1.4] text-[var(--c-muted)]">
+                الوزير: <span class="text-[var(--c-text-2)]">{min.ministerNameAr}</span>
+              </div>
+            </td>
+            <td class="w-24 px-3 py-2 text-end align-middle">
+              <div class="flex flex-col items-end gap-1">
+                <span
+                  dir="ltr"
+                  class="oc-kit-num text-[15px] font-bold leading-none tabular-nums {min.competence >= 60
+                    ? 'text-[var(--c-pos)]'
+                    : min.competence >= 40
+                      ? 'text-[var(--c-accent)]'
+                      : 'text-[var(--c-neg)]'}"
+                >
+                  {min.competence}<span class="text-[11px] font-normal text-[var(--c-muted)]">%</span>
+                </span>
+                <MeterBar
+                  min={0}
+                  max={100}
+                  current={min.competence}
+                  sizeClass="h-[3px]"
+                  fillClass={min.competence >= 60
+                    ? 'bg-[var(--c-pos)]'
+                    : min.competence >= 40
+                      ? 'bg-[var(--c-accent)]'
+                      : 'bg-[var(--c-neg)]'}
+                />
+              </div>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+      <tfoot>
+        <tr class="border-t border-[var(--c-line-strong)] bg-[var(--c-strip)]">
+          <th scope="row" class="px-3 py-2 text-start text-[12px] font-bold text-[var(--c-text)]">
+            متوسط الكفاءة العام
+            {#if oppositionCount > 0}
+              <span class="ms-1.5 text-[11px] font-normal text-[var(--c-muted)]">
+                · <span class="oc-kit-num">{oppositionCount}</span> ائتلافية
+              </span>
+            {/if}
+          </th>
+          <td class="oc-kit-num px-3 py-2 text-end text-[16px] font-bold leading-none tabular-nums text-[var(--c-text)]">
+            <bdi dir="ltr">{avgCompetence}<span class="text-[11px] font-normal text-[var(--c-muted)]">%</span></bdi>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  {/if}
 </section>

@@ -81,13 +81,18 @@ function createUIStore() {
     commandPanelPinned: false,
     isStatsSidebarOpen: false,
     showMigrationArrows: true,
-    crtTube: true,
+    crtTube: false,
     dismissedAlertIds: [],
     isAlertsOpen: false,
   });
 
+  let commandPanelHandler: ((id: string) => string) | null = null;
+
   return {
     subscribe,
+    registerCommandPanelHandler: (fn: (id: string) => string) => {
+      commandPanelHandler = fn;
+    },
     selectGovernorate: (id: string | null) => {
       update((s) => ({
         ...s,
@@ -142,10 +147,21 @@ function createUIStore() {
       update((s) => ({ ...s, selectedStatForOptions: null }));
     },
     openCommandPanel: (id: string | null, pinned: boolean = false) => {
+      const resolvedId = id && commandPanelHandler ? commandPanelHandler(id) : id;
+      if (resolvedId === 'stats') {
+        update((s) => ({
+          ...s,
+          activeCommandPanel: null,
+          commandPanelPinned: false,
+          isStatsSidebarOpen: true,
+          isAlertsOpen: false,
+        }));
+        return;
+      }
       // Single Sheet shell: opening a section always dismisses the stats view.
       update((s) => ({
         ...s,
-        activeCommandPanel: id,
+        activeCommandPanel: resolvedId,
         commandPanelPinned: pinned,
         isStatsSidebarOpen: false,
         isAlertsOpen: false,

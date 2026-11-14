@@ -1,0 +1,60 @@
+/* Decree-specific horizontal chip scroller & micro-animations (flat, square console rules). */
+
+.decree-scroll-row {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.decree-scroll-row::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes decree-stamp {
+    0% {
+      transform: scale(0.985);
+    }
+    50% {
+      transform: scale(1.01);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes decree-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    22% {
+      transform: translateX(-4px);
+    }
+    48% {
+      transform: translateX(4px);
+    }
+    74% {
+      transform: translateX(-2px);
+    }
+  }
+
+  @keyframes decree-hud-tick {
+    0% {
+      border-color: var(--c-accent);
+    }
+    100% {
+      border-color: var(--c-line);
+    }
+  }
+
+  .decree-stamp-anim {
+    animation: decree-stamp 180ms ease-out;
+  }
+
+  .decree-shake-anim {
+    animation: decree-shake 220ms ease-in-out;
+  }
+
+  .decree-hud-tick {
+    animation: decree-hud-tick 220ms ease-out;
+  }
+}

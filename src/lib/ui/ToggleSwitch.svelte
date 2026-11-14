@@ -1,4 +1,7 @@
 <script lang="ts">
+  import './controls/econ-plates.css';
+  import { triggerFx } from './controls/feedback-bridge';
+
   let {
     checked = false,
     disabled = false,
@@ -12,7 +15,7 @@
   } = $props();
 </script>
 
-<!-- 44×44 hit area; the visible track stays compact inside it. -->
+<!-- 44×44+ hit area; flat square tactical switch. -->
 <button
   type="button"
   role="switch"
@@ -20,21 +23,24 @@
   aria-label={label}
   disabled={disabled}
   onclick={() => {
-    if (!disabled) onchange?.(!checked);
+    if (!disabled) {
+      triggerFx('select');
+      onchange?.(!checked);
+    }
   }}
-  class="group relative inline-flex h-11 w-14 shrink-0 items-center justify-center focus-visible:outline-none {disabled
+  class="pressable group relative inline-flex h-11 w-14 shrink-0 items-center justify-center focus-visible:outline-none {disabled
     ? 'cursor-not-allowed opacity-50'
     : 'cursor-pointer'}"
 >
   <span
-    class="relative block h-7 w-12 overflow-hidden rounded-full border transition-colors {checked
-      ? 'border-forest-accent bg-forest-mid'
-      : 'border-charcoal-mid bg-charcoal-surface'} group-focus-visible:ring-2 group-focus-visible:ring-wheat-gold/70"
+    class="relative block h-6 w-12 overflow-hidden border {checked
+      ? 'border-[var(--c-accent)] bg-[var(--c-chip-bg)]'
+      : 'border-[var(--c-line-strong)] bg-[var(--c-bg)]'} group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-[var(--c-accent)]"
   >
     <span
-      class="absolute top-1/2 block h-5 w-5 -translate-y-1/2 rounded-full shadow transition-all {checked
-        ? 'bg-forest-accent'
-        : 'bg-wheat-dark'}"
+      class="absolute top-1/2 block h-4 w-5 -translate-y-1/2 border {checked
+        ? 'border-[var(--c-ink)] bg-[var(--c-accent)]'
+        : 'border-[var(--c-line)] bg-[var(--c-muted)]'}"
       style="{checked ? 'inset-inline-end: 2px;' : 'inset-inline-start: 2px;'}"
     ></span>
   </span>

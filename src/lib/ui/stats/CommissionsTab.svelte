@@ -1,48 +1,90 @@
 <script lang="ts">
   import { gameStore } from '../../stores/game-store';
   import MeterBar from './MeterBar.svelte';
+  import { fx } from './fx-bridge';
 
-  // Sovereign commissions: completion as a big serif number + meter, leader
-  // name kept exactly as the old list showed it.
   let commissions = $derived(Object.values($gameStore.commissions));
+  let avgProgress = $derived(
+    commissions.length > 0
+      ? Math.round(commissions.reduce((acc, c) => acc + c.progress, 0) / commissions.length)
+      : 0
+  );
+
+  let groupOpen = $state(true);
 </script>
 
-<section class="space-y-2">
-  <h3 class="flex items-center gap-2 text-[9px] font-bold tracking-[1.2px] text-forest-accent/90">
-    <span class="h-px w-3 bg-forest-accent/50" aria-hidden="true"></span>
-    الهيئات واللجان السيادية
-    <span class="ms-auto font-mono text-[8.5px] font-normal text-wheat-dark">{commissions.length} هيئة</span>
-  </h3>
+<section class="border border-[var(--c-line)] bg-[var(--c-panel)]">
+  <button
+    type="button"
+    onclick={() => {
+      groupOpen = !groupOpen;
+      fx('tap');
+    }}
+    aria-expanded={groupOpen}
+    class="pressable flex min-h-11 w-full items-center justify-between gap-2 px-3 py-2 text-start hover:bg-[var(--c-strip)]"
+  >
+    <span class="text-[12px] font-bold text-[var(--c-text)]">
+      الهيئات واللجان السيادية
+    </span>
+    <span class="flex items-center gap-2 text-[11px] text-[var(--c-muted)]">
+      <span class="oc-kit-num">{commissions.length} هيئة</span>
+      <span aria-hidden="true" class="oc-kit-num text-[14px] font-bold leading-none">
+        {groupOpen ? '−' : '+'}
+      </span>
+    </span>
+  </button>
 
-  <div class="grid grid-cols-1 gap-2 md:grid-cols-2 phone-l:grid-cols-1">
-    {#each commissions as comm (comm.id)}
-      <article class="border border-wheat-mid/15 bg-forest-mid/20 p-2.5 shell-round-item">
-        <div class="flex items-start justify-between gap-2">
-          <h4 class="min-w-0 text-[12px] font-bold leading-tight text-wheat-gold font-heading">
-            {comm.nameAr}
-          </h4>
-          <div class="flex shrink-0 items-baseline gap-0.5">
-            <span class="text-[8.5px] text-wheat-dark">إنجاز</span>
-            <span dir="ltr" class="font-heading text-[20px] font-semibold leading-none text-wheat-gold">{comm.progress}</span>
-            <span class="text-[9px] text-wheat-dark">%</span>
-          </div>
-        </div>
-
-        <div class="mt-1.5">
-          <MeterBar
-            min={0}
-            max={100}
-            current={comm.progress}
-            fillClass="bg-wheat-gold"
-          />
-        </div>
-
-        {#if comm.leaderNameAr}
-          <div class="mt-2 truncate text-[10px] text-wheat-dark">
-            رئيس الهيئة: <span class="text-wheat-mid">{comm.leaderNameAr}</span>
-          </div>
-        {/if}
-      </article>
-    {/each}
-  </div>
+  {#if groupOpen}
+    <table class="w-full border-collapse">
+      <thead>
+        <tr class="border-t border-[var(--c-line)] bg-[var(--c-strip)] text-[11px] text-[var(--c-muted)]">
+          <th scope="col" class="px-3 py-1.5 text-start font-medium">الهيئة والرئيس</th>
+          <th scope="col" class="w-24 px-3 py-1.5 text-end font-medium">الإنجاز</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each commissions as comm (comm.id)}
+          <tr class="border-t border-[var(--c-line)]">
+            <td class="px-3 py-2 align-top">
+              <div class="text-[13px] font-bold leading-[1.4] text-[var(--c-text)]">
+                {comm.nameAr}
+              </div>
+              {#if comm.leaderNameAr}
+                <div class="mt-0.5 text-[11.5px] leading-[1.4] text-[var(--c-muted)]">
+                  رئيس الهيئة: <span class="text-[var(--c-text-2)]">{comm.leaderNameAr}</span>
+                </div>
+              {/if}
+            </td>
+            <td class="w-24 px-3 py-2 text-end align-middle">
+              <div class="flex flex-col items-end gap-1">
+                <span
+                  dir="ltr"
+                  class="oc-kit-num text-[15px] font-bold leading-none tabular-nums text-[var(--c-text)]"
+                >
+                  {comm.progress}<span class="text-[11px] font-normal text-[var(--c-muted)]">%</span>
+                </span>
+                <MeterBar
+                  min={0}
+                  max={100}
+                  current={comm.progress}
+                  fillClass="bg-[var(--c-accent)]"
+                  sizeClass="h-[3px]"
+                />
+              </div>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+      <tfoot>
+        <tr class="border-t border-[var(--c-line-strong)] bg-[var(--c-strip)]">
+          <th scope="row" class="px-3 py-2 text-start text-[12px] font-bold text-[var(--c-text)]">
+            متوسط الإنجاز الكلي
+          </th>
+          <td class="oc-kit-num px-3 py-2 text-end text-[16px] font-bold leading-none tabular-nums text-[var(--c-text)]">
+            <bdi dir="ltr">{avgProgress}<span class="text-[11px] font-normal text-[var(--c-muted)]">%</span></bdi>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  {/if}
 </section>

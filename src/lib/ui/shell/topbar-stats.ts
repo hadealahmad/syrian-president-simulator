@@ -2,26 +2,44 @@ import type { ProjectedStat, ProjectedTurnSummary } from '../../engine/types';
 import { STAT_EXPLAINERS_AR, STAT_STATE_TEXT, statState } from '../panels/shared';
 
 /**
- * Shared TopBar stat model, so the new bar keeps every value and its live-
+ * Shared TopBar stat model, so the bar keeps every value and its live-
  * rehearsal preview (current → projected, delta % and beneficial/harmful
- * colouring) without duplicating the mapping in markup.
+ * colouring) plus raw numbers/formatters for animated count-up/down.
  */
 export interface TopStat {
   /** Stat id used by `selectedStatForOptions` / `STAT_EXPLAINERS_AR`. */
   id: string;
   labelAr: string;
+  /** Compact label for 360px portrait capsules. */
+  shortLabelAr: string;
   icon: string;
+  /** Optional currency prefix rendered before the number (e.g. '$'). */
+  prefix?: string;
   /** Current numeric value, already formatted (no suffix). */
   value: string;
+  /** Raw numeric current value for count-up/down tweening. */
+  rawCurrent: number;
+  /** Raw numeric projected value for rehearsal delta tracking. */
+  rawProjected: number;
+  /** Formatter matching `value` so intermediate tween frames format identically. */
+  formatValue: (num: number) => string;
   /** Small unit suffix rendered after the value. */
   suffix: string;
+  /** Optional shorter suffix for tight phone-landscape capsules. */
+  shortSuffix?: string;
   /** Projected numeric value (only meaningful when `hasDelta`). */
   projected: string;
-  /** Signed percentage chip, e.g. `+2.4%`. */
+  /** Absolute projected change formatted in the stat's own unit, e.g. `53.96B` or `$29.8M`. */
   deltaText: string;
+  /** Signed percentage string kept for the explainer popover, e.g. `+2.4%`. */
+  pctText: string;
+  /** Directional triangle matching `rawProjected - rawCurrent`. */
+  deltaArrow: '▲' | '▼' | '';
   hasDelta: boolean;
   /** Whether the rehearsal considers the move beneficial. */
   beneficial: boolean;
+  /** True when the current value is in an acute danger zone. */
+  isCritical: boolean;
   /** Tailwind text colour for the current value (state tiers). */
   toneClass: string;
   explainer: string;
@@ -82,14 +100,32 @@ const TIER_KEYS: Record<string, string> = {
 
 function toneFor(id: string, stat: ProjectedStat): string {
   if (id === 'treasurySYP' && stat.current < 0) return STAT_STATE_TEXT.crit;
+  if (id === 'reservesUSD' && stat.current < 100_000_000) return STAT_STATE_TEXT.crit;
+  if (id === 'politicalCapital' && stat.current < 15) return STAT_STATE_TEXT.crit;
   const tierKey = TIER_KEYS[id];
   if (tierKey) return STAT_STATE_TEXT[statState(tierKey, stat.current)];
   return 'text-wheat-light';
 }
 
-function deltaFor(stat: ProjectedStat): string {
+function criticalFor(id: string, stat: ProjectedStat): boolean {
+  if (id === 'treasurySYP' && stat.current < 0) return true;
+  if (id === 'reservesUSD' && stat.current < 100_000_000) return true;
+  if (id === 'politicalCapital' && stat.current < 15) return true;
+  const tierKey = TIER_KEYS[id];
+  if (tierKey) return statState(tierKey, stat.current) === 'crit';
+  return false;
+}
+
+function pctDeltaFor(stat: ProjectedStat): string {
   if (!stat.isChanged) return '';
   return `${stat.pctChange > 0 ? '+' : ''}${stat.pctChange.toFixed(1)}%`;
+}
+
+function deltaArrowFor(stat: ProjectedStat): '▲' | '▼' | '' {
+  if (!stat.isChanged) return '';
+  if (stat.projected > stat.current) return '▲';
+  if (stat.projected < stat.current) return '▼';
+  return '';
 }
 
 interface StatSpec {
@@ -98,12 +134,15 @@ interface StatSpec {
   /** Filter/explainer id consumed by `selectedStatForOptions`. */
   id: string;
   labelAr: string;
+  shortLabelAr: string;
   icon: string;
-  /** Formatted current number (no suffix). */
-  value: (stat: ProjectedStat) => string;
-  /** Formatted projected number (no suffix). */
-  projected: (stat: ProjectedStat) => string;
+  prefix?: string;
+  /** Number formatter (no suffix). */
+  formatValue: (num: number) => string;
+  /** Absolute magnitude formatter for the change line (includes unit when relevant). */
+  formatAbsDelta: (absDiff: number) => string;
   suffix: string;
+  shortSuffix?: string;
   tour?: string;
 }
 
@@ -112,28 +151,32 @@ const PRIMARY_SPECS: StatSpec[] = [
     key: 'treasurySYP',
     id: 'treasurySYP',
     labelAr: 'الخزينة',
+    shortLabelAr: 'الخزينة',
     icon: 'money-stack',
-    value: (s) => formatBillion(s.current),
-    projected: (s) => formatBillion(s.projected),
+    formatValue: formatBillion,
+    formatAbsDelta: (d) => `${formatBillion(d)}B`,
     suffix: 'B',
   },
   {
     key: 'reservesUSD',
     id: 'reservesUSD',
     labelAr: 'الاحتياطي',
+    shortLabelAr: 'الاحتياطي',
     icon: 'coins',
-    value: (s) => formatMillionUSD(s.current),
-    projected: (s) => formatMillionUSD(s.projected),
-    suffix: 'M$',
+    prefix: '$',
+    formatValue: formatMillionUSD,
+    formatAbsDelta: (d) => `$${formatMillionUSD(d)}M`,
+    suffix: 'M',
     tour: 'reserves',
   },
   {
     key: 'politicalCapital',
     id: 'politicalCapital',
     labelAr: 'الرصيد السياسي',
+    shortLabelAr: 'الرصيد',
     icon: 'crown-coin',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => String(Math.round(d)),
     suffix: '/200',
     tour: 'capital',
   },
@@ -141,18 +184,20 @@ const PRIMARY_SPECS: StatSpec[] = [
     key: 'civicTrust',
     id: 'civicTrust',
     labelAr: 'الثقة الشعبية',
+    shortLabelAr: 'الثقة',
     icon: 'crowned-heart',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => `${Math.round(d)}%`,
     suffix: '%',
   },
   {
     key: 'nationalRRI',
     id: 'unrestIndex',
     labelAr: 'الاحتقان',
+    shortLabelAr: 'الاحتقان',
     icon: 'flame',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => String(Math.round(d)),
     suffix: '/100',
     tour: 'unrest',
   },
@@ -160,10 +205,12 @@ const PRIMARY_SPECS: StatSpec[] = [
     key: 'parallelRateSYP',
     id: 'parallelRate',
     labelAr: 'السوق الموازي',
+    shortLabelAr: 'الصرف',
     icon: 'trade',
-    value: (s) => formatNumber(s.current),
-    projected: (s) => formatNumber(s.projected),
+    formatValue: formatNumber,
+    formatAbsDelta: (d) => formatNumber(d),
     suffix: 'ل.س/$',
+    shortSuffix: 'ل.س',
     tour: 'fx-rate',
   },
 ];
@@ -173,81 +220,92 @@ const SECONDARY_SPECS: StatSpec[] = [
     key: 'sovereignDebtUSD',
     id: 'sovereignDebtUSD',
     labelAr: 'الدين الخارجي',
+    shortLabelAr: 'الدين',
     icon: 'scales',
-    value: (s) => formatBillionUSD(s.current),
-    projected: (s) => formatBillionUSD(s.projected),
-    suffix: 'B$',
+    prefix: '$',
+    formatValue: formatBillionUSD,
+    formatAbsDelta: (d) => `$${formatBillionUSD(d)}B`,
+    suffix: 'B',
   },
   {
     key: 'systemicCorruption',
     id: 'systemicCorruption',
     labelAr: 'الفساد المؤسسي',
+    shortLabelAr: 'الفساد',
     icon: 'blindfold',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => String(Math.round(d)),
     suffix: '/100',
   },
   {
     key: 'taxCompliancePct',
     id: 'taxCompliancePct',
     labelAr: 'الامتثال الضريبي',
+    shortLabelAr: 'الامتثال',
     icon: 'abacus',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => `${Math.round(d)}%`,
     suffix: '%',
   },
   {
     key: 'realWageUSD',
     id: 'civilServiceWageUSD',
     labelAr: 'أجر الموظف',
+    shortLabelAr: 'الأجر',
     icon: 'banknote',
-    value: (s) => String(s.current),
-    projected: (s) => String(s.projected),
-    suffix: '$',
+    prefix: '$',
+    formatValue: (n) => String(Math.round(n * 10) / 10),
+    formatAbsDelta: (d) => `$${Math.round(d * 10) / 10}`,
+    suffix: '',
   },
   {
     key: 'dailyPowerHours',
     id: 'dailyPowerHours',
     labelAr: 'ساعات الكهرباء',
+    shortLabelAr: 'الكهرباء',
     icon: 'power-generator',
-    value: (s) => String(s.current),
-    projected: (s) => String(s.projected),
+    formatValue: (n) => String(Math.round(n * 10) / 10),
+    formatAbsDelta: (d) => `${Math.round(d * 10) / 10}س`,
     suffix: 'س',
   },
   {
     key: 'sovereignLeverage',
     id: 'sovereignLeverage',
     labelAr: 'الرافعة السيادية',
+    shortLabelAr: 'الرافعة',
     icon: 'checked-shield',
-    value: (s) => String(Math.round(s.current)),
-    projected: (s) => String(Math.round(s.projected)),
+    formatValue: (n) => String(Math.round(n)),
+    formatAbsDelta: (d) => `${Math.round(d)}%`,
     suffix: '%',
   },
   {
     key: 'm2MoneySupplySYP',
     id: 'm2MoneySupplySYP',
     labelAr: 'الكتلة النقدية M2',
+    shortLabelAr: 'M2',
     icon: 'wallet',
-    value: (s) => formatBillion(s.current),
-    projected: (s) => formatBillion(s.projected),
+    formatValue: formatBillion,
+    formatAbsDelta: (d) => `${formatBillion(d)}B`,
     suffix: 'B SP',
   },
   {
     key: 'civilServiceHeadcount',
     id: 'civilServiceHeadcount',
     labelAr: 'ملاك الموظفين',
+    shortLabelAr: 'الموظفون',
     icon: 'meeple-group',
-    value: (s) => formatNumber(s.current),
-    projected: (s) => formatNumber(s.projected),
+    formatValue: formatNumber,
+    formatAbsDelta: (d) => formatNumber(d),
     suffix: 'نسمة',
   },
   {
     key: 'civilPayrollSYP',
     id: 'civilPayrollSYP',
     labelAr: 'كتلة الأجور',
+    shortLabelAr: 'الأجور',
     icon: 'banknote',
-    value: (s) => formatBillion(s.current),
-    projected: (s) => formatBillion(s.projected),
+    formatValue: formatBillion,
+    formatAbsDelta: (d) => `${formatBillion(d)}B`,
     suffix: 'B SP',
   },
 ];
@@ -260,16 +318,26 @@ export function formatPopulation(count: number): string {
 function build(spec: StatSpec, map: StatMap): TopStat {
   const stat = map[spec.key];
   const hasDelta = stat.isChanged;
+  const absDiff = Math.abs(stat.projected - stat.current);
   return {
     id: spec.id,
     labelAr: spec.labelAr,
+    shortLabelAr: spec.shortLabelAr,
     icon: spec.icon,
-    value: spec.value(stat),
+    prefix: spec.prefix,
+    value: spec.formatValue(stat.current),
+    rawCurrent: stat.current,
+    rawProjected: stat.projected,
+    formatValue: spec.formatValue,
     suffix: spec.suffix,
-    projected: spec.projected(stat),
-    deltaText: deltaFor(stat),
+    shortSuffix: spec.shortSuffix,
+    projected: spec.formatValue(stat.projected),
+    deltaText: hasDelta ? spec.formatAbsDelta(absDiff) : '',
+    pctText: pctDeltaFor(stat),
+    deltaArrow: deltaArrowFor(stat),
     hasDelta,
     beneficial: stat.isBeneficial,
+    isCritical: criticalFor(spec.id, stat),
     toneClass: toneFor(spec.id, stat),
     explainer: STAT_EXPLAINERS_AR[spec.id] ?? '',
     tour: spec.tour,

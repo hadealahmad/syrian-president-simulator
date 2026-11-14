@@ -42,11 +42,11 @@ export function focusTrap(
   function focusFirst(): void {
     const target = node.querySelector<HTMLElement>('[data-autofocus]') ?? getFocusable()[0];
     if (target) {
-      target.focus();
+      target.focus({ preventScroll: true });
       return;
     }
     if (!node.hasAttribute('tabindex')) node.setAttribute('tabindex', '-1');
-    node.focus();
+    node.focus({ preventScroll: true });
   }
 
   function onKeydown(event: KeyboardEvent): void {

@@ -1,0 +1,42 @@
+.econ-chip-strip {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.econ-chip-strip > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.econ-chip-strip::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes econ-tick-pop {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(1.08);
+    filter: brightness(1.25);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+.econ-tick-active {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .econ-tick-active {
+    animation: econ-tick-pop 190ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}

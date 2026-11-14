@@ -1,20 +1,42 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { gameStore } from '../../stores/game-store';
-  import { projectedTurnStore } from '../../stores/draft-store';
+  import { previewRangesStore, projectedTurnStore } from '../../stores/draft-store';
   import { uiStore } from '../../stores/ui-store';
   import { versionStore } from '../../stores/version-store';
   import GameIcon from '../GameIcon.svelte';
   import { STAT_NAMES_AR } from '../panels/shared';
   import { openSettingsMenu } from '../flow/settings-menu';
+  import { fx } from '../fx/feedback';
+  import { buildShellAlerts, formatAlertBadge } from './alerts';
+  import { selectStatAndJump } from './section-nav';
   import { buildPrimaryStats, buildSecondaryStats, type TopStat } from './topbar-stats';
+  import { shellLayout } from './viewport';
+  import StatCapsule from './StatCapsule.svelte';
+
+  let layout = $derived($shellLayout);
+  let isPortrait = $derived(layout === 'phone-p');
+  let isLandscape = $derived(layout === 'phone-l');
 
   let p = $derived($projectedTurnStore);
   let primary = $derived(buildPrimaryStats(p));
   let secondary = $derived(buildSecondaryStats(p));
   let selectedStat = $derived($uiStore.selectedStatForOptions);
 
+  let visibleAlerts = $derived(
+    buildShellAlerts(
+      $gameStore,
+      $previewRangesStore,
+      $uiStore.dismissedAlertIds,
+      (id) => uiStore.selectGovernorate(id),
+    )
+  );
+  let alertCount = $derived(visibleAlerts.length);
+  let hasCriticalAlert = $derived(visibleAlerts.some((a) => a.severity === 'high'));
+
   let openStatId = $state<string | null>(null);
   let moreOpen = $state(false);
+  let headerEl: HTMLElement | null = $state(null);
 
   let openStat = $derived<TopStat | null>(
     [...primary, ...secondary].find((s) => s.id === openStatId) ?? null
@@ -24,193 +46,341 @@
   let turnText = $derived(String($gameStore.turnNumber).padStart(2, '0'));
   let secondaryChanged = $derived(secondary.some((s) => s.hasDelta));
 
+  onMount(() => {
+    const syncTopHeight = (): void => {
+      if (!headerEl) return;
+      const h = Math.ceil(headerEl.getBoundingClientRect().height);
+      if (h > 0) {
+        document.documentElement.style.setProperty('--shell-top-h', `${h}px`);
+      }
+    };
+    syncTopHeight();
+    if (typeof ResizeObserver === 'undefined' || !headerEl) return;
+    const ro = new ResizeObserver(syncTopHeight);
+    ro.observe(headerEl);
+    return () => ro.disconnect();
+  });
+
   function toggleStat(id: string): void {
+    fx('tap');
     moreOpen = false;
     openStatId = openStatId === id ? null : id;
   }
 
   function toggleMore(): void {
+    fx('tap');
     openStatId = null;
     moreOpen = !moreOpen;
   }
 
   function closePanels(): void {
+    if (openStatId || moreOpen) fx('cancel');
     openStatId = null;
     moreOpen = false;
   }
 
+  function closePanelsQuiet(): void {
+    openStatId = null;
+    moreOpen = false;
+  }
+
+  function handleOpenSettings(): void {
+    fx('tap');
+    closePanelsQuiet();
+    openSettingsMenu();
+  }
+
+  function handleAlertsClick(): void {
+    fx('tap');
+    closePanelsQuiet();
+    if (layout !== 'desktop') {
+      uiStore.setAlertsOpen(!$uiStore.isAlertsOpen);
+    } else if (visibleAlerts[0]) {
+      visibleAlerts[0].run();
+    }
+  }
+
   function useStatFilter(id: string): void {
-    uiStore.openStatRelatedOptions(id);
-    closePanels();
+    fx('select');
+    selectStatAndJump(id);
+    closePanelsQuiet();
   }
 
   function clearFilter(): void {
+    fx('cancel');
     uiStore.closeStatRelatedOptions();
   }
 
   function surplusClass(stat: TopStat): string {
-    if (!stat.hasDelta) return 'text-wheat-dark';
-    return stat.beneficial ? 'text-forest-accent' : 'text-umber-crimson';
+    if (!stat.hasDelta) return 'text-[var(--c-muted)]';
+    return stat.beneficial ? 'text-[var(--c-pos)]' : 'text-[var(--c-neg)]';
   }
 </script>
 
 <svelte:window
   onkeydown={(event) => {
-    if (event.key === 'Escape' && (openStatId || moreOpen)) closePanels();
+    if (event.key === 'Escape' && (openStatId || moreOpen)) {
+      event.stopPropagation();
+      event.preventDefault();
+      closePanels();
+    }
   }}
 />
 
 <header
+  bind:this={headerEl}
   data-tour="treasury"
-  class="pointer-events-auto fixed inset-x-0 top-0 z-30 flex h-[var(--shell-top-h)] select-none items-stretch gap-1 border-b border-wheat-mid/15 bg-forest-deep/95 px-3 font-arabic text-wheat-light shadow-[0_8px_30px_rgba(0,0,0,0.35)] backdrop-blur-md phone-p:gap-0 phone-p:px-1.5 phone-l:gap-1 phone-l:px-2"
+  class="hud-chrome pointer-events-auto fixed inset-x-0 top-0 z-30 flex select-none flex-col border-b border-[var(--c-line)] bg-[var(--c-strip)] pt-[env(safe-area-inset-top)] font-arabic text-[var(--c-text)]"
   aria-label="الشريط السيادي للمؤشرات"
 >
-  <!-- Brand -->
-  <div class="hidden shrink-0 items-center gap-2.5 md:flex phone-l:hidden">
-    <svg class="h-9 w-9 shrink-0 text-wheat-gold drop-shadow-[0_0_10px_rgba(242,207,119,0.18)]" viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <circle cx="20" cy="20" r="18.2" stroke="currentColor" stroke-width="1.2" opacity=".85" />
-      <circle cx="20" cy="20" r="14.2" stroke="currentColor" stroke-width=".6" stroke-dasharray="2 3" opacity=".55" />
-      <path d="M20 8.6l2.5 6.1 6.6.4-5.1 4.2 1.7 6.4L20 22.2l-5.7 3.5 1.7-6.4-5.1-4.2 6.6-.4L20 8.6Z" fill="currentColor" opacity=".92" />
-      <path d="M20 27.2v4.2M16.8 31.4h6.4" stroke="currentColor" stroke-width="1" opacity=".7" />
-    </svg>
-    <div class="leading-tight">
-      <div class="whitespace-nowrap font-heading text-[15px] font-semibold tracking-tight">محاكي الرئيس السوري</div>
-      <div class="mt-0.5 text-[8px] tracking-[2.4px] text-forest-accent/80" dir="ltr">DIWAN · SITUATION DESK</div>
-    </div>
-  </div>
-
-  <!-- Turn chip -->
-  <div
-    class="flex shrink-0 items-center gap-2 border border-wheat-mid/15 bg-charcoal-deep/40 px-3 phone-p:hidden phone-l:px-2"
-    aria-label="الدور الحالي"
-  >
-    <span class="text-[9px] text-wheat-dark phone-l:hidden">الدور</span>
-    <span class="font-heading text-[17px] leading-none text-wheat-gold phone-l:text-[14px]">
-      {turnText}<small class="font-sans text-[9px] text-wheat-dark">/40</small>
-    </span>
-    <span class="h-[18px] w-px bg-wheat-mid/15"></span>
-    <span class="whitespace-nowrap text-[10px] text-wheat-mid phone-l:text-[9px]">
-      {seasonText} · {$gameStore.calendarYear}
-    </span>
-  </div>
-
-  <!-- Settings / menu gear: the single system entry point (guide, migration
-       arrows, theme, CRT, about, new game) replaces the old floating trio. -->
-  <button
-    type="button"
-    data-tour="settings-gear"
-    onclick={() => openSettingsMenu()}
-    aria-haspopup="dialog"
-    aria-expanded={$uiStore.isSettingsOpen}
-    aria-label="الإعدادات والقائمة"
-    title="الإعدادات — لعبة جديدة، المظهر، الدليل، المزيد"
-    class="group relative flex h-full w-11 shrink-0 items-center justify-center border border-transparent text-wheat-dark transition-colors hover:border-forest-accent/20 hover:bg-forest-accent/5 hover:text-wheat-gold focus-visible:border-wheat-gold"
-  >
-    {#if $versionStore.hasUpdate}
-      <span
-        class="absolute top-2 end-2 h-1.5 w-1.5 animate-ping bg-amber-400 shell-round-chip"
-        aria-hidden="true"
-      ></span>
-    {/if}
-    <GameIcon
-      name="gear"
-      cls="h-4 w-4 shrink-0 text-wheat-dark transition-colors group-hover:text-wheat-gold"
-    />
-  </button>
-
-  <!-- Primary stats -->
-  <div class="stats-bar flex min-w-0 flex-1 items-stretch justify-between phone-p:justify-around phone-l:justify-between">
-    {#each primary as stat, i (stat.id)}
+  {#if isPortrait}
+    <!-- Portrait phone: compact top bar (Gear + Turn/Season/Year + Alerts chip + More), then 4 ruled resource cells -->
+    <div class="flex min-h-[38px] items-stretch border-b border-[var(--c-line)] bg-[var(--c-panel)]">
       <button
         type="button"
-        data-tour={stat.tour}
-        onclick={() => toggleStat(stat.id)}
+        data-tour="settings-gear"
+        onclick={handleOpenSettings}
         aria-haspopup="dialog"
-        aria-expanded={openStatId === stat.id}
-        aria-pressed={selectedStat === stat.id}
-        title={stat.explainer}
-        class="group relative flex min-w-0 items-center gap-2 border border-transparent px-2.5 text-start transition-colors hover:border-forest-accent/20 hover:bg-forest-accent/5 focus-visible:border-wheat-gold phone-p:flex-1 phone-p:flex-col phone-p:justify-center phone-p:gap-0 phone-p:px-0.5 phone-p:py-0.5 phone-l:min-w-0 phone-l:px-1.5 phone-l:gap-1 {i >= 4
-          ? 'phone-p:hidden'
-          : ''} {selectedStat === stat.id ? 'border-wheat-gold/70 bg-forest-surface/70' : ''}"
+        aria-expanded={$uiStore.isSettingsOpen}
+        aria-label="الإعدادات والقائمة"
+        title="الإعدادات — لعبة جديدة، المظهر، الدليل، المزيد"
+        class="pressable relative flex min-h-11 w-11 shrink-0 items-center justify-center border-e border-[var(--c-line)] text-[var(--c-muted)] hover:text-[var(--c-accent)]"
       >
-        <span class="flex shrink-0 items-center justify-center text-wheat-dark transition-colors group-hover:text-wheat-mid phone-p:mb-0.5">
-          <GameIcon name={stat.icon} cls="h-4 w-4 shrink-0 phone-p:h-3.5 phone-p:w-3.5 phone-l:h-3 phone-l:w-3" />
-        </span>
-        <span class="flex min-w-0 flex-col gap-px">
-          <span class="whitespace-nowrap text-[8.5px] leading-none text-wheat-dark phone-p:text-[7px] phone-l:text-[7px] phone-l:hidden">
-            {stat.labelAr}
-          </span>
-          <span class="flex items-baseline gap-1 whitespace-nowrap font-mono leading-none">
-            <span dir="ltr" class="text-[15px] font-semibold {stat.toneClass} phone-p:text-[12.5px] phone-l:text-[13px]">{stat.value}</span>
-            <span class="text-[8px] text-wheat-dark phone-p:text-[7px] phone-l:text-[7px]">{stat.suffix}</span>
-          </span>
-          {#if stat.hasDelta}
-            <span class="flex items-baseline gap-0.5 whitespace-nowrap text-[8px] leading-none text-wheat-dark phone-p:hidden phone-l:hidden">
-              <span aria-hidden="true">←</span>
-              <span dir="ltr" class={surplusClass(stat)}>{stat.projected}</span>
-              <span>{stat.suffix}</span>
-            </span>
-          {/if}
-        </span>
-        {#if stat.hasDelta}
-          <span
-            dir="ltr"
-            class="shrink-0 px-1 py-0.5 text-[7.5px] font-bold leading-none shell-round-chip {stat.beneficial
-              ? 'bg-status-ok/15 text-status-ok'
-              : 'bg-umber-deep/80 text-umber-crimson'} phone-p:hidden phone-l:hidden"
-          >
-            {stat.deltaText}
-          </span>
+        {#if $versionStore.hasUpdate}
+          <span class="absolute top-2 end-2 h-2 w-2 bg-[var(--c-accent)]" aria-hidden="true"></span>
         {/if}
-        {#if selectedStat === stat.id}
-          <span class="absolute -bottom-px inset-x-1 h-0.5 bg-wheat-gold" aria-hidden="true"></span>
+        <GameIcon name="gear" cls="h-4.5 w-4.5 shrink-0" />
+      </button>
+
+      <div
+        class="flex min-w-0 flex-1 items-center gap-2 px-2.5"
+        aria-label="الدور الحالي"
+      >
+        <span class="text-[12px] text-[var(--c-muted)]">الدور</span>
+        <span class="num text-[15px] font-bold leading-none text-[var(--c-accent)]" dir="ltr">
+          {turnText}<small class="text-[11px] font-normal text-[var(--c-muted)]">/40</small>
+        </span>
+        <span class="truncate text-[12px] text-[var(--c-muted)]">
+          {seasonText} · <bdi>{$gameStore.calendarYear}</bdi>
+        </span>
+      </div>
+
+      {#if alertCount > 0}
+        <button
+          type="button"
+          onclick={handleAlertsClick}
+          aria-expanded={$uiStore.isAlertsOpen}
+          aria-label="الإنذارات المفتوحة"
+          class="pressable flex min-h-11 shrink-0 items-center border-s border-[var(--c-line)] px-2 text-[11px] font-bold {hasCriticalAlert
+            ? 'text-[var(--c-neg)]'
+            : 'text-[var(--c-accent)]'}"
+        >
+          <span class="border px-1.5 py-0.5 {hasCriticalAlert ? 'border-[var(--c-neg)]' : 'border-[var(--c-accent)]'}">
+            {formatAlertBadge(alertCount)}
+          </span>
+        </button>
+      {/if}
+
+      <button
+        type="button"
+        onclick={toggleMore}
+        aria-haspopup="dialog"
+        aria-expanded={moreOpen}
+        aria-label="مؤشرات أخرى"
+        title="مؤشرات أخرى"
+        class="pressable relative flex min-h-11 w-11 shrink-0 items-center justify-center border-s border-[var(--c-line)] text-[var(--c-muted)] hover:text-[var(--c-accent)] {moreOpen
+          ? 'bg-[var(--c-text)] text-[var(--c-ink)]'
+          : ''}"
+      >
+        <GameIcon name="more" cls="h-4.5 w-4.5 shrink-0" />
+        {#if secondaryChanged}
+          <span
+            class="absolute bottom-1 inset-x-3 h-[2px] bg-[var(--c-text-2)]"
+            aria-hidden="true"
+          ></span>
         {/if}
       </button>
-    {/each}
-  </div>
+    </div>
 
-  <!-- Alerts bell (landscape phones only) -->
-  <button
-    type="button"
-    class="hidden h-full w-11 shrink-0 items-center justify-center border border-transparent text-wheat-dark transition-colors hover:border-forest-accent/20 hover:text-wheat-light phone-l:flex"
-    aria-label="الإنذارات المفتوحة"
-    aria-expanded={$uiStore.isAlertsOpen}
-    title="الإنذارات المفتوحة"
-    onclick={() => uiStore.setAlertsOpen(!$uiStore.isAlertsOpen)}
-  >
-    <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-      <path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5h-15S6 13 6 9Z" stroke-linejoin="round" />
-      <path d="M10 18a2.2 2.2 0 0 0 4 0" stroke-linecap="round" />
-    </svg>
-  </button>
+    <div class="stats-bar grid grid-cols-4 bg-[var(--c-strip)]">
+      {#each primary.slice(0, 4) as stat (stat.id)}
+        <StatCapsule
+          {stat}
+          {layout}
+          expanded={openStatId === stat.id}
+          selected={selectedStat === stat.id}
+          onclick={() => toggleStat(stat.id)}
+        />
+      {/each}
+    </div>
+  {:else if isLandscape}
+    <!-- Landscape phone: single 54px ruled row -->
+    <div class="flex min-h-[54px] items-stretch bg-[var(--c-strip)]">
+      <button
+        type="button"
+        data-tour="settings-gear"
+        onclick={handleOpenSettings}
+        aria-haspopup="dialog"
+        aria-expanded={$uiStore.isSettingsOpen}
+        aria-label="الإعدادات والقائمة"
+        title="الإعدادات — لعبة جديدة، المظهر، الدليل، المزيد"
+        class="pressable relative flex min-h-11 w-11 shrink-0 items-center justify-center border-e border-[var(--c-line)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:text-[var(--c-accent)]"
+      >
+        {#if $versionStore.hasUpdate}
+          <span class="absolute top-2 end-2 h-2 w-2 bg-[var(--c-accent)]" aria-hidden="true"></span>
+        {/if}
+        <GameIcon name="gear" cls="h-4.5 w-4.5 shrink-0" />
+      </button>
 
-  <!-- More tray -->
-  <button
-    type="button"
-    onclick={toggleMore}
-    aria-haspopup="dialog"
-    aria-expanded={moreOpen}
-    aria-label="مؤشرات أخرى"
-    title="مؤشرات أخرى"
-    class="relative flex h-full w-11 shrink-0 items-center justify-center gap-1 border border-transparent px-1 text-wheat-dark transition-colors hover:border-forest-accent/20 hover:bg-forest-accent/5 hover:text-wheat-light phone-l:w-10"
-  >
-    <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 shrink-0" fill="currentColor" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.9" />
-      <circle cx="12" cy="12" r="1.9" />
-      <circle cx="19" cy="12" r="1.9" />
-    </svg>
-    <span class="hidden whitespace-nowrap text-[9px] font-bold xl:inline phone-l:hidden">المزيد</span>
-    {#if secondaryChanged}
-      <span class="absolute top-2 inset-inline-end-3 h-1.5 w-1.5 bg-wheat-gold shell-round-chip" aria-hidden="true"></span>
-    {/if}
-  </button>
+      <div
+        class="flex shrink-0 flex-col justify-center border-e border-[var(--c-line)] bg-[var(--c-panel)] px-2.5"
+        aria-label="الدور الحالي"
+      >
+        <span class="num text-[13.5px] font-bold leading-none text-[var(--c-accent)]" dir="ltr">
+          {turnText}<small class="text-[10.5px] font-normal text-[var(--c-muted)]">/40</small>
+        </span>
+        <span class="mt-0.5 whitespace-nowrap text-[10.5px] text-[var(--c-muted)]">
+          {seasonText} · <bdi>{$gameStore.calendarYear}</bdi>
+        </span>
+      </div>
+
+      <div class="stats-bar grid min-w-0 flex-1 grid-cols-6">
+        {#each primary as stat (stat.id)}
+          <StatCapsule
+            {stat}
+            {layout}
+            expanded={openStatId === stat.id}
+            selected={selectedStat === stat.id}
+            onclick={() => toggleStat(stat.id)}
+          />
+        {/each}
+      </div>
+
+      <button
+        type="button"
+        onclick={handleAlertsClick}
+        aria-label="الإنذارات المفتوحة"
+        aria-expanded={$uiStore.isAlertsOpen}
+        title="الإنذارات المفتوحة"
+        class="pressable relative flex min-h-11 w-11 shrink-0 items-center justify-center border-s border-[var(--c-line)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:text-[var(--c-text)] {$uiStore.isAlertsOpen
+          ? 'bg-[var(--c-text)] text-[var(--c-ink)]'
+          : ''}"
+      >
+        <GameIcon name="bell" cls="h-4.5 w-4.5 shrink-0" />
+        {#if alertCount > 0}
+          <span class="absolute top-2 end-2 h-2 w-2 {hasCriticalAlert ? 'bg-[var(--c-neg)]' : 'bg-[var(--c-accent)]'}" aria-hidden="true"></span>
+        {/if}
+      </button>
+
+      <button
+        type="button"
+        onclick={toggleMore}
+        aria-haspopup="dialog"
+        aria-expanded={moreOpen}
+        aria-label="مؤشرات أخرى"
+        title="مؤشرات أخرى"
+        class="pressable relative flex min-h-11 w-11 shrink-0 items-center justify-center border-s border-[var(--c-line)] bg-[var(--c-panel)] text-[var(--c-muted)] hover:text-[var(--c-accent)] {moreOpen
+          ? 'bg-[var(--c-text)] text-[var(--c-ink)]'
+          : ''}"
+      >
+        <GameIcon name="more" cls="h-4.5 w-4.5 shrink-0" />
+        {#if secondaryChanged}
+          <span class="absolute bottom-1 inset-x-3 h-[2px] bg-[var(--c-text-2)]" aria-hidden="true"></span>
+        {/if}
+      </button>
+    </div>
+  {:else}
+    <!-- Desktop: viewport-stepped ruled strip (60 -> 64 -> 72px) — Turn cell, content-led 6 resource cells, system buttons at end -->
+    <div
+      class="flex items-stretch bg-[var(--c-strip)]"
+      style="height: var(--shell-top-base-h, 60px);"
+    >
+      <!-- Turn cell -->
+      <div
+        class="flex w-[140px] min-[1600px]:w-[154px] min-[2200px]:w-[172px] shrink-0 flex-col justify-center border-e border-[var(--c-line)] bg-[var(--c-panel)] px-3 min-[1600px]:px-3.5"
+        aria-label="الدور الحالي"
+      >
+        <div class="flex items-baseline gap-1.5 text-[13.5px] min-[1600px]:text-[14.5px] min-[2200px]:text-[15.5px]">
+          <span class="text-[var(--c-muted)]">الدور</span>
+          <span class="num text-[18px] min-[1600px]:text-[20px] min-[2200px]:text-[22px] font-bold leading-none text-[var(--c-accent)]" dir="ltr">
+            {turnText}<small class="text-[12px] min-[1600px]:text-[13px] min-[2200px]:text-[14px] font-normal text-[var(--c-muted)]">/40</small>
+          </span>
+        </div>
+        <div class="mt-0.5 truncate text-[11.5px] min-[1600px]:text-[12.5px] min-[2200px]:text-[13.5px] text-[var(--c-muted)]">
+          {seasonText} · <bdi>{$gameStore.calendarYear}</bdi>
+        </div>
+      </div>
+
+      <!-- 6 content-led ruled stat cells aligned from inline-start -->
+      <div class="stats-bar flex min-w-0 flex-1 items-stretch justify-start">
+        {#each primary as stat (stat.id)}
+          <StatCapsule
+            {stat}
+            {layout}
+            expanded={openStatId === stat.id}
+            selected={selectedStat === stat.id}
+            onclick={() => toggleStat(stat.id)}
+          />
+        {/each}
+      </div>
+
+      <!-- Alerts chip + more + gear anchored at inline-end -->
+      <div class="flex shrink-0 items-center gap-2 border-s border-[var(--c-line)] bg-[var(--c-panel)] px-3 min-[1600px]:px-3.5">
+        {#if alertCount > 0}
+          <button
+            type="button"
+            onclick={handleAlertsClick}
+            aria-label="الإنذارات المفتوحة"
+            title="الإنذارات المفتوحة — انتقال لأول إنذار"
+            class="pressable border px-2.5 py-1 text-[12px] min-[1600px]:text-[13px] min-[2200px]:text-[13.5px] font-bold {hasCriticalAlert
+              ? 'border-[var(--c-neg)] text-[var(--c-neg)] hover:bg-[var(--c-ev-bg)]'
+              : 'border-[var(--c-accent)] text-[var(--c-accent)] hover:bg-[var(--c-chip-bg)]'}"
+          >
+            {formatAlertBadge(alertCount)}
+          </button>
+        {/if}
+
+        <button
+          type="button"
+          onclick={toggleMore}
+          aria-haspopup="dialog"
+          aria-expanded={moreOpen}
+          aria-label="مؤشرات أخرى"
+          title="مؤشرات أخرى"
+          class="pressable relative flex h-10 min-w-10 min-[1600px]:h-11 min-[1600px]:min-w-11 items-center justify-center gap-1 border border-[var(--c-line)] bg-[var(--c-bg)] px-2 text-[var(--c-muted)] hover:border-[var(--c-line-strong)] hover:text-[var(--c-accent)] {moreOpen
+            ? 'border-[var(--c-text)] bg-[var(--c-text)] text-[var(--c-ink)]'
+            : ''}"
+        >
+          <GameIcon name="more" cls="h-4.5 w-4.5 min-[2200px]:h-5 min-[2200px]:w-5 shrink-0" />
+          <span class="hidden whitespace-nowrap text-[11.5px] min-[1600px]:text-[12.5px] font-bold 2xl:inline">المزيد</span>
+          {#if secondaryChanged}
+            <span class="absolute bottom-1 inset-x-2.5 h-[2px] bg-[var(--c-text-2)]" aria-hidden="true"></span>
+          {/if}
+        </button>
+
+        <button
+          type="button"
+          data-tour="settings-gear"
+          onclick={handleOpenSettings}
+          aria-haspopup="dialog"
+          aria-expanded={$uiStore.isSettingsOpen}
+          aria-label="الإعدادات والقائمة"
+          title="الإعدادات — لعبة جديدة، المظهر، الدليل، المزيد"
+          class="pressable relative flex h-10 w-10 min-[1600px]:h-11 min-[1600px]:w-11 shrink-0 items-center justify-center border border-[var(--c-line)] bg-[var(--c-bg)] text-[var(--c-muted)] hover:border-[var(--c-line-strong)] hover:text-[var(--c-accent)]"
+        >
+          {#if $versionStore.hasUpdate}
+            <span class="absolute top-1.5 end-1.5 h-2 w-2 bg-[var(--c-accent)]" aria-hidden="true"></span>
+          {/if}
+          <GameIcon name="gear" cls="h-4.5 w-4.5 min-[2200px]:h-5 min-[2200px]:w-5 shrink-0" />
+        </button>
+      </div>
+    </div>
+  {/if}
 </header>
 
 {#if openStat || moreOpen}
-  <!-- Tap-outside catcher below the bar; the bar itself stays tappable so a
-       second stat can be inspected without closing first. -->
   <div
-    class="pointer-events-auto fixed inset-x-0 bottom-0 z-[58] bg-charcoal-deep/35 shell-fade-in"
+    class="pointer-events-auto fixed inset-x-0 bottom-0 z-[58] bg-[var(--c-bg)]/60 shell-fade-in"
     style="top: var(--shell-top-h);"
     role="presentation"
     onclick={closePanels}
@@ -221,48 +391,109 @@
 {#if moreOpen}
   <div
     role="dialog"
+    data-topbar-popover
     aria-label="مؤشرات أخرى"
-    class="pointer-events-auto fixed z-[59] overflow-hidden border border-wheat-mid/20 bg-forest-deep/98 shadow-2xl backdrop-blur-md shell-round-pop shell-fade-in"
-    style="top: calc(var(--shell-top-h) + 6px); inset-inline-end: 10px; width: min(430px, calc(var(--vp-w) - 20px));"
+    class="pointer-events-auto fixed z-[59] overflow-hidden border border-[var(--c-line-strong)] border-t-2 border-t-[var(--c-accent)] bg-[var(--c-panel)] shell-fade-in"
+    style="top: calc(var(--shell-top-h) + 8px); inset-inline-end: 10px; width: min(430px, calc(var(--vp-w) - 20px));"
   >
-    <div class="flex items-center justify-between gap-2 border-b border-wheat-mid/10 px-3 py-2">
-      <span class="font-heading text-[11px] font-bold text-wheat-gold">مؤشرات أخرى</span>
-      <span class="text-[8px] tracking-wide text-wheat-dark">التوقّع بعد إنهاء الدور</span>
+    <div class="flex items-center justify-between gap-2 border-b border-[var(--c-line)] bg-[var(--c-strip)] px-3.5 py-2.5">
+      <span class="font-heading text-[14px] font-bold text-[var(--c-text)]">مؤشرات أخرى</span>
+      <span class="text-[11px] font-medium text-[var(--c-muted)]">التوقّع بعد إنهاء الدور</span>
     </div>
-    <div class="scroll-area max-h-[60vh] overflow-y-auto p-1.5">
+    <div class="scroll-area max-h-[62vh] space-y-1.5 overflow-y-auto p-2">
+      {#if isPortrait}
+        {#each primary.slice(4) as stat (stat.id)}
+          {@const hasArabic = /[\u0600-\u06FF]/.test(stat.suffix)}
+          <button
+            type="button"
+            onclick={() => toggleStat(stat.id)}
+            class="pressable flex min-h-11 w-full items-center gap-2.5 border px-2.5 py-2 text-start {selectedStat === stat.id
+              ? 'border-[var(--c-line-strong)] bg-[var(--c-chip-bg)]'
+              : 'border-[var(--c-line)] bg-[var(--c-bg)] hover:border-[var(--c-line-strong)]'}"
+          >
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center border border-[var(--c-line)] bg-[var(--c-panel)] text-[var(--c-text-2)]">
+              <GameIcon name={stat.icon} cls="h-4 w-4 shrink-0" />
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-[12px] font-medium leading-[1.4] text-[var(--c-muted)]">{stat.labelAr}</span>
+              <span class="flex items-baseline gap-1.5 text-[14px] text-[var(--c-text)]">
+                {#if hasArabic}
+                  <span class="inline-flex items-baseline gap-1">
+                    <bdi dir="ltr" class="num font-bold {stat.toneClass}">{stat.prefix ?? ''}{stat.value}</bdi>
+                    <bdi dir="rtl" class="text-[11px] text-[var(--c-muted)]">{stat.suffix}</bdi>
+                  </span>
+                {:else}
+                  <bdi dir="ltr" class="num font-bold {stat.toneClass}">{stat.prefix ?? ''}{stat.value}{#if stat.suffix}<small class="text-[11px] font-normal text-[var(--c-muted)]">{stat.suffix}</small>{/if}</bdi>
+                {/if}
+                {#if stat.hasDelta}
+                  <span aria-hidden="true" class="text-[11px] text-[var(--c-muted)]">←</span>
+                  <bdi dir="ltr" class="num font-bold {surplusClass(stat)}">{stat.prefix ?? ''}{stat.projected}{#if stat.suffix && !hasArabic}<small class="text-[11px] font-normal">{stat.suffix}</small>{/if}</bdi>
+                {/if}
+              </span>
+            </span>
+            {#if stat.hasDelta}
+              <span
+                dir="ltr"
+                class="num shrink-0 bg-[var(--c-chip-bg)] px-1.5 py-0.5 text-[11px] font-bold {stat.beneficial
+                  ? 'text-[var(--c-pos)]'
+                  : 'text-[var(--c-neg)]'}"
+              >
+                {stat.deltaArrow} {stat.deltaText}
+              </span>
+            {/if}
+          </button>
+        {/each}
+      {/if}
+
       {#each secondary as stat (stat.id)}
+        {@const hasArabic = /[\u0600-\u06FF]/.test(stat.suffix)}
         <button
           type="button"
           onclick={() => toggleStat(stat.id)}
-          class="flex min-h-11 w-full items-center gap-2 border border-transparent px-2 py-1.5 text-start transition-colors hover:border-forest-accent/20 hover:bg-forest-accent/5 focus-visible:border-wheat-gold {selectedStat === stat.id ? 'border-wheat-gold/60 bg-forest-surface/60' : ''}"
+          class="pressable flex min-h-11 w-full items-center gap-2.5 border px-2.5 py-2 text-start {selectedStat === stat.id
+            ? 'border-[var(--c-line-strong)] bg-[var(--c-chip-bg)]'
+            : 'border-[var(--c-line)] bg-[var(--c-bg)] hover:border-[var(--c-line-strong)]'}"
         >
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center bg-forest-mid/60 text-wheat-mid">
-            <GameIcon name={stat.icon} cls="h-3.5 w-3.5 shrink-0" />
+          <span class="flex h-8 w-8 shrink-0 items-center justify-center border border-[var(--c-line)] bg-[var(--c-panel)] text-[var(--c-text-2)]">
+            <GameIcon name={stat.icon} cls="h-4 w-4 shrink-0" />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[10px] text-wheat-dark">{stat.labelAr}</span>
-            <span class="flex items-baseline gap-1 font-mono text-[12.5px] text-wheat-light">
-              <span dir="ltr">{stat.value}</span><span class="text-[8px] text-wheat-dark">{stat.suffix}</span>
+            <span class="block truncate text-[12px] font-medium leading-[1.4] text-[var(--c-muted)]">{stat.labelAr}</span>
+            <span class="flex items-baseline gap-1.5 text-[14px] text-[var(--c-text)]">
+              {#if hasArabic}
+                <span class="inline-flex items-baseline gap-1">
+                  <bdi dir="ltr" class="num font-bold {stat.toneClass}">{stat.prefix ?? ''}{stat.value}</bdi>
+                  <bdi dir="rtl" class="text-[11px] text-[var(--c-muted)]">{stat.suffix}</bdi>
+                </span>
+              {:else}
+                <bdi dir="ltr" class="num font-bold {stat.toneClass}">{stat.prefix ?? ''}{stat.value}{#if stat.suffix}<small class="text-[11px] font-normal text-[var(--c-muted)]">{stat.suffix}</small>{/if}</bdi>
+              {/if}
               {#if stat.hasDelta}
-                <span aria-hidden="true" class="text-[9px] text-wheat-dark">←</span>
-                <span dir="ltr" class={surplusClass(stat)}>{stat.projected}</span>
+                <span aria-hidden="true" class="text-[11px] text-[var(--c-muted)]">←</span>
+                <bdi dir="ltr" class="num font-bold {surplusClass(stat)}">{stat.prefix ?? ''}{stat.projected}{#if stat.suffix && !hasArabic}<small class="text-[11px] font-normal">{stat.suffix}</small>{/if}</bdi>
               {/if}
             </span>
           </span>
           {#if stat.hasDelta}
-            <span dir="ltr" class="shrink-0 px-1 py-0.5 text-[7.5px] font-bold shell-round-chip {stat.beneficial ? 'bg-status-ok/15 text-status-ok' : 'bg-umber-deep/80 text-umber-crimson'}">
-              {stat.deltaText}
+            <span
+              dir="ltr"
+              class="num shrink-0 bg-[var(--c-chip-bg)] px-1.5 py-0.5 text-[11px] font-bold {stat.beneficial
+                ? 'text-[var(--c-pos)]'
+                : 'text-[var(--c-neg)]'}"
+            >
+              {stat.deltaArrow} {stat.deltaText}
             </span>
           {/if}
         </button>
       {/each}
+
       {#if selectedStat}
         <button
           type="button"
           onclick={clearFilter}
-          class="mt-1 flex min-h-11 w-full items-center justify-center gap-1.5 border border-wheat-gold/40 bg-wheat-gold/10 px-2 py-2 text-[10px] font-bold text-wheat-gold"
+          class="game-btn mt-1 w-full text-[12px]"
         >
-          <GameIcon name="cross-mark" cls="h-3 w-3 shrink-0" />
+          <GameIcon name="cross-mark" cls="h-3.5 w-3.5 shrink-0" />
           إلغاء تصفية الخيارات
         </button>
       {/if}
@@ -271,77 +502,95 @@
 {/if}
 
 {#if openStat}
+  {@const openArabicSuffix = /[\u0600-\u06FF]/.test(openStat.suffix)}
   <div
     role="dialog"
+    data-topbar-popover
     aria-label={openStat.labelAr}
-    class="pointer-events-auto fixed z-[59] overflow-hidden border border-wheat-mid/25 bg-forest-deep/98 shadow-2xl backdrop-blur-md shell-round-pop shell-fade-in"
-    style="top: calc(var(--shell-top-h) + 6px); inset-inline-end: 10px; width: min(360px, calc(var(--vp-w) - 20px));"
+    class="pointer-events-auto fixed z-[59] overflow-hidden border border-[var(--c-line-strong)] border-t-2 border-t-[var(--c-accent)] bg-[var(--c-panel)] shell-fade-in"
+    style="top: calc(var(--shell-top-h) + 8px); inset-inline-end: 10px; width: min(370px, calc(var(--vp-w) - 20px));"
   >
-    <div class="flex items-start justify-between gap-2 border-b border-wheat-mid/10 px-3 py-2">
+    <div class="flex items-center justify-between gap-2 border-b border-[var(--c-line)] bg-[var(--c-strip)] px-3.5 py-2.5">
       <div class="min-w-0">
-        <div class="flex items-center gap-1.5 text-[8.5px] tracking-[1.4px] text-forest-accent/90">
-          <span class="h-px w-3 bg-forest-accent/60"></span>
+        <div class="text-[11px] font-medium text-[var(--c-muted)]">
           توقّع الدور القادم
         </div>
-        <div class="mt-0.5 truncate font-heading text-[15px] font-bold text-wheat-light">{openStat.labelAr}</div>
+        <div class="mt-0.5 truncate font-heading text-[16px] font-bold leading-[1.4] text-[var(--c-text)]">
+          {openStat.labelAr}
+        </div>
       </div>
       <button
         type="button"
         onclick={closePanels}
         aria-label="إغلاق الشرح"
-        class="flex h-11 w-11 shrink-0 items-center justify-center text-wheat-dark hover:text-wheat-light"
+        class="game-btn game-btn-ghost h-11 w-11 shrink-0 p-0 text-[var(--c-muted)] hover:text-[var(--c-text)]"
       >
-        <GameIcon name="cross-mark" cls="h-3.5 w-3.5 shrink-0" />
+        <GameIcon name="cross-mark" cls="h-4 w-4 shrink-0" />
       </button>
     </div>
 
-    <div class="px-3 py-2.5">
-      <div class="flex items-end justify-between gap-2">
-        <div dir="ltr" class="font-mono text-[22px] leading-none text-wheat-light">
-          {openStat.value}<span class="ms-1 text-[10px] text-wheat-dark">{openStat.suffix}</span>
+    <div class="px-3.5 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 border border-[var(--c-line)] bg-[var(--c-bg)] px-3 py-2.5">
+        <div class="inline-flex items-baseline gap-1 text-[22px] font-bold leading-none {openStat.toneClass}">
+          {#if openArabicSuffix}
+            <bdi dir="ltr" class="num">{openStat.prefix ?? ''}{openStat.value}</bdi>
+            <bdi dir="rtl" class="font-arabic text-[11px] font-normal text-[var(--c-muted)]">{openStat.suffix}</bdi>
+          {:else}
+            <bdi dir="ltr" class="num">{openStat.prefix ?? ''}{openStat.value}{#if openStat.suffix}<small class="font-arabic text-[11px] font-normal text-[var(--c-muted)]">{openStat.suffix}</small>{/if}</bdi>
+          {/if}
         </div>
         {#if openStat.hasDelta}
-          <div class="flex items-center gap-1.5 text-end">
-            <span class="text-[8.5px] text-wheat-dark">بعد التنفيذ</span>
-            <span dir="ltr" class="font-mono text-[17px] leading-none {surplusClass(openStat)}">
-              {openStat.projected}<span class="ms-0.5 text-[9px]">{openStat.suffix}</span>
+          <div class="flex flex-wrap items-center gap-1.5 text-end">
+            <span class="text-[11px] text-[var(--c-muted)]">بعد التنفيذ</span>
+            <span class="inline-flex items-baseline gap-0.5 text-[17px] font-bold leading-none {surplusClass(openStat)}">
+              {#if openArabicSuffix}
+                <bdi dir="ltr" class="num">{openStat.prefix ?? ''}{openStat.projected}</bdi>
+                <bdi dir="rtl" class="font-arabic text-[11px] font-normal">{openStat.suffix}</bdi>
+              {:else}
+                <bdi dir="ltr" class="num">{openStat.prefix ?? ''}{openStat.projected}{#if openStat.suffix}<small class="font-arabic text-[11px] font-normal">{openStat.suffix}</small>{/if}</bdi>
+              {/if}
             </span>
-            <span dir="ltr" class="px-1.5 py-0.5 text-[8.5px] font-bold shell-round-chip {openStat.beneficial ? 'bg-status-ok/15 text-status-ok' : 'bg-umber-deep/80 text-umber-crimson'}">
-              {openStat.deltaText}
+            <span
+              dir="ltr"
+              class="num bg-[var(--c-chip-bg)] px-1.5 py-0.5 text-[11px] font-bold {openStat.beneficial
+                ? 'text-[var(--c-pos)]'
+                : 'text-[var(--c-neg)]'}"
+            >
+              {openStat.deltaArrow} {openStat.deltaText} ({openStat.pctText})
             </span>
           </div>
         {:else}
-          <span class="text-[9px] text-wheat-dark">لا تغيير في المسودة الحالية</span>
+          <span class="text-[11px] text-[var(--c-muted)]">لا تغيير في المسودة الحالية</span>
         {/if}
       </div>
 
-      <p class="mt-2 border-t border-wheat-mid/10 pt-2 text-[10px] leading-relaxed text-wheat-mid/95">
+      <p class="reading-text mt-2.5 text-[12.5px] leading-relaxed text-[var(--c-text-2)]">
         {openStat.explainer}
       </p>
 
-      <div class="mt-2.5 flex flex-col gap-1.5">
+      <div class="mt-3 flex flex-col gap-2">
         <button
           type="button"
           onclick={() => useStatFilter(openStat.id)}
           aria-pressed={selectedStat === openStat.id}
-          class="flex min-h-11 items-center justify-center gap-1.5 border px-2 text-[10.5px] font-bold transition-colors {selectedStat === openStat.id
-            ? 'border-wheat-gold bg-wheat-gold text-forest-deep'
-            : 'border-wheat-gold/50 bg-wheat-gold/10 text-wheat-gold hover:bg-wheat-gold/20'}"
+          class="game-btn w-full text-[12.5px] {selectedStat === openStat.id
+            ? '!border-[var(--c-text)] !bg-[var(--c-text)] !text-[var(--c-ink)]'
+            : ''}"
         >
-          <GameIcon name="check-mark" cls="h-3 w-3 shrink-0" />
+          <GameIcon name="check-mark" cls="h-3.5 w-3.5 shrink-0" />
           {selectedStat === openStat.id ? 'إلغاء تصفية هذا المؤشر' : 'عرض الخيارات المرتبطة بهذا المؤشر'}
         </button>
         {#if selectedStat === openStat.id}
           <button
             type="button"
             onclick={clearFilter}
-            class="flex min-h-11 items-center justify-center gap-1.5 border border-wheat-mid/25 px-2 text-[10px] font-semibold text-wheat-mid hover:border-wheat-mid/50 hover:text-wheat-light"
+            class="game-btn game-btn-ghost w-full text-[12px]"
           >
             إلغاء التصفية
           </button>
         {/if}
       </div>
-      <div class="mt-2 text-[8px] text-wheat-dark">
+      <div class="mt-2.5 text-[11px] text-[var(--c-muted)]">
         المؤشر الحالي: {STAT_NAMES_AR[openStat.id] ?? openStat.labelAr} · يمكنك إغلاق الشرح والتصفية في أي وقت.
       </div>
     </div>

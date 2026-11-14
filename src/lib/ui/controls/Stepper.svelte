@@ -1,4 +1,7 @@
 <script lang="ts">
+  import './econ-plates.css';
+  import { triggerFx } from './feedback-bridge';
+
   interface Props {
     value: number;
     min: number;
@@ -30,12 +33,16 @@
 
   function commit(next: number): void {
     if (disabled) return;
-    onchange(clamp(next));
+    const clamped = clamp(next);
+    if (clamped !== value) {
+      triggerFx('select');
+    }
+    onchange(clamped);
   }
 </script>
 
 <div
-  class="inline-flex min-h-11 items-stretch overflow-hidden border border-charcoal-mid bg-charcoal-surface {disabled
+  class="inline-flex min-h-11 items-stretch border border-[var(--c-line)] bg-[var(--c-panel)] {disabled
     ? 'opacity-50'
     : ''}"
   role="group"
@@ -43,19 +50,19 @@
 >
   <button
     type="button"
-    class="flex h-11 w-11 shrink-0 items-center justify-center border-e border-charcoal-mid font-mono text-lg leading-none text-wheat-mid transition-colors hover:bg-forest-mid hover:text-wheat-gold disabled:cursor-not-allowed disabled:opacity-40"
+    class="pressable flex h-11 w-11 shrink-0 items-center justify-center border-e border-[var(--c-line)] bg-[var(--c-bg)] p-0 font-heading text-lg leading-none text-wheat-mid hover:text-wheat-gold disabled:cursor-not-allowed disabled:opacity-40"
     aria-label="إنقاص {label}"
     disabled={disabled || value <= min}
     onclick={() => commit(value - step)}>−</button
   >
   <span
-    class="flex min-w-16 flex-1 items-center justify-center px-2 font-heading text-[13px] font-bold text-wheat-light"
+    class="num flex min-w-16 flex-1 items-center justify-center px-2.5 text-[14px] font-bold text-wheat-gold"
     aria-live="polite"
     dir="ltr">{display}</span
   >
   <button
     type="button"
-    class="flex h-11 w-11 shrink-0 items-center justify-center border-s border-charcoal-mid font-mono text-lg leading-none text-wheat-mid transition-colors hover:bg-forest-mid hover:text-wheat-gold disabled:cursor-not-allowed disabled:opacity-40"
+    class="pressable flex h-11 w-11 shrink-0 items-center justify-center border-s border-[var(--c-line)] bg-[var(--c-bg)] p-0 font-heading text-lg leading-none text-wheat-mid hover:text-wheat-gold disabled:cursor-not-allowed disabled:opacity-40"
     aria-label="رفع {label}"
     disabled={disabled || value >= max}
     onclick={() => commit(value + step)}>+</button

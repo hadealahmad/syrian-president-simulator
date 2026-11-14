@@ -3,6 +3,8 @@
 </script>
 
 <script lang="ts">
+  import './econ-plates.css';
+  import { splitBidiTokens } from './bidi';
   import GameIcon from '../GameIcon.svelte';
 
   interface Props {
@@ -35,9 +37,7 @@
     return `${label} ${sign}${amount}`.trim();
   });
 
-  // A leading sign/digit would otherwise be re-ordered by the RTL paragraph
-  // (the minus would jump to the far edge). LRM anchors the numeric run.
-  let shown = $derived(/^[+\u2212-]/.test(body) ? `\u200E${body}` : body);
+  let segments = $derived(splitBidiTokens(body));
 
   let glyph = $derived(
     icon === undefined ? (tone === 'good' ? 'check-mark' : tone === 'bad' ? 'cross-mark' : '') : icon
@@ -45,21 +45,23 @@
 
   let toneClass = $derived(
     tone === 'good'
-      ? 'border-forest-accent/40 bg-forest-mid text-forest-accent'
+      ? 'border-transparent bg-[var(--c-chip-bg)] text-[var(--c-pos)]'
       : tone === 'bad'
-        ? 'border-umber-border/60 bg-umber-deep text-umber-crimson'
+        ? 'border-transparent bg-[var(--c-chip-bg)] text-[var(--c-neg)]'
         : tone === 'warn'
-          ? 'border-status-warn/40 bg-umber-deep text-status-warn'
-          : 'border-charcoal-mid bg-charcoal-surface text-wheat-mid'
+          ? 'border-transparent bg-[var(--c-chip-bg)] text-[var(--c-accent)]'
+          : 'border-transparent bg-[var(--c-chip-bg)] text-[var(--c-text-2)]'
   );
 </script>
 
 <span
-  class="inline-flex max-w-full items-center gap-1 border px-1.5 py-0.5 font-mono text-[8.5px] font-bold leading-tight {toneClass} {className}"
+  class="game-chip inline-flex max-w-full items-center gap-1 border px-1.5 py-0.5 font-arabic text-[11px] font-bold leading-[1.4] num {toneClass} {className}"
   title={body}
 >
   {#if glyph}
-    <GameIcon name={glyph} cls="h-2.5 w-2.5 shrink-0" />
+    <GameIcon name={glyph} cls="h-3 w-3 shrink-0" />
   {/if}
-  <span class="min-w-0">{shown}</span>
+  <span class="min-w-0">
+    {#each segments as seg}{#if seg.ltr}<bdi dir="ltr">{seg.text}</bdi>{:else}{seg.text}{/if}{/each}
+  </span>
 </span>
