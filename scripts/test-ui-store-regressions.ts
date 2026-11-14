@@ -17,6 +17,12 @@ import { gameStore } from '../src/lib/stores/game-store';
 import { uiStore } from '../src/lib/stores/ui-store';
 import { startNewGame } from '../src/lib/stores/new-game';
 import {
+  ANALYTICS_CONSENT_STORAGE_KEY,
+  GTM_CONTAINER_ID,
+  analyticsStore,
+} from '../src/lib/stores/analytics-store';
+import { ALL_EVENTS } from '../src/lib/engine/deck';
+import {
   REMITTANCE_POOL_USD,
   previewComplianceRate,
   previewCorporateTaxSYP,
@@ -345,6 +351,223 @@ console.log('=== Panel previews mirror the engine formulas ===');
   check('zero CapEx decays the grid', previewGridCapExGain(0, 45, 58).mw === -120);
   check('wage unrest relief is uncapped (3/pt per 25%)', previewWageUnrestRelief(100) === 12);
   check('wage unrest relief at 400% is -48, not -45', previewWageUnrestRelief(400) === 48);
+}
+
+// ── Analytics: consent gating, GTM-MP8775QZ bootstrap & lifecycle events ───
+console.log('=== GTM analytics consent gating & lifecycle tracking ===');
+{
+  const storage = new Map<string, string>();
+  const appendedScripts: Array<{ async: boolean; src: string; dataset: Record<string, string> }> = [];
+  const mockWindow: Record<string, unknown> = {
+    localStorage: {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        storage.set(k, String(v));
+      },
+      removeItem: (k: string) => {
+        storage.delete(k);
+      },
+    },
+  };
+  const mockDocument = {
+    head: {
+      appendChild: (el: { async: boolean; src: string; dataset: Record<string, string> }) => {
+        appendedScripts.push(el);
+        return el;
+      },
+    },
+    createElement: (_tag: string) => ({
+      async: false,
+      src: '',
+      dataset: {} as Record<string, string>,
+    }),
+    querySelector: (sel: string) => {
+      if (sel === `script[data-gtm-id="${GTM_CONTAINER_ID}"]`) {
+        return appendedScripts.find((s) => s.dataset.gtmId === GTM_CONTAINER_ID) ?? null;
+      }
+      return null;
+    },
+  };
+
+  (globalThis as Record<string, unknown>).window = mockWindow;
+  (globalThis as Record<string, unknown>).document = mockDocument;
+
+  try {
+    analyticsStore.resetForTests();
+    check('consent defaults to unset before user choice', get(analyticsStore).consent === 'unset');
+    check('tracking disabled before opt-in', get(analyticsStore).enabled === false);
+
+    // Actions while unset must not load GTM or create dataLayer events
+    startNewGame(101, 'title_menu');
+    gameStore.commitTurn(freshDraft());
+    check('GTM script not injected before consent', appendedScripts.length === 0);
+    check('dataLayer untouched before consent', mockWindow.dataLayer === undefined);
+
+    // Grant consent (simulates clicking Accept on banner or toggling ON in Settings)
+    analyticsStore.setConsent(true);
+    check('consent stored in localStorage', storage.get(ANALYTICS_CONSENT_STORAGE_KEY) === 'granted');
+    check('analyticsStore enabled after opt-in', get(analyticsStore).enabled === true);
+    check(
+      'GTM-MP8775QZ script injected once',
+      appendedScripts.length === 1 &&
+        appendedScripts[0].src === `https://www.googletagmanager.com/gtm.js?id=${GTM_CONTAINER_ID}` &&
+        appendedScripts[0].async === true
+    );
+
+    const getCalls = () =>
+      ((mockWindow.dataLayer as ArrayLike<unknown>[]) ?? []).map((entry) => Array.from(entry));
+
+    const initialCalls = getCalls();
+    check(
+      'gtag("js", Date) queued on dataLayer',
+      initialCalls.some((c) => c[0] === 'js' && c[1] instanceof Date)
+    );
+    check(
+      'gtag("consent", "default", ...) queued with analytics_storage granted',
+      initialCalls.some(
+        (c) =>
+          c[0] === 'consent' &&
+          c[1] === 'default' &&
+          (c[2] as Record<string, unknown>)?.analytics_storage === 'granted'
+      )
+    );
+
+    // 1. First-time game_start (hasStartedGame = false)
+    uiStore.setSettingsOpen(true);
+    // Reset hasStartedGame to false by checking fresh start vs restart:
+    // Notice startNewGame reads uiStore.hasStartedGame; right now in Node hasStartedGame is false!
+    startNewGame(777, 'title_menu');
+    const afterStartCalls = getCalls();
+    const startEvt = afterStartCalls.find((c) => c[0] === 'event' && c[1] === 'game_start');
+    check(
+      'game_start emitted with seed & title_menu source',
+      Boolean(startEvt) &&
+        (startEvt?.[2] as Record<string, unknown>)?.seed === 777 &&
+        (startEvt?.[2] as Record<string, unknown>)?.source === 'title_menu'
+    );
+
+    // Mark game started, advance a turn, then restart -> game_restart
+    uiStore.markGameStarted();
+    gameStore.commitTurn(freshDraft());
+    const turnEvt = getCalls().find((c) => c[0] === 'event' && c[1] === 'game_turn');
+    check(
+      'game_turn emitted on commitTurn',
+      Boolean(turnEvt) &&
+        (turnEvt?.[2] as Record<string, unknown>)?.turn_number === 1 &&
+        (turnEvt?.[2] as Record<string, unknown>)?.next_turn === 2
+    );
+
+    // Resolve an active event (or inject a canonical event card to test both option & default penalty)
+    const sampleCard = ALL_EVENTS[0];
+    gameStore.restart(888);
+    // Commit 1 turn to get activeEvents or test chooseEventOption directly
+    gameStore.commitTurn(freshDraft());
+    const stateWithEvents = get(gameStore);
+    const activeCard = stateWithEvents.activeEvents[0] ?? sampleCard;
+    if (stateWithEvents.activeEvents.length > 0 && activeCard.options.length > 0) {
+      gameStore.chooseEventOption(activeCard.id, activeCard.options[0].id);
+      const evTracked = getCalls().find(
+        (c) =>
+          c[0] === 'event' &&
+          c[1] === 'game_event' &&
+          (c[2] as Record<string, unknown>)?.event_id === activeCard.id
+      );
+      check(
+        'game_event emitted on chooseEventOption',
+        Boolean(evTracked) &&
+          (evTracked?.[2] as Record<string, unknown>)?.option_id === activeCard.options[0].id &&
+          (evTracked?.[2] as Record<string, unknown>)?.resolution_type === 'option_selected'
+      );
+    } else {
+      gameStore.triggerUnresolvedCrisisPenalty(sampleCard.id);
+      const evTracked = getCalls().find((c) => c[0] === 'event' && c[1] === 'game_event');
+      check('game_event emitted on unresolved crisis', Boolean(evTracked));
+    }
+
+    // Restart after playing -> game_restart
+    startNewGame(999, 'settings_menu');
+    const restartEvt = getCalls().find((c) => c[0] === 'event' && c[1] === 'game_restart');
+    check(
+      'game_restart emitted when restarting an active session',
+      Boolean(restartEvt) &&
+        (restartEvt?.[2] as Record<string, unknown>)?.source === 'settings_menu' &&
+        (restartEvt?.[2] as Record<string, unknown>)?.seed === 999
+    );
+
+    // Trigger a loss ending (SOVEREIGN_INSOLVENCY via depleted reserves & negative runway, or URBAN_INSURRECTION)
+    // Play until fail or turn 40 win to verify game_ending / game_win
+    let sawOutcome = false;
+    for (let t = 0; t < 40; t++) {
+      if (get(gameStore).isGameOver) break;
+      const d = freshDraft();
+      d.moneyPrintingSYP = 500_000_000_000;
+      d.gridCapExUSD = 150_000_000;
+      gameStore.commitTurn(d);
+      if (get(gameStore).isGameOver) {
+        sawOutcome = true;
+        break;
+      }
+    }
+    const lossEndingEvt = getCalls().find(
+      (c) =>
+        c[0] === 'event' &&
+        c[1] === 'game_ending' &&
+        (c[2] as Record<string, unknown>)?.outcome === 'loss'
+    );
+    check(
+      'loss ending emits game_ending with fail_state outcome & ending_id',
+      sawOutcome &&
+        Boolean(lossEndingEvt) &&
+        typeof (lossEndingEvt?.[2] as Record<string, unknown>)?.ending_id === 'string' &&
+        (lossEndingEvt?.[2] as Record<string, unknown>)?.ending_category === 'fail_state'
+    );
+
+    // Also test 40-turn survival win (game_win + century game_ending) via trackGameOutcome
+    const { trackGameOutcome } = await import('../src/lib/stores/analytics-store');
+    const { projectCenturyOutcome } = await import('../src/lib/engine/century-engine');
+    const winState = createInitialGameState(2026);
+    winState.turnNumber = 41;
+    winState.calendarYear = 2045;
+    winState.isGameOver = true;
+    winState.centuryEnding = projectCenturyOutcome(winState);
+    trackGameOutcome(winState, 'turn_commit');
+
+    const winEvt = getCalls().find((c) => c[0] === 'event' && c[1] === 'game_win');
+    const centuryEndingEvt = getCalls().find(
+      (c) =>
+        c[0] === 'event' &&
+        c[1] === 'game_ending' &&
+        (c[2] as Record<string, unknown>)?.outcome === 'win'
+    );
+    check(
+      '40-turn survival emits game_win with ending_id, southern_ending_id & final_score',
+      Boolean(winEvt) &&
+        (winEvt?.[2] as Record<string, unknown>)?.ending_id === winState.centuryEnding.id &&
+        typeof (winEvt?.[2] as Record<string, unknown>)?.southern_ending_id === 'string' &&
+        typeof (winEvt?.[2] as Record<string, unknown>)?.final_score === 'number'
+    );
+    check(
+      '40-turn survival emits game_ending with outcome="win" & ending_category="century"',
+      Boolean(centuryEndingEvt) &&
+        (centuryEndingEvt?.[2] as Record<string, unknown>)?.ending_id === winState.centuryEnding.id
+    );
+
+    // Disable tracking via Settings toggle -> stops future events & updates consent mode
+    analyticsStore.setConsent(false);
+    check('consent persisted as denied after toggle off', storage.get(ANALYTICS_CONSENT_STORAGE_KEY) === 'denied');
+    check('analyticsStore disabled after toggle off', get(analyticsStore).enabled === false);
+    const countAfterDisable = getCalls().length;
+    startNewGame(1234, 'restart_modal');
+    gameStore.commitTurn(freshDraft());
+    check('zero gameplay events emitted after disabling tracking', getCalls().length === countAfterDisable);
+    check(
+      'GTM script never injected more than once across toggle cycles',
+      appendedScripts.length === 1
+    );
+  } finally {
+    delete (globalThis as Record<string, unknown>).window;
+    delete (globalThis as Record<string, unknown>).document;
+  }
 }
 
 console.log('');

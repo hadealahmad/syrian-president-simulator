@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { gameStore } from '../stores/game-store';
   import { uiStore } from '../stores/ui-store';
+  import { analyticsStore } from '../stores/analytics-store';
   import { startNewGame as startNewGameSession } from '../stores/new-game';
   import { versionStore } from '../stores/version-store';
   import { theme } from '../stores/theme-store';
@@ -20,7 +21,11 @@
   import { PROJECT_LINKS } from '../project-links';
   import { SYRIA_2D_GOVERNORATES } from '../spatial3d/syria-2d-paths';
   import { fx, fxSettings } from './fx/feedback';
-  import { clearSettingsEntrySource, settingsOpenedInGame } from './flow/settings-menu';
+  import {
+    clearSettingsEntrySource,
+    settingsMenuSubView,
+    settingsOpenedInGame,
+  } from './flow/settings-menu';
   import { formatBillionSYP } from './flow/review-items';
 
   /**
@@ -39,6 +44,10 @@
   let canInstallApp = $derived(!$pwaStore.isInstalled && ($pwaStore.canInstall || $pwaStore.isIos));
   let hasSave = $derived($uiStore.hasStartedGame);
   let openedFromGear = $derived($settingsOpenedInGame);
+
+  $effect(() => {
+    settingsMenuSubView.set(menuView);
+  });
 
   let saveTurnText = $derived(String($gameStore.turnNumber).padStart(2, '0'));
   let saveSeasonText = $derived($gameStore.season === 'H1_HARVEST' ? 'الحصاد' : 'الشتاء');
@@ -99,6 +108,7 @@
 
   function handleCurtainKeydown(e: KeyboardEvent): void {
     if (!$uiStore.isSettingsOpen) return;
+    if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
     if (e.key !== 'Tab') {
       e.stopPropagation();
     }
@@ -121,6 +131,7 @@
     const onCaptureKey = (e: KeyboardEvent): void => {
       if (!$uiStore.isSettingsOpen) return;
       if ($uiStore.isAboutOpen || $uiStore.isRestartModalOpen || $tourActive) return;
+      if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
       if (e.key === 'Escape') {
         handleCurtainKeydown(e);
       } else if (e.key !== 'Tab') {
@@ -139,7 +150,8 @@
 
   function confirmNewGame(): void {
     fx('confirm');
-    startNewGameSession();
+    const source = $uiStore.hasStartedGame ? 'settings_menu' : 'title_menu';
+    startNewGameSession(undefined, source);
     closeSettings(false);
     if (!hasSeenTour()) {
       setTimeout(() => {
@@ -194,6 +206,10 @@
   function toggleCrt(next: boolean): void {
     fx('select');
     uiStore.setCrtTube(next);
+  }
+
+  function toggleAnalytics(next: boolean): void {
+    analyticsStore.setConsent(next);
   }
 
   async function installApp(): Promise<void> {
@@ -510,10 +526,22 @@
               </div>
             </section>
 
-            <!-- Group 3: اللعبة -->
-            <section class="space-y-1.5" aria-label="اللعبة">
-              <GroupDivider label="اللعبة" tone="accent" />
+            <!-- Group 3: اللعبة والخصوصية -->
+            <section class="space-y-1.5" aria-label="اللعبة والخصوصية">
+              <GroupDivider label="اللعبة والخصوصية" tone="accent" />
               <div class="divide-y divide-[var(--c-line)] border border-[var(--c-line)] bg-[var(--c-panel)]">
+                <div class="grid min-h-[56px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2">
+                  <div class="min-w-0">
+                    <div class="text-[var(--flow-fs-base)] font-bold leading-snug text-[var(--c-text)]">إحصاءات اللعب</div>
+                    <div class="truncate text-[var(--flow-fs-xs)] leading-[1.4] text-[var(--c-muted)]">مشاركة بيانات مجهولة عن الأدوار والأحداث والنهايات</div>
+                  </div>
+                  <SettingsToggle
+                    checked={$analyticsStore.enabled}
+                    label="تبديل مشاركة إحصاءات اللعب"
+                    onchange={toggleAnalytics}
+                  />
+                </div>
+
                 {#if canInstallApp}
                   <div class="grid min-h-[56px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3.5 py-2">
                     <div class="min-w-0">
@@ -952,9 +980,21 @@
                 </div>
               </section>
 
-              <section class="space-y-1.5" aria-label="اللعبة">
-                <GroupDivider label="اللعبة" tone="accent" />
+              <section class="space-y-1.5" aria-label="اللعبة والخصوصية">
+                <GroupDivider label="اللعبة والخصوصية" tone="accent" />
                 <div class="divide-y divide-[var(--c-line)] border border-[var(--c-line)] bg-[var(--c-panel)]">
+                  <div class="grid min-h-[54px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 phone-l:min-h-[48px] phone-l:py-1.5">
+                    <div class="min-w-0">
+                      <div class="text-[13px] font-bold leading-snug text-[var(--c-text)]">إحصاءات اللعب</div>
+                      <div class="truncate text-[11.5px] leading-[1.4] text-[var(--c-muted)]">مشاركة بيانات مجهولة عن الأدوار والأحداث والنهايات</div>
+                    </div>
+                    <SettingsToggle
+                      checked={$analyticsStore.enabled}
+                      label="تبديل مشاركة إحصاءات اللعب"
+                      onchange={toggleAnalytics}
+                    />
+                  </div>
+
                   {#if canInstallApp}
                     <div class="grid min-h-[54px] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 phone-l:min-h-[48px] phone-l:py-1.5">
                       <div class="min-w-0">

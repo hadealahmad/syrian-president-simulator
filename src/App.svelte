@@ -11,6 +11,7 @@
   import About from './lib/ui/About.svelte';
   import GuideTour from './lib/ui/GuideTour.svelte';
   import VersionUpdateBanner from './lib/ui/VersionUpdateBanner.svelte';
+  import AnalyticsConsentBanner from './lib/ui/AnalyticsConsentBanner.svelte';
   import TopBar from './lib/ui/shell/TopBar.svelte';
   import AlertsStack from './lib/ui/shell/AlertsStack.svelte';
   import CommandDock from './lib/ui/shell/CommandDock.svelte';
@@ -102,8 +103,9 @@
       <FloatingCommandDeck />
     </div>
 
-    <!-- New Version Alert Banner -->
+    <!-- New Version Alert Banner & Privacy Consent Banner -->
     <VersionUpdateBanner />
+    <AnalyticsConsentBanner />
 
     <!-- Intelligence & Crisis Modals -->
     <TurnReviewModal />

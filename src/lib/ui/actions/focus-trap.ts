@@ -28,15 +28,28 @@ export function focusTrap(
     typeof document !== 'undefined' ? (document.activeElement as HTMLElement | null) : null;
   let frame = 0;
 
-  function getFocusable(): HTMLElement[] {
-    return Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-      (el) =>
-        el.getAttribute('aria-hidden') !== 'true' &&
-        (el.offsetWidth > 0 ||
-          el.offsetHeight > 0 ||
-          el.getClientRects().length > 0 ||
-          el === document.activeElement)
+  function isVisibleFocusable(el: HTMLElement): boolean {
+    return (
+      el.getAttribute('aria-hidden') !== 'true' &&
+      (el.offsetWidth > 0 ||
+        el.offsetHeight > 0 ||
+        el.getClientRects().length > 0 ||
+        el === document.activeElement)
     );
+  }
+
+  function getFocusable(): HTMLElement[] {
+    const own = Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
+      isVisibleFocusable
+    );
+    if (typeof document === 'undefined') return own;
+    const exemptRoots = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-focus-trap-exempt]')
+    );
+    const exempt = exemptRoots.flatMap((root) =>
+      Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isVisibleFocusable)
+    );
+    return exempt.length > 0 ? [...own, ...exempt] : own;
   }
 
   function focusFirst(): void {
@@ -61,7 +74,9 @@ export function focusTrap(
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     const activeEl = document.activeElement as HTMLElement | null;
-    const inside = activeEl ? node.contains(activeEl) : false;
+    const inside = activeEl
+      ? node.contains(activeEl) || Boolean(activeEl.closest('[data-focus-trap-exempt]'))
+      : false;
     if (event.shiftKey) {
       if (!inside || activeEl === first) {
         event.preventDefault();

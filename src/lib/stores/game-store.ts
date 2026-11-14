@@ -6,6 +6,7 @@ import { executeTurnLifecycle } from '../engine/turn-manager';
 import { resolveEventOption, applyUnresolvedCrisisPenalty } from '../engine/events';
 import { checkFailStates } from '../engine/fail-states';
 import { cloneGameState } from '../engine/state-clone';
+import { trackGameEventResolved, trackTurnCommitted } from './analytics-store';
 
 const STORAGE_KEY = 'president_game_state_v1';
 
@@ -163,10 +164,22 @@ function createGameStore() {
   return {
     subscribe,
     commitTurn: (directives: TurnDirectives) => {
-      update((current) => executeTurnLifecycle(current, directives));
+      let prevState: GameState | null = null;
+      let nextState: GameState | null = null;
+      update((current) => {
+        prevState = current;
+        nextState = executeTurnLifecycle(current, directives);
+        return nextState;
+      });
+      if (prevState && nextState) {
+        trackTurnCommitted(prevState, directives, nextState);
+      }
     },
     chooseEventOption: (eventId: string, optionId: string) => {
+      let prevState: GameState | null = null;
+      let nextState: GameState | null = null;
       update((current) => {
+        prevState = current;
         const cloned = clonePlayableState(current);
         resolveEventOption(cloned, eventId, optionId);
         const failCheck = checkFailStates(cloned);
@@ -174,11 +187,24 @@ function createGameStore() {
           cloned.isGameOver = true;
           cloned.failState = failCheck;
         }
+        nextState = cloned;
         return cloned;
       });
+      if (prevState && nextState) {
+        trackGameEventResolved({
+          prevState,
+          nextState,
+          eventId,
+          optionId,
+          resolution: 'option_selected',
+        });
+      }
     },
     triggerUnresolvedCrisisPenalty: (eventId: string) => {
+      let prevState: GameState | null = null;
+      let nextState: GameState | null = null;
       update((current) => {
+        prevState = current;
         const cloned = clonePlayableState(current);
         applyUnresolvedCrisisPenalty(cloned, eventId);
         const failCheck = checkFailStates(cloned);
@@ -186,8 +212,17 @@ function createGameStore() {
           cloned.isGameOver = true;
           cloned.failState = failCheck;
         }
+        nextState = cloned;
         return cloned;
       });
+      if (prevState && nextState) {
+        trackGameEventResolved({
+          prevState,
+          nextState,
+          eventId,
+          resolution: 'unresolved_penalty',
+        });
+      }
     },
     restart: (seed?: number) => {
       try {

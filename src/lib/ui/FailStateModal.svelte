@@ -35,12 +35,13 @@
 
   function handleRestart(): void {
     fx('confirm');
-    startNewGame();
+    startNewGame(undefined, 'fail_screen');
   }
 
   function onCaptureKey(e: KeyboardEvent): void {
     if (!($gameStore.isGameOver && failState)) return;
     if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen) return;
+    if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
 
     if (e.key !== 'Tab') {
       e.stopPropagation();

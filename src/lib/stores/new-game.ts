@@ -1,6 +1,8 @@
+import { get } from 'svelte/store';
 import { gameStore } from './game-store';
 import { draftStore } from './draft-store';
 import { uiStore } from './ui-store';
+import { trackGameSessionStart, type NewGameTrackSource } from './analytics-store';
 
 /**
  * The single entry point for starting a new presidential term. Every restart
@@ -12,8 +14,21 @@ import { uiStore } from './ui-store';
  * An explicit seed is honoured; omitting it lets gameStore.restart() draw a
  * fresh random seed for this run.
  */
-export function startNewGame(seed?: number): void {
+export function startNewGame(seed?: number, source?: NewGameTrackSource): void {
+  const previousState = get(gameStore);
+  const isRestart = get(uiStore).hasStartedGame;
+  const resolvedSource: NewGameTrackSource =
+    source ?? (isRestart ? 'settings_menu' : 'title_menu');
+
   gameStore.restart(seed);
   draftStore.reset();
   uiStore.resetGameUi();
+
+  const nextState = get(gameStore);
+  trackGameSessionStart({
+    isRestart,
+    source: resolvedSource,
+    previousState,
+    nextState,
+  });
 }

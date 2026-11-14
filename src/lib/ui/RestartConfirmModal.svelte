@@ -14,7 +14,7 @@
 
   function handleConfirm(): void {
     fx('confirm');
-    startNewGame();
+    startNewGame(undefined, 'restart_modal');
     uiStore.setRestartModal(false);
     uiStore.markGameStarted();
   }

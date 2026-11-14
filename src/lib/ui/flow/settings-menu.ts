@@ -8,6 +8,7 @@ import { stopGuideTour } from '../guide-tour';
  * from Settings closes back to the active game instead of showing the title.
  */
 export const settingsOpenedInGame = writable<boolean>(false);
+export const settingsMenuSubView = writable<'main' | 'settings' | 'themes' | 'restart'>('main');
 
 /**
  * Single entry point for opening the full-screen settings curtain.
