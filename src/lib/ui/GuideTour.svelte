@@ -414,7 +414,7 @@
 
   function onCaptureKey(e: KeyboardEvent): void {
     if (!$tourActive) return;
-    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen) return;
+    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRecordsOpen || $uiStore.isRestartModalOpen) return;
 
     if (e.key !== 'Tab') {
       e.stopPropagation();

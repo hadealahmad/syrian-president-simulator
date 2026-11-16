@@ -21,6 +21,7 @@
       $analyticsStore.consent === 'unset' &&
       !($uiStore.isSettingsOpen && $settingsMenuSubView !== 'main') &&
       !$uiStore.isAboutOpen &&
+      !$uiStore.isRecordsOpen &&
       !$uiStore.isRestartModalOpen &&
       !$tourActive
   );

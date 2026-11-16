@@ -156,7 +156,7 @@
   onMount(() => {
     const onCaptureKey = (event: KeyboardEvent): void => {
       if (stage !== 'review' && stage !== 'results') return;
-      if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen || $tourActive) {
+      if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRecordsOpen || $uiStore.isRestartModalOpen || $tourActive) {
         return;
       }
       if (stage === 'review' && event.key === 'Escape') {

@@ -20,6 +20,9 @@
   import { shellLayout } from './lib/ui/shell/viewport';
   import { uiStore } from './lib/stores/ui-store';
   import { hasSeenTour, startGuideTour } from './lib/ui/guide-tour';
+  import RecordsScreen from './lib/records/ui/RecordsScreen.svelte';
+  import AchievementToast from './lib/records/ui/AchievementToast.svelte';
+  import { MAIN_ACHIEVEMENTS, mainRecords } from './lib/stores/main-records';
 
   let sheetOpen = $derived(
     $uiStore.activeCommandPanel !== null || $uiStore.isStatsSidebarOpen,
@@ -116,6 +119,16 @@
     <GuideTour />
   </div>
 
-  <!-- Fullscreen informational view -->
+  <!-- Fullscreen informational & records views -->
   <About />
+  {#if $uiStore.isRecordsOpen}
+    <RecordsScreen
+      defs={MAIN_ACHIEVEMENTS}
+      store={mainRecords}
+      title="رئيس الجمهورية"
+      initialTab={$uiStore.recordsInitialTab}
+      onClose={() => uiStore.closeRecords()}
+    />
+  {/if}
+  <AchievementToast defs={MAIN_ACHIEVEMENTS} store={mainRecords} />
 </main>

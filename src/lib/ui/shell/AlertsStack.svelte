@@ -13,6 +13,7 @@
       $uiStore.isSettingsOpen ||
       $uiStore.isRestartModalOpen ||
       $uiStore.isAboutOpen ||
+      $uiStore.isRecordsOpen ||
       $gameStore.isGameOver,
   );
 

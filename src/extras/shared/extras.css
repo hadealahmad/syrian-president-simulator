@@ -1,0 +1,38 @@
+/* Side games: page-level rules shared by the hub and every game.
+   Colors, fonts and buttons come from the main game's app.css + kit.css. */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#app {
+  min-height: 100dvh;
+}
+
+/* Full-height game frame that respects notches and home indicators. */
+.x-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

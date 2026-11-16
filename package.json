@@ -15,7 +15,7 @@
     "preview": "vite preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "deploy": "node scripts/deploy-gh-pages.js",
-    "test": "npm run test:engine",
+    "test": "npm run test:engine && npm run test:extras",
     "test:engine": "npm run test:events && npm run test:event-effects && npm run test:audit-split && npm run test:budget && npm run test:debt && npm run test:debt-repudiation && npm run test:patronage && npm run test:facilities && npm run test:growth && npm run test:southern && npm run test:demining && npm run test:auction && npm run test:endings && npm run test:regressions",
     "test:events": "tsx scripts/verify-events-engine.ts",
     "test:event-effects": "tsx scripts/test-event-effects.ts",
@@ -33,7 +33,8 @@
     "test:ui-store": "tsx scripts/test-ui-store-regressions.ts",
     "test:simulation": "tsx scripts/test-simulation.ts",
     "test:ui": "tsx scripts/check-console-errors.ts && tsx scripts/test-browser-interaction.ts && tsx scripts/test-event-political-credit.ts && tsx scripts/test-localstorage-restart.ts && tsx scripts/test-layout-visibility.ts && tsx scripts/test-ux-refinements.ts && tsx scripts/test-hover-legend.ts && tsx scripts/test-hover-translation.ts && tsx scripts/verify-map-interaction.ts",
-    "test:regressions": "tsx scripts/test-engine-regressions.ts && tsx scripts/test-event-regressions.ts && tsx scripts/test-ui-store-regressions.ts"
+    "test:regressions": "tsx scripts/test-engine-regressions.ts && tsx scripts/test-event-regressions.ts && tsx scripts/test-ui-store-regressions.ts",
+    "test:extras": "tsx scripts/extras/test-crisis.ts && tsx scripts/extras/test-dossier.ts && tsx scripts/extras/test-dossier-achievements.ts"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.0",

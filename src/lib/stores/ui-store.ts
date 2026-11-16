@@ -14,6 +14,9 @@ export interface UIState {
   hasStartedGame: boolean;
   /** Full-screen About page (project idea, sourced facts, MIT licence, author). */
   isAboutOpen: boolean;
+  /** Full-screen Achievements & Top Runs records panel. */
+  isRecordsOpen: boolean;
+  recordsInitialTab: 'achievements' | 'runs';
   tourCompleted: boolean;
   checklist: { decrees: boolean; province: boolean; endTurn: boolean };
   selectedStatForOptions: string | null;
@@ -74,6 +77,8 @@ function createUIStore() {
     isSettingsOpen: !initialStarted,
     hasStartedGame: initialStarted,
     isAboutOpen: false,
+    isRecordsOpen: false,
+    recordsInitialTab: 'achievements',
     tourCompleted: checkTourSeen(),
     checklist: { decrees: false, province: false, endTurn: false },
     selectedStatForOptions: null,
@@ -127,6 +132,12 @@ function createUIStore() {
     },
     setAboutOpen: (open: boolean) => {
       update((s) => ({ ...s, isAboutOpen: open }));
+    },
+    openRecords: (tab: 'achievements' | 'runs' = 'achievements') => {
+      update((s) => ({ ...s, isRecordsOpen: true, recordsInitialTab: tab }));
+    },
+    closeRecords: () => {
+      update((s) => ({ ...s, isRecordsOpen: false }));
     },
     completeTour: () => {
       update((s) => ({ ...s, tourCompleted: true }));
@@ -227,6 +238,7 @@ function createUIStore() {
         isRestartModalOpen: false,
         turnFlowStage: 'closed',
         isAboutOpen: false,
+        isRecordsOpen: false,
         checklist: { decrees: false, province: false, endTurn: false },
         selectedStatForOptions: null,
         activeCommandPanel: null,

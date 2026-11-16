@@ -11,12 +11,23 @@
   import KbdHint from './flow/KbdHint.svelte';
   import { hasModifierKey, isTypingTarget } from './flow/kbd';
   import './flow/flow-desktop.css';
+  import GameIcon from './GameIcon.svelte';
+  import { sortTopRuns } from '../records';
+  import { mainRecords } from '../stores/main-records';
 
   let layout = $derived($shellLayout);
   let isDesktop = $derived(layout === 'desktop');
 
   let ending = $derived($gameStore.centuryEnding);
   let debtB = $derived(($gameStore.macro.sovereignDebtUSD / 1_000_000_000).toFixed(1));
+
+  const runsListStore = mainRecords.runs;
+  let currentRunRank = $derived.by(() => {
+    const runId = $gameStore.runMeta?.runId;
+    if (!runId) return null;
+    const idx = sortTopRuns($runsListStore, 10).findIndex((r) => r.id === runId);
+    return idx >= 0 ? idx + 1 : null;
+  });
 
   let playedVictoryFx = false;
   $effect(() => {
@@ -35,9 +46,21 @@
     startNewGame(undefined, 'century_report');
   }
 
+  function handleOpenRuns(): void {
+    fx('tap');
+    uiStore.openRecords('runs');
+  }
+
   function onCaptureKey(e: KeyboardEvent): void {
     if (!($gameStore.isGameOver && ending)) return;
-    if ($uiStore.isSettingsOpen || $uiStore.isAboutOpen || $uiStore.isRestartModalOpen) return;
+    if (
+      $uiStore.isSettingsOpen ||
+      $uiStore.isAboutOpen ||
+      $uiStore.isRecordsOpen ||
+      $uiStore.isRestartModalOpen
+    ) {
+      return;
+    }
     if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
 
     if (e.key !== 'Tab') {
@@ -94,9 +117,17 @@
           <h1 class="font-display font-bold leading-[1.35] text-[var(--c-text)] {isDesktop ? 'text-[clamp(26px,2.2vw,40px)]' : 'text-[clamp(24px,4vw,36px)] phone-l:text-[22px]'}">
             {ending.titleAr}
           </h1>
-          <h2 class="font-heading font-medium text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-[14px]'}">
-            {ending.subtitleAr}
-          </h2>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h2 class="font-heading font-medium text-[var(--c-text-2)] {isDesktop ? 'text-[var(--flow-fs-md)]' : 'text-[14px]'}">
+              {ending.subtitleAr}
+            </h2>
+            {#if currentRunRank !== null}
+              <span class="inline-flex items-center gap-1.5 border border-[var(--c-accent)] bg-[var(--c-chip-bg)] px-2 py-0.5 font-heading text-xs font-bold text-[var(--c-accent)]">
+                <GameIcon name="podium" cls="w-3.5 h-3.5 shrink-0" />
+                <span>جولة رقم <bdi dir="ltr" class="num">{currentRunRank}</bdi> في أفضل جولاتك</span>
+              </span>
+            {/if}
+          </div>
         </div>
 
         <!-- Compact key stats tiles: 1 row of 4 on desktop -->
@@ -143,10 +174,22 @@
         </div>
       </div>
 
-      <!-- Pinned bottom primary action -->
+      <!-- Pinned bottom actions -->
       <footer class="shrink-0 border-t border-[var(--c-line)] bg-[var(--c-panel)] {isDesktop
-        ? 'flex justify-end px-[var(--flow-pad-x)] py-3'
-        : 'px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex sm:justify-end sm:px-7 phone-l:py-2'}">
+        ? 'flex items-center justify-between gap-3 px-[var(--flow-pad-x)] py-3'
+        : 'flex flex-col gap-2 px-5 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:px-7 phone-l:py-2'}">
+        <button
+          type="button"
+          onclick={handleOpenRuns}
+          style={isDesktop ? 'min-height: var(--flow-btn-pri-h);' : ''}
+          class="kit-btn sec flex min-h-11 items-center justify-center gap-2 bg-[var(--c-bg)] px-5 font-heading font-bold {isDesktop
+            ? 'w-auto text-[var(--flow-fs-sm)]'
+            : 'w-full text-[13.5px] sm:w-auto'}"
+        >
+          <GameIcon name="podium" cls="w-4 h-4 shrink-0 text-[var(--c-accent)]" />
+          <span>سجل الجولات</span>
+        </button>
+
         <button
           data-autofocus
           data-century-restart

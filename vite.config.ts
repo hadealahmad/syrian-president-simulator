@@ -93,6 +93,18 @@ function versionPlugin(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
+  build: {
+    rollupOptions: {
+      // Main game plus the side games (extras/). Each side game is its own
+      // page so its code never ships inside the main game's bundle.
+      input: {
+        main: path.resolve(import.meta.dirname, 'index.html'),
+        extras: path.resolve(import.meta.dirname, 'extras/index.html'),
+        dossier: path.resolve(import.meta.dirname, 'extras/dossier/index.html'),
+        crisis: path.resolve(import.meta.dirname, 'extras/crisis/index.html'),
+      },
+    },
+  },
   plugins: [
     tailwindcss(),
     svelte(),
@@ -134,6 +146,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2,ttf}'],
         globIgnores: ['**/version.json'],
         navigateFallback: 'index.html',
+        // Standalone demos under public/extras/ are their own pages; never
+        // answer their navigations with the main game's shell.
+        navigateFallbackDenylist: [/\/extras\//],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: false,

@@ -1,0 +1,144 @@
+/* Urgent Decisions («قرارات عاجلة») — Operations Console side-game styles.
+   Flat, square (border-radius: 0), hairline borders, --c-* tokens only. */
+
+:root {
+  --dos-col-max: 560px;
+  --dos-card-title-fs: 20px;
+  --dos-card-body-fs: 16px;
+  --dos-ans-fs: 14px;
+  --kit-btn-h: 46px;
+}
+
+@media (min-width: 768px) and (min-height: 680px) {
+  :root {
+    --dos-col-max: 600px;
+    --dos-card-title-fs: 23px;
+    --dos-card-body-fs: 17.5px;
+    --dos-ans-fs: 15px;
+    --kit-btn-h: 48px;
+  }
+}
+
+.x-frame .kit-btn {
+  height: auto;
+  min-height: 46px;
+}
+
+.dos-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--c-line-strong) transparent;
+}
+
+.dos-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.dos-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.dos-file-card {
+  position: relative;
+  border-radius: 0;
+  border: 1px solid var(--c-line);
+  border-top: 3px solid var(--c-accent);
+  background: var(--c-panel);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  will-change: transform;
+}
+
+.dos-file-card.is-overreach {
+  border-top-color: var(--c-neg);
+}
+
+.dos-file-card.is-dragging {
+  cursor: grabbing;
+  border-color: var(--c-line-strong);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.42);
+}
+
+.dos-file-card.is-snapback {
+  transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 140ms ease;
+}
+
+.dos-file-card.commit-edge {
+  border-color: var(--c-accent);
+}
+
+.dos-ans-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 1px solid var(--c-line-strong);
+  background: var(--c-panel);
+  color: var(--c-text);
+  font-size: var(--dos-ans-fs);
+  font-weight: 700;
+  line-height: 1.35;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease, transform 120ms ease;
+}
+
+.dos-ans-btn:hover,
+.dos-ans-btn.is-active {
+  border-color: var(--c-accent);
+  background: var(--c-chip-bg);
+}
+
+.dos-ans-btn:active {
+  transform: translateY(1px);
+}
+
+.dos-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--c-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dos-file-card.is-snapback {
+    transition: none !important;
+  }
+}
+
+.dos-watermark {
+  color: var(--c-line);
+  opacity: 0.4;
+}
+
+:root {
+  --dos-security: #6f97c4;
+  --dos-sovereignty: #b39ad6;
+}
+
+:root[data-theme='mono'] {
+  --dos-security: #bdbdbd;
+  --dos-sovereignty: #8a8a8a;
+}
+
+/* Wide desktops: wider column and larger type so the file reads comfortably. */
+@media (min-width: 1200px) and (min-height: 820px) {
+  :root {
+    --dos-col-max: 680px;
+    --dos-card-title-fs: 27px;
+    --dos-card-body-fs: 19.5px;
+    --dos-ans-fs: 17px;
+  }
+}
+
+/* File title and text use the game-name display font (Thmanyah Serif Display). */
+.dos-card-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.005em;
+}

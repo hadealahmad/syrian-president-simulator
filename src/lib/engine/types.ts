@@ -536,6 +536,25 @@ export interface MigrationSummary {
   flows: MigrationFlow[];
 }
 
+export interface MainRunMeta {
+  /** Unique identifier for this playthrough, used to deduplicate RunRecord entries. */
+  runId: string;
+  /** Epoch milliseconds when this playthrough began (or first loaded for legacy saves). */
+  startedAt: number;
+  /** Sum of calculateRealWageUSD sampled across committed turns in this run. */
+  realWageSumUSD: number;
+  /** Number of turns sampled into realWageSumUSD. */
+  realWageSamples: number;
+  /** Lowest civicTrust recorded during this run. */
+  minCivicTrust: number;
+  /** Cumulative new SYP printed across committed turns in this run. */
+  totalPrintedSYP: number;
+  /** True if all 4 debt repudiation decrees were enacted together in a single turn. */
+  quadRepudiationInOneTurn?: boolean;
+  /** True once this run's final RunRecord has been persisted. */
+  recorded?: boolean;
+}
+
 export interface GameState {
   turnNumber: number;
   calendarYear: number;
@@ -561,4 +580,6 @@ export interface GameState {
   /** Cumulative gov-to-gov displacement across committed turns: key `${fromId}>${toId}` → people. */
   migrationLedger?: Record<string, number>;
   enactedDecrees?: string[];
+  /** Optional playthrough metadata persisted with the save for achievements & top runs. */
+  runMeta?: MainRunMeta;
 }

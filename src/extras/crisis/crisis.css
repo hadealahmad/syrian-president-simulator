@@ -1,0 +1,366 @@
+/* غرفة الأزمات — Operations Console tactical card battler styles
+   Flat, square, hairline-ruled. Zero border-radius. */
+
+:root,
+:root[data-theme='default'] {
+  --cat-energy: #d9a441;
+  --cat-food: #8fae5a;
+  --cat-security: #6f97c4;
+  --cat-money: #4fb3a5;
+  --cat-society: #a99a8a;
+  --crisis-glyph-color: color-mix(in srgb, var(--c-text) 76%, var(--c-accent) 24%);
+}
+
+/* Mono greyscale theme: override all category colours to distinct greys;
+   category glyph always accompanies colour so meaning never depends on hue. */
+:root[data-theme='mono'] {
+  --cat-energy: #e0e0e0;
+  --cat-food: #c4c4c4;
+  --cat-security: #adadad;
+  --cat-money: #969696;
+  --cat-society: #808080;
+  --crisis-glyph-color: var(--c-text-2);
+}
+
+[data-cat='energy'] {
+  --cat-color: var(--cat-energy);
+}
+[data-cat='food'] {
+  --cat-color: var(--cat-food);
+}
+[data-cat='security'] {
+  --cat-color: var(--cat-security);
+}
+[data-cat='money'] {
+  --cat-color: var(--cat-money);
+}
+[data-cat='society'] {
+  --cat-color: var(--cat-society);
+}
+
+/* Responsive board & card sizing variables (full 4-lane width, no side label column) */
+.crisis-battle-shell {
+  --lane-gap: 6px;
+  --card-w: clamp(78px, calc((100vw - 36px) / 4), 96px);
+  --card-aspect: 3 / 3.9;
+  --queue-card-w: calc(var(--card-w) * 0.78);
+  --hand-card-w: clamp(82px, 22.5vw, 96px);
+  --hero-glyph-ratio: 0.46;
+  --board-w: calc(4 * var(--card-w) + 3 * var(--lane-gap));
+}
+
+@media (max-width: 374px) {
+  .crisis-battle-shell {
+    --lane-gap: 5px;
+    --card-w: clamp(78px, calc((100vw - 39px) / 4), 84px);
+    --board-w: calc(4 * var(--card-w) + 3 * var(--lane-gap));
+  }
+}
+
+@media (max-height: 700px) {
+  .crisis-battle-shell {
+    --lane-gap: 5px;
+    --card-w: clamp(78px, calc((100vw - 39px) / 4), 84px);
+    --card-aspect: 5 / 5.6;
+    --queue-card-w: calc(var(--card-w) * 0.7);
+    --hand-card-w: clamp(70px, 19.5vw, 76px);
+    --hero-glyph-ratio: 0.32;
+    --board-w: calc(4 * var(--card-w) + 3 * var(--lane-gap));
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .crisis-battle-shell {
+    --lane-gap: 10px;
+    --card-w: clamp(104px, min(18vw, 14.2dvh), 126px);
+    --card-aspect: 3 / 3.8;
+    --queue-card-w: calc(var(--card-w) * 0.78);
+    --hand-card-w: clamp(98px, min(17vw, 13.2dvh), 118px);
+    --hero-glyph-ratio: 0.46;
+    --board-w: calc(4 * var(--card-w) + 3 * var(--lane-gap));
+  }
+}
+
+@media (min-width: 1024px) {
+  .crisis-battle-shell {
+    --lane-gap: 12px;
+    --card-w: clamp(138px, min(11.4vw, 16.2dvh), 150px);
+    --card-aspect: 1 / 1.1;
+    --queue-card-w: calc(var(--card-w) * 0.78);
+    --hand-card-w: clamp(132px, min(10.8vw, 15.1dvh), 144px);
+    --hero-glyph-ratio: 0.46;
+    --board-w: calc(4 * var(--card-w) + 3 * var(--lane-gap));
+  }
+}
+
+/* Board section wrapper aligned to the 4 lanes */
+.crisis-board-group {
+  width: var(--board-w);
+  margin-inline: auto;
+}
+
+/* 4-lane grid row (full width, no side label column) */
+.crisis-board-row {
+  display: grid;
+  grid-template-columns: repeat(4, var(--card-w));
+  column-gap: var(--lane-gap);
+  align-items: center;
+  justify-content: center;
+}
+
+/* Card portrait frame (flat, square, hairline-ruled) */
+.crisis-card {
+  position: relative;
+  border-radius: 0;
+  border: 1px solid var(--c-line-strong);
+  background: var(--c-panel);
+  color: var(--c-text);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.crisis-card--board {
+  --this-card-w: var(--card-w);
+  width: var(--this-card-w);
+  aspect-ratio: var(--card-aspect, 3 / 4);
+}
+.crisis-card--queue {
+  --this-card-w: var(--queue-card-w);
+  width: var(--this-card-w);
+  aspect-ratio: var(--card-aspect, 3 / 4);
+}
+.crisis-card--hand {
+  --this-card-w: var(--hand-card-w);
+  width: var(--this-card-w);
+  aspect-ratio: var(--card-aspect, 3 / 4);
+}
+.crisis-card--md {
+  --this-card-w: clamp(96px, 26vw, 120px);
+  width: var(--this-card-w);
+  aspect-ratio: 3 / 4;
+}
+.crisis-card--lg {
+  --this-card-w: clamp(110px, 29vw, 148px);
+  width: var(--this-card-w);
+  aspect-ratio: 3 / 4;
+}
+
+/* Central hero glyph: ~44–50% of card width */
+.crisis-hero-glyph {
+  width: calc(var(--this-card-w) * var(--hero-glyph-ratio, 0.46));
+  height: calc(var(--this-card-w) * var(--hero-glyph-ratio, 0.46));
+}
+
+/* Crisis side visual separation: --c-ev-bg + crisp 1px --c-neg inner frame */
+.crisis-card--enemy {
+  background: var(--c-ev-bg);
+  border-color: var(--c-line-strong);
+}
+.crisis-card--enemy::after {
+  content: '';
+  position: absolute;
+  inset: 3px 1px 1px 1px;
+  border: 1px solid color-mix(in srgb, var(--c-neg) 52%, transparent);
+  pointer-events: none;
+}
+
+/* Boss card: thicker border + stronger presence in same slot size */
+.crisis-card--boss {
+  background: var(--c-ev-bg);
+  border: 2px solid var(--c-neg);
+}
+.crisis-card--boss::after {
+  content: '';
+  position: absolute;
+  inset: 4px 2px 2px 2px;
+  border: 1px solid color-mix(in srgb, var(--c-neg) 75%, transparent);
+  pointer-events: none;
+}
+
+.crisis-card--selected {
+  border-color: var(--c-accent) !important;
+  outline: 2px solid var(--c-accent);
+  outline-offset: -2px;
+}
+
+/* Unaffordable card: dim card art/body while keeping --c-neg cost bright */
+.crisis-card--unaffordable {
+  border-color: var(--c-line);
+}
+.crisis-card--unaffordable .crisis-card-dimmable {
+  opacity: 0.48;
+}
+
+/* Diagonal hatch overlay when previewRound says card will be destroyed */
+.crisis-hatch-destroy {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--c-neg) 48%, transparent) 0px,
+    color-mix(in srgb, var(--c-neg) 48%, transparent) 3px,
+    color-mix(in srgb, var(--c-ink) 38%, transparent) 3px,
+    color-mix(in srgb, var(--c-ink) 38%, transparent) 8px
+  );
+  box-shadow: inset 0 0 0 1px var(--c-neg);
+}
+
+/* Dark fogged lane hatch */
+.crisis-hatch-dark {
+  background-image: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--c-line-strong) 26%, transparent) 0px,
+    color-mix(in srgb, var(--c-line-strong) 26%, transparent) 2px,
+    transparent 2px,
+    transparent 7px
+  );
+}
+
+/* Dragged ghost card: the ONLY element allowed a subtle lift shadow */
+.crisis-drag-ghost {
+  position: fixed;
+  z-index: 220;
+  pointer-events: none;
+  transform: translate(-50%, -62%) scale(1.04);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.62);
+}
+
+/* Valid drop/target slot accent outline */
+.crisis-slot-valid {
+  border-color: var(--c-accent) !important;
+  border-style: solid !important;
+  box-shadow: inset 0 0 0 1px var(--c-accent);
+}
+.crisis-slot-hovered {
+  background: color-mix(in srgb, var(--c-accent) 14%, var(--c-panel)) !important;
+}
+
+/* Resolution & Map Keyframes */
+@keyframes crisis-lunge-up {
+  0% { transform: translateY(0); }
+  48% { transform: translateY(-22px); }
+  100% { transform: translateY(0); }
+}
+@keyframes crisis-lunge-down {
+  0% { transform: translateY(0); }
+  48% { transform: translateY(22px); }
+  100% { transform: translateY(0); }
+}
+@keyframes crisis-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  45% { transform: translateX(6px); }
+  70% { transform: translateX(-3px); }
+  85% { transform: translateX(3px); }
+}
+@keyframes crisis-hit-flash {
+  0%, 30% {
+    background-color: color-mix(in srgb, var(--c-neg) 62%, var(--c-panel));
+    border-color: var(--c-neg);
+    box-shadow: inset 0 0 0 2px var(--c-neg);
+  }
+  100% {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+@keyframes crisis-destroy {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.68); }
+}
+@keyframes crisis-drop-in {
+  0% { opacity: 0.4; transform: translateY(-28px) scale(0.84); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes crisis-queue-fade {
+  0% { opacity: 0; transform: translateY(-12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes crisis-pop-float {
+  0% { opacity: 0; transform: translate(-50%, 6px) scale(0.72); }
+  20% { opacity: 1; transform: translate(-50%, -4px) scale(1.12); }
+  45% { opacity: 1; transform: translate(-50%, -12px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -28px) scale(0.96); }
+}
+@keyframes crisis-node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--c-accent) 55%, transparent); }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--c-accent) 0%, transparent); }
+}
+@keyframes crisis-boss-flash {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+.is-lunging-up {
+  z-index: 30;
+  animation: crisis-lunge-up var(--anim-lunge-ms, 300ms) ease-in-out both;
+}
+.is-lunging-down {
+  z-index: 30;
+  animation: crisis-lunge-down var(--anim-lunge-ms, 300ms) ease-in-out both;
+}
+.is-shaking {
+  animation:
+    crisis-shake var(--anim-shake-ms, 260ms) ease-out both,
+    crisis-hit-flash var(--anim-shake-ms, 260ms) ease-out both;
+}
+.is-hit-flash {
+  border-color: var(--c-neg) !important;
+  box-shadow: inset 0 0 0 2px var(--c-neg);
+}
+.is-destroying {
+  animation: crisis-destroy var(--anim-destroy-ms, 260ms) ease-in forwards;
+}
+.is-dropping {
+  animation: crisis-drop-in var(--anim-drop-ms, 220ms) ease-out both;
+}
+.is-fading-in {
+  animation: crisis-queue-fade var(--anim-fade-ms, 220ms) ease-out both;
+}
+.crisis-float-pop {
+  animation: crisis-pop-float var(--anim-pop-ms, 600ms) ease-out forwards;
+}
+.crisis-node-reachable {
+  border: 2px solid var(--c-accent) !important;
+  animation: crisis-node-pulse 1.9s ease-in-out infinite;
+}
+.crisis-boss-flash {
+  animation: crisis-boss-flash 480ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-lunging-up,
+  .is-lunging-down,
+  .is-shaking,
+  .is-dropping,
+  .crisis-node-reachable,
+  .crisis-float-pop {
+    animation: none !important;
+    transform: none !important;
+  }
+  .crisis-float-pop {
+    transform: translate(-50%, -8px) !important;
+  }
+  .is-destroying {
+    opacity: 0.25;
+    animation: none !important;
+  }
+  .crisis-drag-ghost {
+    transform: translate(-50%, -50%) !important;
+  }
+}
+
+/* Short phones: queue cards are too small for a name; glyph + stats suffice
+   (tap the card for its detail sheet). */
+@media (max-height: 700px) {
+  .crisis-queue-name {
+    display: none;
+  }
+}
+
+@media (max-height: 700px) {
+  .crisis-card--hand {
+    --hero-glyph-ratio: 0.26;
+  }
+}

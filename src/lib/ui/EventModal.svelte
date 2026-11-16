@@ -278,6 +278,7 @@
     if (
       $uiStore.isSettingsOpen ||
       $uiStore.isAboutOpen ||
+      $uiStore.isRecordsOpen ||
       $uiStore.isRestartModalOpen ||
       $tourActive
     ) {

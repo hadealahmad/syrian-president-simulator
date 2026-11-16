@@ -27,6 +27,7 @@
     settingsOpenedInGame,
   } from './flow/settings-menu';
   import { formatBillionSYP } from './flow/review-items';
+  import { MAIN_ACHIEVEMENTS, mainRecords } from '../stores/main-records';
 
   /**
    * Full-screen Operations Console title & settings curtain.
@@ -38,6 +39,12 @@
    */
   let layout = $derived($shellLayout);
   let isDesktop = $derived(layout === 'desktop');
+
+  const mainUnlockedStore = mainRecords.unlocked;
+  let unlockedAchievementsCount = $derived(
+    MAIN_ACHIEVEMENTS.reduce((acc, def) => acc + ($mainUnlockedStore[def.id] ? 1 : 0), 0)
+  );
+  const totalAchievementsCount = MAIN_ACHIEVEMENTS.length;
 
   let menuView = $state<'main' | 'settings' | 'themes' | 'restart'>('main');
   let iosInstallHintOpen = $state(false);
@@ -107,7 +114,7 @@
   }
 
   function handleCurtainKeydown(e: KeyboardEvent): void {
-    if (!$uiStore.isSettingsOpen) return;
+    if (!$uiStore.isSettingsOpen || $uiStore.isRecordsOpen) return;
     if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
     if (e.key !== 'Tab') {
       e.stopPropagation();
@@ -130,7 +137,14 @@
   onMount(() => {
     const onCaptureKey = (e: KeyboardEvent): void => {
       if (!$uiStore.isSettingsOpen) return;
-      if ($uiStore.isAboutOpen || $uiStore.isRestartModalOpen || $tourActive) return;
+      if (
+        $uiStore.isAboutOpen ||
+        $uiStore.isRecordsOpen ||
+        $uiStore.isRestartModalOpen ||
+        $tourActive
+      ) {
+        return;
+      }
       if ((e.target as Element | null)?.closest?.('[data-focus-trap-exempt]')) return;
       if (e.key === 'Escape') {
         handleCurtainKeydown(e);
@@ -176,6 +190,14 @@
       closeSettings(false);
     }
     uiStore.setAboutOpen(true);
+  }
+
+  function openRecordsFromMenu(): void {
+    fx('tap');
+    if ($uiStore.hasStartedGame) {
+      closeSettings(false);
+    }
+    uiStore.openRecords('achievements');
   }
 
   function updateGame(): void {
@@ -353,6 +375,18 @@
 
               <button
                 type="button"
+                onclick={openRecordsFromMenu}
+                style="min-height: var(--flow-btn-pri-h);"
+                class="kit-btn sec flex w-full items-center justify-between gap-3 bg-[var(--c-panel)] px-4 text-[var(--flow-fs-md)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+              >
+                <span>الإنجازات</span>
+                <span class="num border border-[var(--c-line-strong)] bg-[var(--c-chip-bg)] px-1.5 py-0.5 text-[var(--flow-fs-xs)] font-bold text-[var(--c-accent)]">
+                  <bdi dir="ltr">{unlockedAchievementsCount}/{totalAchievementsCount}</bdi>
+                </span>
+              </button>
+
+              <button
+                type="button"
                 onclick={() => {
                   fx('tap');
                   menuView = 'settings';
@@ -362,6 +396,17 @@
               >
                 الإعدادات
               </button>
+
+              <!-- Standalone demos live as static pages under public/extras/. -->
+              <a
+                href="./extras/index.html"
+                onclick={() => fx('tap')}
+                style="min-height: var(--flow-btn-pri-h);"
+                class="kit-btn sec flex w-full items-center justify-between gap-3 bg-[var(--c-panel)] px-4 text-[var(--flow-fs-md)] no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+              >
+                <span>ألعاب جانبية</span>
+                <span class="border border-[var(--c-accent)] px-1.5 text-[var(--flow-fs-xs)] font-bold text-[var(--c-accent)]">جديد</span>
+              </a>
             </nav>
           </div>
 
@@ -809,6 +854,17 @@
 
             <button
               type="button"
+              onclick={openRecordsFromMenu}
+              class="kit-btn sec flex min-h-[46px] w-full items-center justify-between gap-3 bg-[var(--c-bg)] px-4 text-[14px] phone-l:min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+            >
+              <span>الإنجازات</span>
+              <span class="num border border-[var(--c-line-strong)] bg-[var(--c-chip-bg)] px-1.5 py-0.5 text-[11px] font-bold text-[var(--c-accent)]">
+                <bdi dir="ltr">{unlockedAchievementsCount}/{totalAchievementsCount}</bdi>
+              </span>
+            </button>
+
+            <button
+              type="button"
               onclick={() => {
                 fx('tap');
                 menuView = 'settings';
@@ -817,6 +873,16 @@
             >
               الإعدادات
             </button>
+
+            <!-- Standalone demos live as static pages under public/extras/. -->
+            <a
+              href="./extras/index.html"
+              onclick={() => fx('tap')}
+              class="kit-btn sec flex min-h-[46px] w-full items-center justify-between gap-3 bg-[var(--c-bg)] px-4 text-[14px] no-underline phone-l:min-h-[44px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)]"
+            >
+              <span>ألعاب جانبية</span>
+              <span class="border border-[var(--c-accent)] px-1.5 text-[11px] font-bold text-[var(--c-accent)]">جديد</span>
+            </a>
           </nav>
 
           <footer class="mt-2.5 shrink-0 flex flex-wrap items-center gap-x-1 gap-y-1 border-t border-[var(--c-line)] pt-1.5 text-[11.5px] text-[var(--c-muted)] phone-l:col-span-2 phone-l:row-start-2 phone-l:mt-0 phone-l:pt-1">

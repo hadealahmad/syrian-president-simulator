@@ -7,6 +7,11 @@ import { resolveEventOption, applyUnresolvedCrisisPenalty } from '../engine/even
 import { checkFailStates } from '../engine/fail-states';
 import { cloneGameState } from '../engine/state-clone';
 import { trackGameEventResolved, trackTurnCommitted } from './analytics-store';
+import {
+  applyMainRecordsTransition,
+  attachFreshMainRunMeta,
+  hydrateLoadedMainRunMeta,
+} from './main-records';
 
 const STORAGE_KEY = 'president_game_state_v1';
 
@@ -104,7 +109,9 @@ function loadStoredGameState(): GameState {
               }
             }
           }
-          return parsed as GameState;
+          const loadedState = parsed as GameState;
+          hydrateLoadedMainRunMeta(loadedState);
+          return loadedState;
         }
       }
     }
@@ -114,7 +121,7 @@ function loadStoredGameState(): GameState {
     // aborting store initialisation.
     console.warn('Could not load saved game state from localStorage:', err);
   }
-  return createInitialGameState();
+  return attachFreshMainRunMeta(createInitialGameState());
 }
 
 /** Fresh PRNG seed for a new run (crypto when available, Math.random otherwise). */
@@ -168,8 +175,10 @@ function createGameStore() {
       let nextState: GameState | null = null;
       update((current) => {
         prevState = current;
-        nextState = executeTurnLifecycle(current, directives);
-        return nextState;
+        const transitioned = executeTurnLifecycle(current, directives);
+        applyMainRecordsTransition(current, transitioned, true);
+        nextState = transitioned;
+        return transitioned;
       });
       if (prevState && nextState) {
         trackTurnCommitted(prevState, directives, nextState);
@@ -187,6 +196,7 @@ function createGameStore() {
           cloned.isGameOver = true;
           cloned.failState = failCheck;
         }
+        applyMainRecordsTransition(current, cloned, false);
         nextState = cloned;
         return cloned;
       });
@@ -212,6 +222,7 @@ function createGameStore() {
           cloned.isGameOver = true;
           cloned.failState = failCheck;
         }
+        applyMainRecordsTransition(current, cloned, false);
         nextState = cloned;
         return cloned;
       });
@@ -235,7 +246,7 @@ function createGameStore() {
       // Every caller passes no seed: without a fresh one every replay drew the
       // same event deck and stochastic outcomes. An explicit seed is still
       // honoured (tests and share codes depend on it).
-      const fresh = createInitialGameState(seed ?? generateSeed());
+      const fresh = attachFreshMainRunMeta(createInitialGameState(seed ?? generateSeed()));
       set(fresh);
     },
   };
