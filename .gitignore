@@ -32,3 +32,17 @@ Syria Post-War Economic Simulation Design.md
 
 # Build-generated public files
 public/version.json
+
+# Google Play / store publishing (local only — play-package holds the signing key)
+play-package/
+*.keystore
+*.jks
+signing-key-info.txt
+*.aab
+*.apk
+store-assets/
+scripts/store/
+documentation/play-store.md
+
+# Promo video workspace
+promo-video/
