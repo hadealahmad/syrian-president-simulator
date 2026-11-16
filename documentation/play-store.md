@@ -106,10 +106,18 @@ Without this file the app shows a Chrome address bar at the top.
 ## 4. App content forms
 
 - **Ads:** No ads.
-- **Data safety:** Data collected → *App activity: App interactions* and
-  *Device or other IDs* (Google Analytics), purpose *Analytics*, **optional**
-  (user consent), not shared, encrypted in transit, no deletion request needed
-  (no account). No personal info, location, contacts or files.
+- **Data safety:** the live GTM container (GTM-MP8775QZ) runs only GA4
+  (G-8NM263X5WG) with enhanced measurement; no other vendors. Declare:
+  - *App activity → App interactions* (game events, page views, clicks)
+  - *Device or other IDs* (GA client ID cookie)
+  - *Location → Approximate location* (GA4 derives country/city from IP)
+
+  For each: collected, not shared (Google is a service provider), not
+  ephemeral, **optional** (consent banner), purpose *Analytics*. Encrypted in
+  transit: yes. No accounts, so no account-deletion URL. Everything else
+  (personal/financial info, precise location, messages, photos, files,
+  contacts, health, crash logs) is not collected. Game saves stay in
+  localStorage on the device and are not "collected".
 - **Content rating (IARC):** Strategy/simulation; political themes and references
   to war, no graphic violence, no user interaction or chat, no purchases.
 - **Target audience:** 13+ (privacy policy states not directed at children).
