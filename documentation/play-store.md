@@ -28,7 +28,7 @@ npx tsx scripts/store/capture-store-shots.mts      # writes store-assets/raw/
 1. Open https://www.pwabuilder.com/reportcard?site=https://game.hadealahmad.com and
    confirm manifest + service worker show no required-field errors.
 2. **Package for stores → Android → Google Play**. Options:
-   - Package ID: `com.hadealahmad.president` (permanent; cannot change after first upload)
+   - Package ID: `com.hadealahmad.game` (permanent; cannot change after first upload)
    - App name: `رئيس الجمهورية`, launcher name: `رئيس الجمهورية`
    - Version code `1`, version name `1.0.0` (bump both for every shell release)
    - Host: `game.hadealahmad.com`, start URL `/`
@@ -58,7 +58,7 @@ Without this file the app shows a Chrome address bar at the top.
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.hadealahmad.president",
+      "package_name": "com.hadealahmad.game",
       "sha256_cert_fingerprints": [
         "AA:BB:...:PWABUILDER_UPLOAD_KEY",
         "CC:DD:...:PLAY_APP_SIGNING_KEY"
