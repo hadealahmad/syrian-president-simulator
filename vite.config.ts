@@ -123,10 +123,57 @@ export default defineConfig({
         start_url: './',
         scope: './',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         orientation: 'any',
-        theme_color: '#0a1b18',
-        background_color: '#071210',
-        categories: ['games', 'simulation', 'strategy'],
+        // Matches the default theme's --c-bg so the Android splash screen
+        // blends into the first frame.
+        theme_color: '#0b0f12',
+        background_color: '#0b0f12',
+        categories: ['games', 'simulation', 'strategy', 'education'],
+        prefer_related_applications: false,
+        handle_links: 'preferred',
+        launch_handler: { client_mode: ['navigate-existing', 'auto'] },
+        shortcuts: [
+          {
+            name: 'ألعاب جانبية',
+            short_name: 'ألعاب جانبية',
+            description: 'ألعاب قصيرة من عالم رئيس الجمهورية',
+            url: './extras/index.html',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'قرارات عاجلة',
+            short_name: 'قرارات عاجلة',
+            description: 'لعبة ملفات سريعة: قرّر وحافظ على التوازن',
+            url: './extras/dossier/index.html',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
+        screenshots: [
+          ...[
+            'الشاشة الرئيسية',
+            'خريطة المحافظات',
+            'الخزينة والضرائب',
+            'المراسيم والحكم',
+            'التقارير والمؤشرات',
+            'قرارات عاجلة',
+          ].map((label, i) => ({
+            src: `screenshots/narrow-${i + 1}.webp`,
+            sizes: '1082x1922',
+            type: 'image/webp',
+            form_factor: 'narrow' as const,
+            label,
+          })),
+          ...['خريطة المحافظات', 'الخزينة والضرائب', 'المراسيم والحكم', 'التقارير والمؤشرات'].map(
+            (label, i) => ({
+              src: `screenshots/wide-${i + 1}.webp`,
+              sizes: '1920x1080',
+              type: 'image/webp',
+              form_factor: 'wide' as const,
+              label,
+            }),
+          ),
+        ],
         icons: [
           {
             src: 'icon-192.png',
@@ -139,6 +186,18 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any',
+          },
+          {
+            src: 'icon-maskable-192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+          {
+            src: 'icon-maskable-512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
           },
         ],
       },

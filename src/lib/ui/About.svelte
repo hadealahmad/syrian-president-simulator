@@ -426,6 +426,15 @@
             >
               نص الرخصة
             </a>
+            <a
+              href="./privacy.html"
+              target="_blank"
+              rel="noreferrer"
+              onclick={() => fx('tap')}
+              class="inline-flex min-h-11 items-center gap-1.5 font-bold text-[var(--c-pos)] underline underline-offset-4 transition-colors hover:text-[var(--c-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--c-accent)] {isDesktop ? 'text-[var(--flow-fs-sm)]' : 'text-[13px]'}"
+            >
+              سياسة الخصوصية
+            </a>
           </div>
         </section>
       </article>
