@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "com.hadealahmad.game",
+        "package_name": "game.hadealahmad.com",
         "sha256_cert_fingerprints": ["71:BB:EE:44:E1:BC:E0:C7:36:9E:03:17:2B:E7:92:A5:F6:E8:95:C2:BE:3F:CA:88:28:C2:D0:C2:DD:AA:03:03"]
       }
     }]
