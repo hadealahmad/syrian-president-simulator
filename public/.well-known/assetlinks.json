@@ -1,8 +1,15 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "game.hadealahmad.com",
-        "sha256_cert_fingerprints": ["71:BB:EE:44:E1:BC:E0:C7:36:9E:03:17:2B:E7:92:A5:F6:E8:95:C2:BE:3F:CA:88:28:C2:D0:C2:DD:AA:03:03"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "game.hadealahmad.com",
+      "sha256_cert_fingerprints": [
+        "96:42:8E:E5:7B:AB:68:F1:2D:BF:54:89:AC:B4:5A:35:A3:B9:2F:13:B9:61:90:F0:60:58:1E:94:84:A9:5B:33",
+        "8C:F5:94:78:9E:0A:40:94:31:C7:16:51:91:3D:38:0D:E7:6D:24:1A:03:29:B5:70:2A:7F:78:D5:34:90:C5:5C",
+        "90:9F:BD:A6:CF:1A:53:1F:99:05:0D:DD:2B:83:C9:4D:93:E6:2B:50:B2:F2:71:30:98:48:61:6D:F2:88:00:0A",
+        "71:BB:EE:44:E1:BC:E0:C7:36:9E:03:17:2B:E7:92:A5:F6:E8:95:C2:BE:3F:CA:88:28:C2:D0:C2:DD:AA:03:03"
+      ]
+    }
+  }
+]
